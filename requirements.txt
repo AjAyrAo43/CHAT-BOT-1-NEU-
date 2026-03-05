@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+streamlit
+langchain
+langchain-groq
+cryptography
+sqlalchemy
+python-dotenv
+requests
+bcrypt
+plotly
+pandas
+slowapi
+psycopg2-binary
+openpyxl

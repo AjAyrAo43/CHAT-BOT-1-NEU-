@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chatbot Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #7c3aed;
+    --accent2: #06b6d4;
+    --accent3: #10b981;
+    --accent4: #f59e0b;
+    --accent5: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 40px 20px;
+    background-image: 
+      radial-gradient(ellipse at 20% 20%, rgba(124,58,237,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(6,182,212,0.06) 0%, transparent 50%);
+  }
+
+  .page { max-width: 1100px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 60px;
+    animation: fadeDown 0.6s ease;
+  }
+  .header .tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .header h1 {
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 30%, var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+  .header p {
+    color: var(--muted);
+    font-size: 14px;
+    font-family: var(--mono);
+  }
+
+  /* Stack badges */
+  .stack-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 60px;
+    animation: fadeUp 0.6s ease 0.2s both;
+  }
+  .badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid;
+    letter-spacing: 1px;
+  }
+  .badge.purple { border-color: var(--accent); color: var(--accent); background: rgba(124,58,237,0.1); }
+  .badge.cyan   { border-color: var(--accent2); color: var(--accent2); background: rgba(6,182,212,0.1); }
+  .badge.green  { border-color: var(--accent3); color: var(--accent3); background: rgba(16,185,129,0.1); }
+  .badge.amber  { border-color: var(--accent4); color: var(--accent4); background: rgba(245,158,11,0.1); }
+  .badge.red    { border-color: var(--accent5); color: var(--accent5); background: rgba(239,68,68,0.1); }
+
+  /* Section label */
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background: var(--border); }
+
+  /* Main flow diagram */
+  .flow-container {
+    margin-bottom: 50px;
+    animation: fadeUp 0.6s ease 0.3s both;
+  }
+
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .flow-row {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+  }
+  .flow-row.single {
+    grid-template-columns: 1fr;
+  }
+
+  .layer {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .layer:hover { border-color: var(--accent); }
+  .layer::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    border-radius: 12px 0 0 12px;
+  }
+  .layer.frontend::before { background: var(--accent); }
+  .layer.backend::before  { background: var(--accent2); }
+  .layer.ai::before       { background: var(--accent3); }
+  .layer.db::before       { background: var(--accent4); }
+  .layer.security::before { background: var(--accent5); }
+  .layer.admin::before    { background: var(--accent); }
+
+  .layer-tag {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .frontend .layer-tag { color: var(--accent); }
+  .backend  .layer-tag { color: var(--accent2); }
+  .ai       .layer-tag { color: var(--accent3); }
+  .db       .layer-tag { color: var(--accent4); }
+  .security .layer-tag { color: var(--accent5); }
+  .admin    .layer-tag { color: var(--accent); }
+
+  .layer h3 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .layer ul {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .layer ul li {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.04);
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+
+  .arrow-down {
+    text-align: center;
+    color: var(--muted);
+    font-size: 20px;
+    line-height: 1;
+    padding: 4px 0;
+  }
+  .arrow-right {
+    text-align: center;
+    color: var(--muted);
+    font-size: 16px;
+  }
+
+  /* Full-width single layer */
+  .layer-wide {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    background: var(--surface);
+    margin: 0;
+  }
+  .layer-wide::before { display: none; }
+
+  /* Data flow section */
+  .data-flow {
+    margin-bottom: 50px;
+    animation: fadeUp 0.6s ease 0.4s both;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 2px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .step {
+    padding: 20px;
+    background: var(--surface);
+    position: relative;
+    text-align: center;
+  }
+  .step:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 16px;
+    z-index: 2;
+  }
+
+  .step-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .step-icon { font-size: 22px; margin-bottom: 8px; }
+  .step h4 { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+  .step p  { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+  /* Security section */
+  .security-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 50px;
+    animation: fadeUp 0.6s ease 0.5s both;
+  }
+
+  .sec-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    background: var(--surface);
+  }
+  .sec-card .icon { font-size: 24px; margin-bottom: 10px; }
+  .sec-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .sec-card p  { font-family: var(--mono); font-size: 10px; color: var(--muted); line-height: 1.6; }
+  .sec-card .pill {
+    display: inline-block;
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: rgba(239,68,68,0.1);
+    color: var(--accent5);
+    border: 1px solid rgba(239,68,68,0.2);
+  }
+
+  /* File structure */
+  .file-tree {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    background: var(--surface);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.9;
+    margin-bottom: 50px;
+    animation: fadeUp 0.6s ease 0.5s both;
+  }
+  .file-tree .dir  { color: var(--accent2); font-weight: 700; }
+  .file-tree .file { color: var(--text); }
+  .file-tree .note { color: var(--muted); }
+  .file-tree .indent1 { margin-left: 20px; }
+  .file-tree .indent2 { margin-left: 40px; }
+
+  /* DB schema */
+  .schema-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin-bottom: 50px;
+    animation: fadeUp 0.6s ease 0.6s both;
+  }
+  .table-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .table-header {
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .table-header .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .table-row {
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    display: grid;
+    grid-template-columns: 1fr 1fr 60px;
+    gap: 8px;
+    align-items: center;
+  }
+  .table-row:last-child { border-bottom: none; }
+  .col-name { font-family: var(--mono); font-size: 11px; }
+  .col-type { font-family: var(--mono); font-size: 10px; color: var(--accent2); }
+  .col-enc  { font-family: var(--mono); font-size: 9px; color: var(--accent5); text-align: right; }
+  .col-plain{ font-family: var(--mono); font-size: 9px; color: var(--accent3); text-align: right; }
+
+  /* Timeline */
+  .timeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 50px;
+    animation: fadeUp 0.6s ease 0.7s both;
+  }
+  @media(max-width:700px){ .timeline { grid-template-columns: 1fr 1fr; } }
+
+  .week {
+    padding: 20px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+  }
+  .week:last-child { border-right: none; }
+  .week-num {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .week h4 { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+  .week ul  { list-style: none; }
+  .week ul li {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    padding: 3px 0;
+    padding-left: 12px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .week ul li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--accent3);
+  }
+
+  @keyframes fadeDown {
+    from { opacity:0; transform:translateY(-20px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(20px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <span class="tag">System Design Document</span>
+    <h1>Basic Chatbot<br>Complete Architecture</h1>
+    <p>Streamlit · FastAPI · LangChain · SQLite/PostgreSQL · AES-256</p>
+  </div>
+
+  <!-- Stack badges -->
+  <div class="stack-row">
+    <span class="badge purple">Streamlit</span>
+    <span class="badge cyan">FastAPI</span>
+    <span class="badge green">LangChain</span>
+    <span class="badge green">Claude API</span>
+    <span class="badge amber">SQLite → PostgreSQL</span>
+    <span class="badge red">AES-256 Encryption</span>
+    <span class="badge purple">Python 3.10+</span>
+  </div>
+
+  <!-- System Layers -->
+  <div class="flow-container">
+    <div class="section-label">System Layers</div>
+    <div class="flow">
+
+      <!-- Layer 1: Frontend -->
+      <div class="arrow-down">↓ USER</div>
+      <div class="flow-row single">
+        <div class="layer frontend">
+          <div class="layer-tag">Layer 1 — Presentation</div>
+          <h3>Streamlit Frontend</h3>
+          <ul>
+            <li>chat_app.py → Chat UI</li>
+            <li>admin_panel.py → Admin Dashboard</li>
+            <li>session_state → display-only history</li>
+            <li>Hindi / Hinglish input support</li>
+            <li>Password-gated admin view</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="arrow-down">↓ HTTP POST /chat</div>
+
+      <!-- Layer 2: Backend -->
+      <div class="flow-row single">
+        <div class="layer backend">
+          <div class="layer-tag">Layer 2 — API (Business Logic)</div>
+          <h3>FastAPI Backend</h3>
+          <ul>
+            <li>POST /chat → main handler</li>
+            <li>GET /admin/chats → decrypt & return</li>
+            <li>POST /admin/faq → add FAQ</li>
+            <li>Pydantic request validation</li>
+            <li>Rate limiting middleware</li>
+            <li>CORS control</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="arrow-down">↓ invoke chain</div>
+
+      <!-- Layer 3: AI -->
+      <div class="flow-row" style="grid-template-columns:1fr 24px 1fr;">
+        <div class="layer ai">
+          <div class="layer-tag">Layer 3A — Intent</div>
+          <h3>LangChain Intent Chain</h3>
+          <ul>
+            <li>ChatPromptTemplate</li>
+            <li>Claude claude-sonnet-4-20250514</li>
+            <li>6 intent classes</li>
+            <li>Returns: pricing / support / etc.</li>
+          </ul>
+        </div>
+        <div class="arrow-right">→</div>
+        <div class="layer ai">
+          <div class="layer-tag">Layer 3B — Answer</div>
+          <h3>LangChain Answer Chain</h3>
+          <ul>
+            <li>FAQs fetched from DB by intent</li>
+            <li>Context injected into prompt</li>
+            <li>Fallback re-prompt if no match</li>
+            <li>WhatsApp-style short answers</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="arrow-down">↓ encrypt → save</div>
+
+      <!-- Layer 4: Security -->
+      <div class="flow-row single">
+        <div class="layer security">
+          <div class="layer-tag">Layer 4 — Security</div>
+          <h3>Encryption Module (encryption.py)</h3>
+          <ul>
+            <li>Fernet AES-256 symmetric encryption</li>
+            <li>encrypt_text() → before DB write</li>
+            <li>decrypt_text() → only in admin route</li>
+            <li>ENCRYPTION_KEY in .env only</li>
+            <li>TLS 1.3 in transit (hosting)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="arrow-down">↓ SQLAlchemy ORM</div>
+
+      <!-- Layer 5: DB -->
+      <div class="flow-row single">
+        <div class="layer db">
+          <div class="layer-tag">Layer 5 — Persistence</div>
+          <h3>Database (SQLite → PostgreSQL)</h3>
+          <ul>
+            <li>chat_logs table → encrypted questions + plain metadata</li>
+            <li>faqs table → admin-managed knowledge base</li>
+            <li>admins table → bcrypt hashed passwords</li>
+            <li>SQLAlchemy ORM → DB-agnostic</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Message Data Flow -->
+  <div class="data-flow">
+    <div class="section-label">Message Data Flow (One Request)</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-icon">💬</div>
+        <h4>User types</h4>
+        <p>Question sent from Streamlit to FastAPI via requests.post()</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-icon">🧠</div>
+        <h4>Intent detected</h4>
+        <p>LangChain + Claude classifies into 1 of 6 intent buckets</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-icon">📋</div>
+        <h4>FAQs fetched</h4>
+        <p>DB queried for FAQs matching that intent</p>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-icon">✍️</div>
+        <h4>Answer generated</h4>
+        <p>LangChain chain generates short, friendly answer</p>
+      </div>
+      <div class="step">
+        <div class="step-num">05</div>
+        <div class="step-icon">🔐</div>
+        <h4>Question encrypted</h4>
+        <p>Raw question → AES-256 ciphertext before any DB write</p>
+      </div>
+      <div class="step">
+        <div class="step-num">06</div>
+        <div class="step-icon">💾</div>
+        <h4>Log saved</h4>
+        <p>Encrypted question + plain metadata stored in chat_logs</p>
+      </div>
+      <div class="step">
+        <div class="step-num">07</div>
+        <div class="step-icon">↩️</div>
+        <h4>Answer returned</h4>
+        <p>Clean answer sent back to Streamlit UI for display</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Security Architecture -->
+  <div class="section-label">Security Architecture</div>
+  <div class="security-grid">
+    <div class="sec-card">
+      <div class="icon">🔒</div>
+      <h4>Encryption At Rest</h4>
+      <p>Every user question is encrypted using AES-256 (Fernet) before being written to the database. Even if someone accesses the DB file directly, they see unreadable ciphertext.</p>
+      <span class="pill">cryptography.fernet</span>
+    </div>
+    <div class="sec-card">
+      <div class="icon">🌐</div>
+      <h4>Encryption In Transit</h4>
+      <p>All data between user browser and server travels over HTTPS (TLS 1.3). Enabled automatically on Railway / Render / any cloud host. Never deploy on plain HTTP.</p>
+      <span class="pill">TLS 1.3</span>
+    </div>
+    <div class="sec-card">
+      <div class="icon">🗝️</div>
+      <h4>Key Management</h4>
+      <p>The ENCRYPTION_KEY lives only in the .env file, never in code. The .env is gitignored. Without this key, the ciphertext in the DB is permanently unreadable.</p>
+      <span class="pill">.env + .gitignore</span>
+    </div>
+    <div class="sec-card">
+      <div class="icon">👤</div>
+      <h4>Admin-Only Decryption</h4>
+      <p>decrypt_text() is called only inside the /admin/chats route. The admin panel is password protected. Regular users never trigger decryption — ever.</p>
+      <span class="pill">Route-level control</span>
+    </div>
+    <div class="sec-card">
+      <div class="icon">🛡️</div>
+      <h4>Password Hashing</h4>
+      <p>Admin passwords stored as bcrypt hashes, never plain text. Even if DB is leaked, passwords cannot be reversed. Salt is automatically applied per hash.</p>
+      <span class="pill">bcrypt</span>
+    </div>
+    <div class="sec-card">
+      <div class="icon">🚦</div>
+      <h4>Rate Limiting</h4>
+      <p>FastAPI middleware limits requests per IP to prevent spam and API cost abuse. Stops bots from draining your Claude API credits or flooding the database.</p>
+      <span class="pill">slowapi</span>
+    </div>
+  </div>
+
+  <!-- File Structure -->
+  <div class="section-label">Project File Structure</div>
+  <div class="file-tree">
+    <div><span class="dir">chatbot_project/</span></div>
+    <div class="indent1"><span class="dir">backend/</span></div>
+    <div class="indent2"><span class="file">main.py</span>         <span class="note">← FastAPI app, all routes</span></div>
+    <div class="indent2"><span class="file">database.py</span>     <span class="note">← SQLAlchemy models + DB session</span></div>
+    <div class="indent2"><span class="file">encryption.py</span>   <span class="note">← encrypt_text() / decrypt_text()</span></div>
+    <div class="indent2"><span class="file">intent_chain.py</span> <span class="note">← LangChain intent detection</span></div>
+    <div class="indent2"><span class="file">faq_chain.py</span>    <span class="note">← LangChain answer generation</span></div>
+    <div class="indent1"><span class="dir">frontend/</span></div>
+    <div class="indent2"><span class="file">chat_app.py</span>     <span class="note">← Streamlit chat widget (port 8501)</span></div>
+    <div class="indent2"><span class="file">admin_panel.py</span>  <span class="note">← Streamlit admin dashboard (port 8502)</span></div>
+    <div class="indent1"><span class="file">.env</span>             <span class="note">← ANTHROPIC_API_KEY, ENCRYPTION_KEY ← NEVER commit</span></div>
+    <div class="indent1"><span class="file">.gitignore</span>       <span class="note">← must include .env and chatbot.db</span></div>
+    <div class="indent1"><span class="file">requirements.txt</span><span class="note">← all pip packages</span></div>
+    <div class="indent1"><span class="file">chatbot.db</span>       <span class="note">← SQLite file (switch to PostgreSQL for prod)</span></div>
+  </div>
+
+  <!-- DB Schema -->
+  <div class="section-label">Database Schema</div>
+  <div class="schema-grid">
+    <div class="table-card">
+      <div class="table-header">
+        <div class="dot" style="background:var(--accent5)"></div>
+        chat_logs
+      </div>
+      <div class="table-row">
+        <span class="col-name">id</span>
+        <span class="col-type">UUID</span>
+        <span class="col-plain">plain</span>
+      </div>
+      <div class="table-row">
+        <span class="col-name">encrypted_question</span>
+        <span class="col-type">TEXT</span>
+        <span class="col-enc">🔐 encrypted</span>
+      </div>
+      <div class="table-row">
+        <span class="col-name">detected_intent</span>
+        <span class="col-type">VARCHAR</span>
+        <span class="col-plain">plain</span>
+      </div>
+      <div class="table-row">
+        <span class="col-name">page_url</span>
+        <span class="col-type">VARCHAR</span>
+        <span class="col-plain">plain</span>
+      </div>
+      <div class="table-row">
+        <span class="col-name">is_resolved</span>
+        <span class="col-type">BOOLEAN</span>
+        <span class="col-plain">plain</span>
+      </div>
+      <div class="table-row">
+        <span class="col-name">language</span>
+        <span class="col-type">VARCHAR</span>
+        <span class="col-plain">plain</span>
+      </div>
+      <div class="table-row">
+        <span class="col-name">created_at</span>
+        <span class="col-type">TIMESTAMP</span>
+        <span class="col-plain">plain</span>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-header">
+        <div class="dot" style="background:var(--accent3)"></div>
+        faqs
+      </div>
+      <div class="table-row">
+        <span class="col-name">id</span>
+        <span class="col-type">UUID</span>
+        <span class="col-plain">plain</span>
+      </div>
+      <div class="table-row">
+        <span class="col-name">question</span>
+        <span class="col-type">TEXT</span>
+        <span class="col-plain">plain</span>
+      </div>
+      <div class="table-row">
+        <span class="col-name">answer</span>
+        <span class="col-type">TEXT</span>
+        <span class="col-plain">plain</span>
+      </div>
+      <div class="table-row">
+        <span class="col-name">intent</span>
+        <span class="col-type">VARCHAR</span>
+        <span class="col-plain">plain</span>
+      </div>
+      <div class="table-row">
+        <span class="col-name">is_active</span>
+        <span class="col-type">BOOLEAN</span>
+        <span class="col-plain">plain</span>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-header">
+        <div class="dot" style="background:var(--accent)"></div>
+        admins
+      </div>
+      <div class="table-row">
+        <span class="col-name">id</span>
+        <span class="col-type">UUID</span>
+        <span class="col-plain">plain</span>
+      </div>
+      <div class="table-row">
+        <span class="col-name">email</span>
+        <span class="col-type">VARCHAR</span>
+        <span class="col-plain">plain</span>
+      </div>
+      <div class="table-row">
+        <span class="col-name">password_hash</span>
+        <span class="col-type">TEXT</span>
+        <span class="col-enc">🔐 bcrypt</span>
+      </div>
+      <div class="table-row">
+        <span class="col-name">role</span>
+        <span class="col-type">VARCHAR</span>
+        <span class="col-plain">plain</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Build Timeline -->
+  <div class="section-label">4-Week Build Plan</div>
+  <div class="timeline">
+    <div class="week">
+      <div class="week-num">WEEK 01</div>
+      <h4>Foundation</h4>
+      <ul>
+        <li>Set up folder structure</li>
+        <li>Install all packages</li>
+        <li>Generate encryption key</li>
+        <li>Create DB tables</li>
+        <li>Test /chat endpoint in /docs</li>
+      </ul>
+    </div>
+    <div class="week">
+      <div class="week-num">WEEK 02</div>
+      <h4>AI Core</h4>
+      <ul>
+        <li>Intent detection chain</li>
+        <li>FAQ answer chain</li>
+        <li>Add sample FAQs to DB</li>
+        <li>Test full question → answer flow</li>
+        <li>Hindi/Hinglish prompt</li>
+      </ul>
+    </div>
+    <div class="week">
+      <div class="week-num">WEEK 03</div>
+      <h4>UI + Security</h4>
+      <ul>
+        <li>Streamlit chat UI</li>
+        <li>Admin panel + charts</li>
+        <li>Verify DB encryption works</li>
+        <li>Rate limiting</li>
+        <li>FAQ CRUD in admin</li>
+      </ul>
+    </div>
+    <div class="week">
+      <div class="week-num">WEEK 04</div>
+      <h4>Deploy + Polish</h4>
+      <ul>
+        <li>Move to PostgreSQL</li>
+        <li>Deploy on Railway/Render</li>
+        <li>Enable HTTPS</li>
+        <li>Security checklist</li>
+        <li>Demo to manager</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
