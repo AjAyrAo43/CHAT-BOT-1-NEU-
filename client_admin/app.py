@@ -18,7 +18,8 @@ st.markdown("""
 
 st.title("📊 Client Admin Panel")
 
-BACKEND_URL = "http://127.0.0.1:8000"
+import os
+BACKEND_URL = os.environ.get("BACKEND_URL", "https://chat-bot-1-neu.onrender.com")
 
 # ──────────────────────────────────────────────
 # Tenant ID: MUST come from URL param

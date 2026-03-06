@@ -22,7 +22,8 @@ st.caption("Developer dashboard — manage all clients and their chatbot configu
 # ──────────────────────────────────────────────
 # Password Gate (Verified against backend)
 # ──────────────────────────────────────────────
-BACKEND_URL = "http://127.0.0.1:8000"
+import os
+BACKEND_URL = os.environ.get("BACKEND_URL", "https://chat-bot-1-neu.onrender.com")
 
 if "seller_authenticated" not in st.session_state:
     st.session_state.seller_authenticated = False
