@@ -141,7 +141,9 @@ with tab_clients:
 
                         col_url, col_deact = st.columns(2)
                         with col_url:
-                            st.code(f"Client Chatbot URL:\nhttp://127.0.0.1:8501/?tenant_id={t['id']}\n\nClient Admin URL:\nhttp://127.0.0.1:8502/?tenant_id={t['id']}", language="text")
+                            chatbot_base = os.environ.get("CLIENT_CHATBOT_URL", "https://your-chatbot-app.streamlit.app")
+                            admin_base = os.environ.get("CLIENT_ADMIN_URL", "https://your-client-admin.streamlit.app")
+                            st.code(f"Client Chatbot URL:\n{chatbot_base}/?tenant_id={t['id']}\n\nClient Admin URL:\n{admin_base}/?tenant_id={t['id']}", language="text")
                         with col_deact:
                             if t['is_active']:
                                 if st.button(f"Deactivate {t['name']}", key=f"deact_{t['id']}"):
