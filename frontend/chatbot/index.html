@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Widget preview</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Simple Company Name Display -->
+    <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #fafafa; margin: 0;">
+        <h1 id="demo-title" style="font-size: 3rem; color: #111; font-weight: 500; text-align: center; padding: 2rem;">Loading...</h1>
+    </div>
+
+    <!-- Chatbot Widget Core HTML -->
+    <div id="cb-widget" class="cb-container">
+        <!-- Floating Button -->
+        <button id="cb-toggle-btn" class="cb-btn-float" aria-label="Open Chat">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </button>
+
+        <!-- Chat Window -->
+        <div id="cb-window" class="cb-window" style="display: none;">
+            <div class="cb-header">
+                <div class="cb-title">Support Chat</div>
+                <button id="cb-close-btn" class="cb-btn-close" aria-label="Close Chat">&times;</button>
+            </div>
+            
+            <div id="cb-messages" class="cb-messages">
+                <div class="cb-msg cb-system">
+                    <p>Connecting to secure chat...</p>
+                </div>
+            </div>
+
+            <div class="cb-input-area">
+                <form id="cb-form">
+                    <input type="text" id="cb-input" placeholder="Type a message..." required autocomplete="off">
+                    <button type="submit" id="cb-send-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+            <div class="cb-footer">Powered by Secure AI</div>
+        </div>
+    </div>
+
+    <!-- marked script to parse markdown optionally -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

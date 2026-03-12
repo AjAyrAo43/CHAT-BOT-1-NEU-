@@ -151,6 +151,16 @@ class ChatLog(TenantBase):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
+class KnowledgeDocument(TenantBase):
+    __tablename__ = "knowledge_documents"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    filename = Column(String)
+    content = Column(Text)
+    file_type = Column(String)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
 # ──────────────────────────────────────────────
 # DYNAMIC TENANT CONNECTION MANAGEMENT
 # ──────────────────────────────────────────────

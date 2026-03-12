@@ -1,0 +1,46 @@
+# Virtual environments
+venv/
+env/
+.env
+.venv/
+anaconda3/
+chatbot/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local Database Files
+*.db
+*.sqlite3
+tenants_db/
+master.db
+chatbot.db
+chatbot_v2.db
+
+# Frontend (Deploying separately to Firebase/Vercel)
+frontend/
+client_app/
+client_admin/
+admin_app/
+*.html
+
+# Secrets and local configurations
+.env
+.env.example
+tenants.json
+
+# Git
+.git/
+.gitignore
+
+# IDEs
+.idea/
+.vscode/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/

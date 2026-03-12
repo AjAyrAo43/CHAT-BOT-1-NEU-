@@ -13,3 +13,6 @@ pandas
 slowapi
 psycopg2-binary
 openpyxl
+PyPDF2
+python-multipart
+psycopg2-binary

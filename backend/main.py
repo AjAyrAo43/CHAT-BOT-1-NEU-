@@ -1,5 +1,8 @@
 import os
-from fastapi import FastAPI, Depends, HTTPException, Request, Query
+from fastapi import FastAPI, Depends, HTTPException, Request, Query, UploadFile, File
+import io
+import PyPDF2
+import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -12,12 +15,14 @@ from .database import (
     get_tenant_session, init_tenant_db,
     register_tenant, get_all_tenants, get_tenant_by_id, deactivate_tenant,
     verify_client_password, update_tenant_password,
-    ChatLog, FAQ, Admin, BusinessProfile
+    ChatLog, FAQ, Admin, BusinessProfile, KnowledgeDocument
 )
 from .encryption import encrypt_text, decrypt_text
 from .email_notifier import send_lead_notification
 from .intent_chain import detect_intent
 from .faq_chain import get_answer
+
+
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Multi-Tenant Chatbot API")
@@ -95,6 +100,12 @@ class ChatLogResponse(BaseModel):
     language: str
     created_at: str
 
+class DocumentResponse(BaseModel):
+    id: str
+    filename: str
+    file_type: str
+    is_active: bool
+    created_at: str
 
 class TenantCreate(BaseModel):
     name: str
@@ -337,6 +348,71 @@ async def update_profile(profile_data: BusinessProfileBase, db: Session = Depend
     db.commit()
     db.refresh(profile)
     return profile
+
+
+@app.post("/admin/upload-doc", response_model=DocumentResponse)
+async def upload_document(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_tenant_db)
+):
+    content = ""
+    try:
+        content_bytes = await file.read()
+        if file.filename.endswith(".pdf"):
+            reader = PyPDF2.PdfReader(io.BytesIO(content_bytes))
+            for page in reader.pages:
+                text = page.extract_text()
+                if text:
+                    content += text + "\n"
+        elif file.filename.endswith(".txt") or file.filename.endswith(".csv"):
+            content = content_bytes.decode("utf-8")
+        elif file.filename.endswith(".xlsx"):
+            df = pd.read_excel(io.BytesIO(content_bytes))
+            content = df.to_string()
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file format.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse file: {str(e)}")
+
+    doc = KnowledgeDocument(
+        filename=file.filename,
+        content=content,
+        file_type=file.filename.split(".")[-1]
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
+    return {
+        "id": doc.id,
+        "filename": doc.filename,
+        "file_type": doc.file_type,
+        "is_active": doc.is_active,
+        "created_at": str(doc.created_at)
+    }
+
+
+@app.get("/admin/docs", response_model=List[DocumentResponse])
+async def get_documents(db: Session = Depends(get_tenant_db)):
+    docs = db.query(KnowledgeDocument).filter(KnowledgeDocument.is_active == True).all()
+    return [
+        {
+            "id": d.id,
+            "filename": d.filename,
+            "file_type": d.file_type,
+            "is_active": d.is_active,
+            "created_at": str(d.created_at)
+        } for d in docs
+    ]
+
+
+@app.delete("/admin/doc/{doc_id}")
+async def delete_document(doc_id: str, db: Session = Depends(get_tenant_db)):
+    doc = db.query(KnowledgeDocument).filter(KnowledgeDocument.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    doc.is_active = False
+    db.commit()
+    return {"message": "Document deleted"}
 
 
 if __name__ == "__main__":

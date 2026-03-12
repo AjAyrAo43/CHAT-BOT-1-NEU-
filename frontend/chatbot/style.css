@@ -1,0 +1,215 @@
+/* Chatbot Widget Styles
+   Minalist white theme, no heavy styling, strict isolation using cb- prefix
+*/
+
+.cb-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 999999;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1a1a1a;
+}
+
+/* Floating Button */
+.cb-btn-float {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    color: #000000;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    outline: none;
+}
+.cb-btn-float:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+.cb-btn-float svg {
+    margin-top: 2px;
+}
+
+/* Chat Window */
+.cb-window {
+    position: absolute;
+    bottom: 70px;
+    right: 0;
+    width: 350px;
+    height: 500px;
+    max-height: calc(100vh - 100px);
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    display: flex; /* overridden by script inline display block/none, but flex inside content */
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Specific flex column structure when visible */
+.cb-window[style*="display: flex"] {
+    display: flex !important;
+}
+
+.cb-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #F0F0F0;
+    background-color: #ffffff;
+}
+
+.cb-title {
+    font-weight: 500;
+    font-size: 1rem;
+}
+
+.cb-btn-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #666;
+    cursor: pointer;
+}
+.cb-btn-close:hover {
+    color: #000;
+}
+
+/* Messages Area */
+.cb-messages {
+    flex: 1;
+    padding: 1.25rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background-color: #ffffff;
+}
+
+.cb-msg {
+    max-width: 85%;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+.cb-msg p { margin: 0; }
+.cb-msg p + p { margin-top: 0.5rem; }
+.cb-msg ul, .cb-msg ol { padding-left: 1.2rem; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+.cb-msg a { color: #000; text-decoration: underline; }
+
+.cb-msg.cb-system {
+    align-self: center;
+    color: #888;
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.cb-msg.cb-user {
+    align-self: flex-end;
+    background-color: #f7f7f7;
+    border: 1px solid #eeeeee;
+    padding: 0.75rem 1rem;
+    border-radius: 8px 8px 0px 8px;
+    color: #000;
+}
+
+.cb-msg.cb-bot {
+    align-self: flex-start;
+    background-color: #ffffff;
+    border: 1px solid #e5e5e5;
+    padding: 0.75rem 1rem;
+    border-radius: 8px 8px 8px 0px;
+    color: #111;
+}
+
+/* Input Area */
+.cb-input-area {
+    padding: 1rem;
+    border-top: 1px solid #f0f0f0;
+    background-color: #ffffff;
+}
+
+#cb-form {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#cb-input {
+    flex: 1;
+    border: 1px solid #e0e0e0;
+    padding: 0.75rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+#cb-input:focus {
+    border-color: #000;
+}
+
+#cb-send-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background-color: #000000;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+#cb-send-btn:hover {
+    opacity: 0.8;
+}
+#cb-send-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.cb-footer {
+    text-align: center;
+    font-size: 0.65rem;
+    color: #aaa;
+    padding: 0.25rem;
+    background-color: #ffffff;
+}
+
+/* Typing indicator */
+.cb-typing {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0.5rem 0.2rem;
+}
+.cb-dot {
+    width: 6px; height: 6px; background-color: #999; border-radius: 50%;
+    animation: cb-bounce 1.4s infinite ease-in-out both;
+}
+.cb-dot:nth-child(1) { animation-delay: -0.32s; }
+.cb-dot:nth-child(2) { animation-delay: -0.16s; }
+@keyframes cb-bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 480px) {
+    .cb-window {
+        bottom: 0; right: 0; border-radius: 0;
+        width: 100vw; height: 100dvh; max-height: none;
+    }
+    .cb-btn-float { display: none; } /* On mobile, if open we don't show float button, but wait, float button IS the toggler. We should hide float button when window is open */
+}

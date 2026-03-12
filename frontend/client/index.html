@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Admin Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Login View -->
+        <div id="login-view" class="view active">
+            <div class="login-wrapper">
+                <div class="login-box">
+                    <h1>Client Access</h1>
+                    <p>Enter your Tenant ID and password to manage your chatbot configuration.</p>
+                    <form id="login-form">
+                        <div class="input-group">
+                            <label for="tenant-id">Tenant ID</label>
+                            <input type="text" id="tenant-id" required placeholder="e.g. client123">
+                        </div>
+                        <div class="input-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" required placeholder="Enter password">
+                        </div>
+                        <button type="submit" class="btn primary-btn block-btn">Login</button>
+                        <div id="login-error" class="error-text"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="view">
+            <div class="layout">
+                <aside class="sidebar">
+                    <div class="sidebar-header">
+                        <h2>Client Portal</h2>
+                        <div class="tenant-badge" id="display-tenant-id"></div>
+                    </div>
+                    <nav class="sidebar-nav">
+                        <button class="nav-btn active" data-target="section-analytics">Analytics Overview</button>
+                        <button class="nav-btn" data-target="section-leads">Sales Leads</button>
+                        <button class="nav-btn" data-target="section-chats">Chat Logs</button>
+                        <button class="nav-btn" data-target="section-faqs">Manage FAQs</button>
+                        <button class="nav-btn" data-target="section-profile">Business Profile</button>
+                        <button class="nav-btn" data-target="section-kb">Knowledge Base</button>
+                    </nav>
+                    <div class="sidebar-footer">
+                        <button id="logout-btn" class="nav-btn text-danger">Logout</button>
+                    </div>
+                </aside>
+                
+                <main class="main-content">
+                    
+                    <!-- Analytics Section -->
+                    <section id="section-analytics" class="content-section active">
+                        <header class="section-header">
+                            <h2>Analytics Overview</h2>
+                        </header>
+                        
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <h3>Total Queries</h3>
+                                <div class="metric-value" id="metric-total-queries">-</div>
+                            </div>
+                            <div class="metric-card">
+                                <h3>Intents Detected</h3>
+                                <div class="metric-value" id="metric-intents">-</div>
+                            </div>
+                            <div class="metric-card">
+                                <h3>Recent Query</h3>
+                                <div class="metric-value" id="metric-recent" style="font-size:1.5rem;">-</div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="margin-top: 2rem;">
+                            <h3>Intent Distribution</h3>
+                            <div id="intent-chart-container" style="height: 300px; display: flex; align-items: flex-end; gap: 10px; margin-top: 20px;">
+                                <!-- Simple CSS Bar Chart will be rendered here -->
+                            </div>
+                            <div id="intent-chart-labels" style="display: flex; gap: 10px; margin-top: 10px; font-size: 0.8rem; justify-content: space-around;"></div>
+                        </div>
+                    </section>
+
+                    <!-- Sales Leads Section -->
+                    <section id="section-leads" class="content-section">
+                        <header class="section-header">
+                            <h2>🎯 Sales Leads Dashboard</h2>
+                            <p style="color:var(--text-muted); font-size:0.9rem;">These users provided their contact details for follow-up.</p>
+                        </header>
+                        <div class="card no-pad">
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Contact Info (Decrypted)</th>
+                                            <th>Original Inquiry</th>
+                                            <th>Session ID</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="leads-list"></tbody>
+                                </table>
+                            </div>
+                            <div id="no-leads" class="empty-state">No sales leads captured yet.</div>
+                        </div>
+                    </section>
+
+                    <!-- Chats Section -->
+                    <section id="section-chats" class="content-section">
+                        <header class="section-header flex-header">
+                            <h2>Decrypted Chat History</h2>
+                            <div style="display: flex; gap: 10px;">
+                                <button id="btn-export-csv" class="btn outline-btn">📄 Download CSV</button>
+                                <button id="btn-export-excel" class="btn outline-btn" style="color:#107c41; border-color:#107c41;">📗 Download Excel</button>
+                            </div>
+                        </header>
+                        <div class="card no-pad">
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Session ID</th>
+                                            <th>Question</th>
+                                            <th>Intent</th>
+                                            <th>URL</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="chats-list"></tbody>
+                                </table>
+                            </div>
+                            <div id="no-chats" class="empty-state">No chat logs recorded yet.</div>
+                        </div>
+                    </section>
+                    
+                    <!-- FAQs Section -->
+                    <section id="section-faqs" class="content-section">
+                        <header class="section-header flex-header">
+                            <h2>Manage FAQs</h2>
+                            <button id="show-add-faq" class="btn primary-btn">+ Add FAQ</button>
+                        </header>
+                        
+                        <div id="add-faq-form-container" style="display: none; margin-bottom: 2rem;">
+                            <div class="card bg-light">
+                                <h3>New FAQ</h3>
+                                <form id="add-faq-form">
+                                    <div class="input-group">
+                                        <label for="faq-q">Question</label>
+                                        <input type="text" id="faq-q" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="faq-a">Answer</label>
+                                        <textarea id="faq-a" rows="3" required></textarea>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="faq-i">Intent Category</label>
+                                        <select id="faq-i" required>
+                                            <option value="pricing">Pricing</option>
+                                            <option value="support">Support</option>
+                                            <option value="information">Information</option>
+                                            <option value="service_inquiry">Service Inquiry</option>
+                                            <option value="contact">Contact</option>
+                                            <option value="eligibility">Eligibility</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex-actions">
+                                        <button type="button" id="cancel-add-faq" class="btn outline-btn">Cancel</button>
+                                        <button type="submit" class="btn primary-btn">Save FAQ</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="card no-pad">
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Question</th>
+                                            <th>Answer Segment</th>
+                                            <th>Intent</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="faqs-list"></tbody>
+                                </table>
+                            </div>
+                            <div id="no-faqs" class="empty-state">No FAQs found. Add one to train the AI.</div>
+                        </div>
+                    </section>
+
+                    <!-- Profile Section -->
+                    <section id="section-profile" class="content-section">
+                        <header class="section-header">
+                            <h2>Business Profile</h2>
+                        </header>
+                        <div class="card">
+                            <form id="profile-form">
+                                <div class="input-group">
+                                    <label for="company-name">Company Name</label>
+                                    <input type="text" id="company-name" required>
+                                </div>
+                                <div class="input-group">
+                                    <label for="industry">Industry</label>
+                                    <input type="text" id="industry" required>
+                                </div>
+                                <div class="input-group">
+                                    <label for="biz-desc">Business Description (Used by AI as context)</label>
+                                    <textarea id="biz-desc" rows="5" required></textarea>
+                                </div>
+                                <button type="submit" class="btn primary-btn">Save Profile</button>
+                                <span id="profile-msg" class="msg-text"></span>
+                            </form>
+                        </div>
+                        
+                        <header class="section-header" style="margin-top: 2rem;">
+                            <h2>Change Password</h2>
+                        </header>
+                        <div class="card">
+                            <form id="password-form">
+                                <div class="input-group">
+                                    <label for="old-pwd">Current Password</label>
+                                    <input type="password" id="old-pwd" required>
+                                </div>
+                                <div class="input-group">
+                                    <label for="new-pwd">New Password</label>
+                                    <input type="password" id="new-pwd" required minlength="4">
+                                </div>
+                                <button type="submit" class="btn primary-btn">Update Password</button>
+                                <span id="pwd-msg" class="msg-text"></span>
+                            </form>
+                        </div>
+                    </section>
+
+                    <!-- Knowledge Base Section -->
+                    <section id="section-kb" class="content-section">
+                        <header class="section-header">
+                            <h2>Knowledge Base (RAG)</h2>
+                            <p style="color:var(--text-muted); font-size:0.9rem;">Upload documents (PDF, CSV, TXT, Excel) for your AI to learn from.</p>
+                        </header>
+                        <div class="card" style="margin-bottom: 2rem;">
+                            <form id="upload-doc-form" style="display: flex; gap: 1rem; align-items: center;">
+                                <input type="file" id="doc-upload-input" accept=".pdf,.txt,.csv,.xlsx" required style="flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                                <button type="submit" class="btn primary-btn" id="btn-upload">Upload & Train</button>
+                            </form>
+                            <div id="upload-status" style="margin-top: 1rem; font-size: 0.9rem; color: #107c41; display: none;"></div>
+                        </div>
+
+                        <div class="card no-pad">
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Filename</th>
+                                            <th>Type</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="docs-list"></tbody>
+                                </table>
+                            </div>
+                            <div id="no-docs" class="empty-state">No documents uploaded yet.</div>
+                        </div>
+                    </section>
+
+                </main>
+            </div>
+        </div>
+    </div>
+    
+    <!-- External library for Excel export to match Streamlit -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

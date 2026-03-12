@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platform Admin Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="login-view" class="view active">
+            <div class="login-wrapper">
+                <div class="login-box">
+                    <h1>⚙️ Seller Admin Panel</h1>
+                    <p>Developer dashboard — manage all clients and their chatbot configurations.</p>
+                    <form id="login-form">
+                        <div class="input-group">
+                            <label for="seller-password">Enter Developer Password</label>
+                            <input type="password" id="seller-password" required placeholder="Password">
+                        </div>
+                        <button type="submit" class="btn primary-btn block-btn">Login</button>
+                        <div id="login-error" class="error-text"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Screen -->
+        <div id="dashboard-view" class="view">
+            <div class="layout">
+                
+                <!-- Sidebar -->
+                <aside class="sidebar">
+                    <div class="sidebar-header">
+                        <h2>⚙️ Developer Admin</h2>
+                        <span class="tenant-badge">Superadmin</span>
+                    </div>
+                    
+                    <div style="padding: 1.5rem 1rem 0.5rem 1rem;">
+                        <h3 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">🏢 Select Client</h3>
+                        <div class="input-group">
+                            <select id="tenant-selector" style="background:#fff;"></select>
+                            <div id="current-tenant-info" style="font-size: 0.75rem; color:var(--text-muted); margin-top: 5px;"></div>
+                        </div>
+                    </div>
+                    
+                    <nav class="sidebar-nav">
+                        <button class="nav-btn active" data-target="tab-clients">Manage Clients (Global)</button>
+                        <!-- Tenant Specific Tabs -->
+                        <div class="nav-group-title">Selected Client Data</div>
+                        <button class="nav-btn" data-target="tab-identity">Business Identity</button>
+                        <button class="nav-btn" data-target="tab-analytics">Analytics Overview</button>
+                        <button class="nav-btn" data-target="tab-leads">Sales Leads</button>
+                        <button class="nav-btn" data-target="tab-chats">Chat Logs</button>
+                        <button class="nav-btn" data-target="tab-faq">FAQ Management</button>
+                    </nav>
+                    
+                    <div class="sidebar-footer">
+                        <button id="logout-btn" class="nav-btn text-danger">Logout</button>
+                    </div>
+                </aside>
+
+                <main class="main-content">
+                    
+                    <!-- Tab: Manage Clients -->
+                    <section id="tab-clients" class="content-section active">
+                        <header class="section-header">
+                            <h2>🏢 Manage Clients</h2>
+                            <p style="color:var(--text-muted);">Register new clients and assign them their own database.</p>
+                        </header>
+                        
+                        <div class="card bg-light" style="margin-bottom: 2rem;">
+                            <h3>Register New Client</h3>
+                            <form id="create-tenant-form">
+                                <div class="input-group">
+                                    <label for="tenant-name">Client Name (e.g., 'Hotel Sunrise')</label>
+                                    <input type="text" id="tenant-name" required>
+                                </div>
+                                <div class="input-group">
+                                    <label for="db-url">Database URL</label>
+                                    <input type="text" id="db-url" placeholder="postgresql://user:pass@host/db_name">
+                                    <small style="color:#888;">Each client needs their own PostgreSQL db. Leave blank for default internal SQLite.</small>
+                                </div>
+                                <div class="input-group">
+                                    <label for="admin-password">Client Admin Password</label>
+                                    <input type="password" id="admin-password" required value="admin">
+                                    <small style="color:#888;">Password for the client to access their admin panel.</small>
+                                </div>
+                                <button type="submit" class="btn primary-btn">🚀 Register Client</button>
+                                <div id="create-error" class="error-text"></div>
+                            </form>
+                        </div>
+
+                        <div class="card no-pad">
+                            <div style="padding:1.5rem; border-bottom:1px solid var(--border-color);">
+                                <h3>Registered Clients</h3>
+                            </div>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Status</th>
+                                            <th>Name</th>
+                                            <th>ID / API Key</th>
+                                            <th>Created At</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tenants-list"></tbody>
+                                </table>
+                            </div>
+                            <div id="no-tenants" class="empty-state">No clients registered yet.</div>
+                        </div>
+                    </section>
+                    
+                    <!-- Tab: Business Identity -->
+                    <section id="tab-identity" class="content-section">
+                        <header class="section-header">
+                            <h2>Customize Chatbot Identity</h2>
+                        </header>
+                        <div id="identity-require-tenant" class="empty-state">Select a client from the sidebar.</div>
+                        <div id="identity-content" style="display:none;">
+                            <div class="card">
+                                <form id="profile-form">
+                                    <div class="input-group">
+                                        <label for="profile-name">Company Name</label>
+                                        <input type="text" id="profile-name" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="profile-ind">Industry</label>
+                                        <input type="text" id="profile-ind" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="profile-desc">Business Description</label>
+                                        <textarea id="profile-desc" rows="5" required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn primary-btn">Update Identity</button>
+                                    <span id="profile-msg" class="msg-text"></span>
+                                </form>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Tab: Analytics -->
+                    <section id="tab-analytics" class="content-section">
+                        <header class="section-header">
+                            <h2>Analytics Overview</h2>
+                        </header>
+                        <div id="analytics-require-tenant" class="empty-state">Select a client from the sidebar to view analytics.</div>
+                        <div id="analytics-content" style="display:none;">
+                            <div class="metrics-grid">
+                                <div class="metric-card">
+                                    <h3>Total Queries</h3>
+                                    <div class="metric-value" id="metric-total-queries">-</div>
+                                </div>
+                                <div class="metric-card">
+                                    <h3>Intents Detected</h3>
+                                    <div class="metric-value" id="metric-intents">-</div>
+                                </div>
+                                <div class="metric-card">
+                                    <h3>Recent Query</h3>
+                                    <div class="metric-value" id="metric-recent" style="font-size:1.5rem;">-</div>
+                                </div>
+                            </div>
+
+                            <div class="card" style="margin-top: 2rem;">
+                                <h3>Intent Distribution</h3>
+                                <div id="intent-chart-container" style="height: 300px; display: flex; align-items: flex-end; gap: 10px; margin-top: 20px;"></div>
+                                <div id="intent-chart-labels" style="display: flex; gap: 10px; margin-top: 10px; font-size: 0.8rem; justify-content: space-around;"></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Tab: Sales Leads -->
+                    <section id="tab-leads" class="content-section">
+                        <header class="section-header">
+                            <h2>🎯 Sales Leads Dashboard</h2>
+                            <p style="color:var(--text-muted);">These users provided their contact details for follow-up.</p>
+                        </header>
+                        <div id="leads-require-tenant" class="empty-state">Select a client from the sidebar.</div>
+                        <div id="leads-content" style="display:none;">
+                            <div class="card no-pad">
+                                <div class="table-responsive">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Contact Info (Decrypted)</th>
+                                                <th>Original Inquiry</th>
+                                                <th>Session ID</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="leads-list"></tbody>
+                                    </table>
+                                </div>
+                                <div id="no-leads" class="empty-state">No sales leads captured yet.</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Tab: Chat Logs -->
+                    <section id="tab-chats" class="content-section">
+                        <header class="section-header flex-header">
+                            <h2>Decrypted Chat History</h2>
+                            <div style="display: flex; gap: 10px;">
+                                <button id="btn-export-csv" class="btn outline-btn" disabled>📄 Download CSV</button>
+                                <button id="btn-export-excel" class="btn outline-btn" style="color:#107c41; border-color:#107c41;" disabled>📗 Download Excel</button>
+                            </div>
+                        </header>
+                        <div id="chats-require-tenant" class="empty-state">Select a client from the sidebar.</div>
+                        <div id="chats-content" style="display:none;">
+                            <div class="card no-pad">
+                                <div class="table-responsive">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Session ID</th>
+                                                <th>Question</th>
+                                                <th>Intent</th>
+                                                <th>URL</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="chats-list"></tbody>
+                                    </table>
+                                </div>
+                                <div id="no-chats" class="empty-state">No logs found.</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Tab: FAQ Management -->
+                    <section id="tab-faq" class="content-section">
+                        <header class="section-header flex-header">
+                            <h2>Manage FAQs</h2>
+                        </header>
+                        <div id="faq-require-tenant" class="empty-state">Select a client from the sidebar.</div>
+                        
+                        <div id="faq-content" style="display:none;">
+                            <div class="card bg-light">
+                                <h3>Add New FAQ</h3>
+                                <form id="add-faq-form">
+                                    <div class="input-group">
+                                        <label for="faq-q">Question</label>
+                                        <input type="text" id="faq-q" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="faq-a">Answer</label>
+                                        <textarea id="faq-a" rows="3" required></textarea>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="faq-i">Intent Category</label>
+                                        <select id="faq-i" required>
+                                            <option value="pricing">Pricing</option>
+                                            <option value="support">Support</option>
+                                            <option value="information">Information</option>
+                                            <option value="service_inquiry">Service Inquiry</option>
+                                            <option value="contact">Contact</option>
+                                            <option value="eligibility">Eligibility</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn primary-btn">Add FAQ</button>
+                                </form>
+                            </div>
+
+                            <div class="card no-pad" style="margin-top: 2rem;">
+                                <div style="padding:1.5rem; border-bottom:1px solid var(--border-color);">
+                                    <h3>Existing FAQs</h3>
+                                </div>
+                                <div class="table-responsive">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Question</th>
+                                                <th>Answer</th>
+                                                <th>Intent</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="faqs-list"></tbody>
+                                    </table>
+                                </div>
+                                <div id="no-faqs" class="empty-state">No FAQs found.</div>
+                            </div>
+                        </div>
+                    </section>
+
+                </main>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
