@@ -2,8 +2,8 @@ const API_BASE = 'https://chat-bot-1-neu-1.onrender.com';
 
 // We'll optionally base URL for links off standard ports for local test,
 // or whatever the streamlit apps used.
-const CLIENT_CHATBOT_URL = 'https://chatbot-neuai-tech-qs9b.vercel.app';
-const CLIENT_ADMIN_URL = 'YOUR_CLIENT_VERCEL_URL_HERE'; // e.g., 'https://client-neuai-tech.vercel.app'
+const CLIENT_CHATBOT_URL = 'https://chatbot-neuai-tech-ukqi-e14ndljje-ajayrao43s-projects.vercel.app';
+const CLIENT_ADMIN_URL = 'https://chatbot-neuai-tech-qs9b-rj57t39kz-ajayrao43s-projects.vercel.app';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Views Elements
