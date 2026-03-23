@@ -1,6 +1,6 @@
 // Widget specific isolated JS
 (function() {
-    const API_BASE = 'http://127.0.0.1:8000';
+    const API_BASE = 'https://chat-bot-1-neu-1.onrender.com';
     
     // Get tenant ID from URL for testing, or use a default
     const urlParams = new URLSearchParams(window.location.search);

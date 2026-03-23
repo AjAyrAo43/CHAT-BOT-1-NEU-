@@ -1,4 +1,4 @@
-const API_BASE = 'http://127.0.0.1:8000';
+const API_BASE = 'https://chat-bot-1-neu-1.onrender.com';
 
 // We'll optionally base URL for links off standard ports for local test,
 // or whatever the streamlit apps used.
