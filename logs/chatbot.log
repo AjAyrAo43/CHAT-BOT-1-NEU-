@@ -1,0 +1,431 @@
+2026-03-21 10:39:20 | INFO     | [REQUEST] tenant=-  POST /admin/seller-auth  →  200  (24.8 ms)
+2026-03-21 10:39:33 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (13312.0 ms)
+2026-03-21 10:39:40 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6727.5 ms)
+2026-03-21 10:39:47 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6518.7 ms)
+2026-03-21 10:39:53 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6505.1 ms)
+2026-03-21 10:40:01 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (7569.6 ms)
+2026-03-21 10:40:17 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (15484.5 ms)
+2026-03-21 10:40:17 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/profile  →  200  (16024.1 ms)
+2026-03-21 10:40:26 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (7980.1 ms)
+2026-03-21 10:40:36 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (9926.2 ms)
+2026-03-21 10:40:43 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (7249.1 ms)
+2026-03-21 10:40:50 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6575.5 ms)
+2026-03-21 10:41:02 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6564.3 ms)
+2026-03-21 10:41:42 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6628.0 ms)
+2026-03-21 10:41:48 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6556.6 ms)
+2026-03-21 10:41:55 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6582.8 ms)
+2026-03-21 10:42:04 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6878.5 ms)
+2026-03-21 10:42:17 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (7153.1 ms)
+2026-03-21 10:42:24 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6576.7 ms)
+2026-03-21 10:42:32 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6594.1 ms)
+2026-03-21 10:42:39 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6879.7 ms)
+2026-03-21 10:42:46 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6554.2 ms)
+2026-03-21 10:43:36 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6533.6 ms)
+2026-03-21 10:43:50 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (7037.3 ms)
+2026-03-21 10:43:57 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6541.5 ms)
+2026-03-21 10:44:06 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6560.8 ms)
+2026-03-21 10:44:19 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6527.9 ms)
+2026-03-21 10:44:28 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6572.9 ms)
+2026-03-21 10:44:46 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6524.3 ms)
+2026-03-21 10:45:26 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (19809.1 ms)
+2026-03-21 10:45:33 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (7157.2 ms)
+2026-03-21 10:45:40 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6734.8 ms)
+2026-03-21 10:45:47 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6715.9 ms)
+2026-03-21 10:45:54 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6725.6 ms)
+2026-03-21 10:46:01 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6705.0 ms)
+2026-03-21 10:46:11 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6768.0 ms)
+2026-03-21 10:46:22 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6721.8 ms)
+2026-03-21 10:46:29 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6801.2 ms)
+2026-03-21 10:46:45 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (7405.3 ms)
+2026-03-21 10:47:21 | INFO     | [REQUEST] tenant=-  GET /admin/invoices  →  200  (36326.2 ms)
+2026-03-21 10:47:21 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6735.7 ms)
+2026-03-21 10:47:28 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6714.0 ms)
+2026-03-21 10:47:35 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6712.3 ms)
+2026-03-21 10:47:42 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6708.2 ms)
+2026-03-21 10:47:49 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6721.9 ms)
+2026-03-21 10:48:17 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (7520.7 ms)
+2026-03-21 10:48:25 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (7070.2 ms)
+2026-03-21 10:48:35 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6711.0 ms)
+2026-03-21 10:49:20 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (7128.2 ms)
+2026-03-21 10:49:40 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6725.9 ms)
+2026-03-21 10:50:05 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6712.0 ms)
+2026-03-21 10:51:49 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6732.0 ms)
+2026-03-21 10:51:56 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (6730.0 ms)
+2026-03-21 10:52:10 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (14010.9 ms)
+2026-03-21 10:52:10 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (14012.3 ms)
+2026-03-21 10:52:18 | INFO     | [REQUEST] tenant=-  GET /admin/tenants  →  200  (7150.6 ms)
+2026-03-21 10:57:07 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (10874.8 ms)
+2026-03-21 10:58:08 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/profile  →  200  (672.1 ms)
+2026-03-21 10:58:26 | INFO     | [REQUEST] tenant=f362ebb4-976c-477e-894d-38acd8d84532  GET /admin/profile  →  200  (6088.6 ms)
+2026-03-21 10:58:36 | INFO     | [REQUEST] tenant=f362ebb4-976c-477e-894d-38acd8d84532  GET /admin/chats  →  200  (9717.2 ms)
+2026-03-21 11:00:06 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/profile  →  200  (5608.4 ms)
+2026-03-21 11:00:27 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (7699.6 ms)
+2026-03-21 11:01:21 | INFO     | [REQUEST] tenant=-  GET /admin/invoices  →  200  (35297.6 ms)
+2026-03-21 11:01:38 | INFO     | [REQUEST] tenant=-  GET /admin/invoices  →  200  (11816.2 ms)
+2026-03-21 11:02:06 | INFO     | [REQUEST] tenant=-  GET /admin/invoices  →  200  (5224.7 ms)
+2026-03-21 11:03:41 | INFO     | [REQUEST] tenant=-  GET /admin/invoices  →  200  (3907.4 ms)
+2026-03-21 11:09:01 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  200  (1561.6 ms)
+2026-03-21 11:09:04 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (2635.2 ms)
+2026-03-21 11:09:13 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (9559.4 ms)
+2026-03-21 11:09:13 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/faqs  →  200  (9562.1 ms)
+2026-03-21 11:09:13 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/docs  →  200  (9557.1 ms)
+2026-03-21 11:09:19 | ERROR    | [ERROR] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  path=/admin/profile  error=OperationalError('(psycopg2.OperationalError) SSL connection has been closed unexpectedly\n')
+2026-03-21 11:09:19 | DEBUG    | [TRACEBACK]
+Traceback (most recent call last):
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.OperationalError: SSL connection has been closed unexpectedly
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Ajayr\OneDrive\Desktop\NEU AI TECH\CHATBOT PROJECT\CHAT BOT 1\backend\main.py", line 65, in logging_middleware
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\routing.py", line 122, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\routing.py", line 108, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\routing.py", line 532, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\OneDrive\Desktop\NEU AI TECH\CHATBOT PROJECT\CHAT BOT 1\backend\main.py", line 561, in get_profile
+    profile = db.query(BusinessProfile).first()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\sql\elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) SSL connection has been closed unexpectedly
+
+[SQL: SELECT business_profile.id AS business_profile_id, business_profile.company_name AS business_profile_company_name, business_profile.industry AS business_profile_industry, business_profile.business_description AS business_profile_business_description, business_profile.website AS business_profile_website, business_profile.support_email AS business_profile_support_email, business_profile.phone AS business_profile_phone, business_profile.contact_person_name AS business_profile_contact_person_name, business_profile.contact_person_role AS business_profile_contact_person_role, business_profile.contact_person_email AS business_profile_contact_person_email, business_profile.contact_person_phone AS business_profile_contact_person_phone, business_profile.address_street AS business_profile_address_street, business_profile.city AS business_profile_city, business_profile.state AS business_profile_state, business_profile.country AS business_profile_country, business_profile.zip_code AS business_profile_zip_code, business_profile.timezone AS business_profile_timezone, business_profile.business_hours AS business_profile_business_hours, business_profile.brand_color_primary AS business_profile_brand_color_primary, business_profile.brand_color_secondary AS business_profile_brand_color_secondary, business_profile.social_linkedin AS business_profile_social_linkedin, business_profile.social_twitter AS business_profile_social_twitter, business_profile.social_instagram AS business_profile_social_instagram, business_profile.logo_url AS business_profile_logo_url, business_profile.updated_at AS business_profile_updated_at 
+FROM business_profile 
+ LIMIT %(param_1)s]
+[parameters: {'param_1': 1}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2026-03-21 11:09:25 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (6578.9 ms)
+2026-03-21 11:09:32 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (6542.1 ms)
+2026-03-21 11:09:33 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (1000.2 ms)
+2026-03-21 11:09:36 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (2627.6 ms)
+2026-03-21 11:09:42 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1313.2 ms)
+2026-03-21 11:10:45 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (961.2 ms)
+2026-03-21 11:10:47 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1307.1 ms)
+2026-03-21 11:12:31 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/faqs  →  200  (1968.0 ms)
+2026-03-21 11:12:34 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/faqs  →  200  (664.3 ms)
+2026-03-21 11:13:53 | INFO     | [REQUEST] tenant=-  GET /admin/invoices  →  200  (2277.6 ms)
+2026-03-21 11:13:55 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/docs  →  200  (652.1 ms)
+2026-03-21 11:17:02 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/faqs  →  200  (2013.5 ms)
+2026-03-21 11:17:10 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (947.5 ms)
+2026-03-21 11:17:11 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1308.3 ms)
+2026-03-21 11:17:38 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (20736.6 ms)
+2026-03-21 11:17:38 | INFO     | [REQUEST] tenant=-  GET /admin/invoices  →  200  (15108.5 ms)
+2026-03-21 11:17:39 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1312.1 ms)
+2026-03-21 11:17:42 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/faqs  →  200  (630.4 ms)
+2026-03-21 11:17:43 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (1011.5 ms)
+2026-03-21 11:17:45 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1323.0 ms)
+2026-03-21 11:17:49 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/docs  →  200  (656.7 ms)
+2026-03-21 11:17:52 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (970.9 ms)
+2026-03-21 11:17:55 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (2387.7 ms)
+2026-03-21 11:17:55 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (2402.1 ms)
+2026-03-21 11:17:56 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1316.6 ms)
+2026-03-21 11:17:57 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/docs  →  200  (655.5 ms)
+2026-03-21 11:17:58 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/faqs  →  200  (632.0 ms)
+2026-03-21 11:18:00 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (1929.4 ms)
+2026-03-21 11:18:02 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (1950.5 ms)
+2026-03-21 11:18:03 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1316.2 ms)
+2026-03-21 11:18:06 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/faqs  →  200  (3291.3 ms)
+2026-03-21 11:18:06 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (3281.5 ms)
+2026-03-21 11:18:06 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (3303.6 ms)
+2026-03-21 11:18:09 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (2645.1 ms)
+2026-03-21 11:18:11 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (4590.8 ms)
+2026-03-21 11:18:12 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/profile  →  200  (3283.8 ms)
+2026-03-21 11:18:18 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (8760.1 ms)
+2026-03-21 11:18:18 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/faqs  →  200  (8773.1 ms)
+2026-03-21 11:18:18 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/docs  →  200  (7485.4 ms)
+2026-03-21 11:18:19 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1334.1 ms)
+2026-03-21 11:18:20 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (2657.4 ms)
+2026-03-21 11:18:21 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (970.5 ms)
+2026-03-21 11:18:23 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1318.8 ms)
+2026-03-21 11:18:25 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (2648.9 ms)
+2026-03-21 11:18:25 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (2654.9 ms)
+2026-03-21 11:18:26 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (1015.1 ms)
+2026-03-21 11:18:28 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1311.6 ms)
+2026-03-21 11:18:29 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (1016.3 ms)
+2026-03-21 11:18:30 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1312.4 ms)
+2026-03-21 11:18:31 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1307.0 ms)
+2026-03-21 11:18:55 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (5947.1 ms)
+2026-03-21 11:19:06 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/faqs  →  200  (632.6 ms)
+2026-03-21 11:24:06 | INFO     | [REQUEST] tenant=-  POST /admin/seller-auth  →  200  (14.1 ms)
+2026-03-21 11:24:30 | INFO     | [REQUEST] tenant=f362ebb4-976c-477e-894d-38acd8d84532  GET /admin/profile  →  200  (6572.8 ms)
+2026-03-21 11:24:44 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/profile  →  200  (6962.3 ms)
+2026-03-21 11:24:50 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  200  (2175.4 ms)
+2026-03-21 11:24:54 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (3114.6 ms)
+2026-03-21 11:24:58 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/profile  →  200  (4540.7 ms)
+2026-03-21 11:25:01 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (7928.2 ms)
+2026-03-21 11:25:05 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/faqs  →  200  (11608.4 ms)
+2026-03-21 11:25:05 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/docs  →  200  (11614.7 ms)
+2026-03-21 11:25:07 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1332.1 ms)
+2026-03-21 11:25:09 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (1249.4 ms)
+2026-03-21 11:25:12 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (2430.6 ms)
+2026-03-21 11:25:13 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (1787.9 ms)
+2026-03-21 11:25:14 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/faqs  →  200  (675.3 ms)
+2026-03-21 11:25:17 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (2722.6 ms)
+2026-03-21 11:25:17 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (2733.8 ms)
+2026-03-21 11:25:18 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/docs  →  200  (1701.2 ms)
+2026-03-21 11:25:21 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1727.0 ms)
+2026-03-21 11:25:27 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (5646.3 ms)
+2026-03-21 11:26:22 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/chats  →  200  (2335.1 ms)
+2026-03-21 11:26:23 | INFO     | [REQUEST] tenant=1628c0ff-8197-4032-8112-6da2b3d2090b  GET /admin/tenant-info  →  200  (1324.5 ms)
+2026-03-21 11:46:48 | ERROR    | [ERROR] tenant=-  path=/admin/tenants  error=OperationalError('(psycopg2.OperationalError) SSL connection has been closed unexpectedly\n')
+2026-03-21 11:46:48 | DEBUG    | [TRACEBACK]
+Traceback (most recent call last):
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.OperationalError: SSL connection has been closed unexpectedly
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Ajayr\OneDrive\Desktop\NEU AI TECH\CHATBOT PROJECT\CHAT BOT 1\backend\main.py", line 65, in logging_middleware
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\routing.py", line 122, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\routing.py", line 108, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\routing.py", line 532, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\OneDrive\Desktop\NEU AI TECH\CHATBOT PROJECT\CHAT BOT 1\backend\main.py", line 318, in list_tenants
+    tenants = get_all_tenants()
+              ^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\OneDrive\Desktop\NEU AI TECH\CHATBOT PROJECT\CHAT BOT 1\backend\database.py", line 170, in get_all_tenants
+    tenants = session.query(CentralTenant).options(joinedload(CentralTenant.plan)).all()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\query.py", line 2704, in all
+    return self._iter().all()  # type: ignore
+           ^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\sql\elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) SSL connection has been closed unexpectedly
+
+[SQL: SELECT tenants.id AS tenants_id, tenants.name AS tenants_name, tenants.db_url AS tenants_db_url, tenants.api_key AS tenants_api_key, tenants.admin_password_hash AS tenants_admin_password_hash, tenants.is_active AS tenants_is_active, tenants.created_at AS tenants_created_at, tenants.subscription_end_date AS tenants_subscription_end_date, tenants.current_plan_id AS tenants_current_plan_id, tenants.notification_email AS tenants_notification_email, plans_1.id AS plans_1_id, plans_1.name AS plans_1_name, plans_1.price_inr AS plans_1_price_inr, plans_1.messages_per_month AS plans_1_messages_per_month, plans_1.docs_limit AS plans_1_docs_limit, plans_1.faqs_limit AS plans_1_faqs_limit, plans_1.export_enabled AS plans_1_export_enabled, plans_1.languages AS plans_1_languages 
+FROM tenants LEFT OUTER JOIN plans AS plans_1 ON plans_1.id = tenants.current_plan_id]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+2026-03-21 11:55:02 | ERROR    | [ERROR] tenant=-  path=/admin/tenants  error=OperationalError('(psycopg2.OperationalError) SSL connection has been closed unexpectedly\n')
+2026-03-21 11:55:02 | DEBUG    | [TRACEBACK]
+Traceback (most recent call last):
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.OperationalError: SSL connection has been closed unexpectedly
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Ajayr\OneDrive\Desktop\NEU AI TECH\CHATBOT PROJECT\CHAT BOT 1\backend\main.py", line 65, in logging_middleware
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\routing.py", line 122, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\routing.py", line 108, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\routing.py", line 532, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\fastapi\routing.py", line 316, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\OneDrive\Desktop\NEU AI TECH\CHATBOT PROJECT\CHAT BOT 1\backend\main.py", line 318, in list_tenants
+    tenants = get_all_tenants()
+              ^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\OneDrive\Desktop\NEU AI TECH\CHATBOT PROJECT\CHAT BOT 1\backend\database.py", line 170, in get_all_tenants
+    global _tenant_cache_data, _tenant_cache_time
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\query.py", line 2704, in all
+    return self._iter().all()  # type: ignore
+           ^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\orm\context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\sql\elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\Ajayr\anaconda3\envs\chatbot\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) SSL connection has been closed unexpectedly
+
+[SQL: SELECT tenants.id AS tenants_id, tenants.name AS tenants_name, tenants.db_url AS tenants_db_url, tenants.api_key AS tenants_api_key, tenants.admin_password_hash AS tenants_admin_password_hash, tenants.is_active AS tenants_is_active, tenants.created_at AS tenants_created_at, tenants.subscription_end_date AS tenants_subscription_end_date, tenants.current_plan_id AS tenants_current_plan_id, tenants.notification_email AS tenants_notification_email, plans_1.id AS plans_1_id, plans_1.name AS plans_1_name, plans_1.price_inr AS plans_1_price_inr, plans_1.messages_per_month AS plans_1_messages_per_month, plans_1.docs_limit AS plans_1_docs_limit, plans_1.faqs_limit AS plans_1_faqs_limit, plans_1.export_enabled AS plans_1_export_enabled, plans_1.languages AS plans_1_languages 
+FROM tenants LEFT OUTER JOIN plans AS plans_1 ON plans_1.id = tenants.current_plan_id]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+

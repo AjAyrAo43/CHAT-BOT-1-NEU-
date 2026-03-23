@@ -7,11 +7,17 @@ from .database import get_tenant_session, FAQ, BusinessProfile, KnowledgeDocumen
 load_dotenv()
 
 
-def get_faq_context(intent: str, tenant_id: str) -> str:
+def get_faq_context(intent: str, tenant_id: str, db=None) -> str:
     """Get FAQ context from a specific tenant's database."""
-    db = get_tenant_session(tenant_id)
+    should_close = False
+    if db is None:
+        db = get_tenant_session(tenant_id)
+        should_close = True
+    
     faqs = db.query(FAQ).filter(FAQ.intent == intent, FAQ.is_active == True).all()
-    db.close()
+    
+    if should_close:
+        db.close()
 
     if not faqs:
         return "No specific FAQ found for this intent."
@@ -22,69 +28,102 @@ def get_faq_context(intent: str, tenant_id: str) -> str:
     return context
 
 
-def get_document_context(tenant_id: str) -> str:
-    """Get context from uploaded Knowledge Documents."""
-    db = get_tenant_session(tenant_id)
+def get_document_context(tenant_id: str, db=None, max_chars: int = 5000) -> str:
+    """Get context from uploaded Knowledge Documents with a character limit."""
+    should_close = False
+    if db is None:
+        db = get_tenant_session(tenant_id)
+        should_close = True
+        
     docs = db.query(KnowledgeDocument).filter(KnowledgeDocument.is_active == True).all()
-    db.close()
+    
+    if should_close:
+        db.close()
 
     if not docs:
         return ""
 
     context = "### UPLOADED KNOWLEDGE BASE DOCUMENTS:\n"
+    current_length = len(context)
+    
     for doc in docs:
-        context += f"--- Document: {doc.filename} ---\n{doc.content}\n\n"
+        doc_header = f"--- Document: {doc.filename} ---\n"
+        doc_content = doc.content
+        
+        # If adding this doc exceeds max_chars, truncate it
+        if current_length + len(doc_header) + len(doc_content) > max_chars:
+            remaining = max_chars - current_length - len(doc_header)
+            if remaining > 100:
+                context += doc_header + doc_content[:remaining] + "... [truncated]\n\n"
+            break
+        else:
+            context += doc_header + doc_content + "\n\n"
+            current_length = len(context)
+            
     return context
 
 
-def get_answer(question: str, intent: str, tenant_id: str, language: str = "en") -> str:
+def get_answer(question: str, intent: str, tenant_id: str, language: str = "en", db=None) -> str:
     """Get AI answer using tenant-specific FAQs and business profile."""
-    db = get_tenant_session(tenant_id)
-    profile = db.query(BusinessProfile).first()
-    db.close()
+    should_close = False
+    if db is None:
+        db = get_tenant_session(tenant_id)
+        should_close = True
+        
+    try:
+        profile = db.query(BusinessProfile).first()
+        
+        company = profile.company_name if profile else "the company"
+        industry = profile.industry if profile else "general services"
+        desc = profile.business_description if profile else ""
 
-    company = profile.company_name if profile else "the company"
-    industry = profile.industry if profile else "general services"
-    desc = profile.business_description if profile else ""
+        # Map language codes to full names
+        lang_map = {
+            "en": "English", "hi": "Hindi", "es": "Spanish", "fr": "French",
+            "de": "German", "pt": "Portuguese", "ar": "Arabic", "zh": "Chinese",
+            "ja": "Japanese", "ko": "Korean", "ru": "Russian", "it": "Italian",
+            "nl": "Dutch", "tr": "Turkish", "bn": "Bengali", "ta": "Tamil",
+            "te": "Telugu", "mr": "Marathi", "gu": "Gujarati", "kn": "Kannada",
+        }
+        lang_name = lang_map.get(language, "English")
 
-    # Map language codes to full names
-    lang_map = {
-        "en": "English", "hi": "Hindi", "es": "Spanish", "fr": "French",
-        "de": "German", "pt": "Portuguese", "ar": "Arabic", "zh": "Chinese",
-        "ja": "Japanese", "ko": "Korean", "ru": "Russian", "it": "Italian",
-        "nl": "Dutch", "tr": "Turkish", "bn": "Bengali", "ta": "Tamil",
-        "te": "Telugu", "mr": "Marathi", "gu": "Gujarati", "kn": "Kannada",
-    }
-    lang_name = lang_map.get(language, "English")
+        # Use llama-3.1-8b-instant for much faster response times
+        llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0.5)
+        
+        # Reuse the existing session for context fetching
+        context = get_faq_context(intent, tenant_id, db=db)
+        doc_context = get_document_context(tenant_id, db=db, max_chars=8000)
 
-    llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.5)
-    context = get_faq_context(intent, tenant_id)
-    doc_context = get_document_context(tenant_id)
+        system_prompt = (
+            f"You are a strict customer support chatbot for {company} ({industry}). "
+            f"Business Description: {desc}\n\n"
+            "### ABSOLUTE RULES:\n"
+            f"1. LANGUAGE: You MUST respond ONLY in {lang_name}. Translate your entire response into {lang_name}.\n"
+            f"2. SCOPE: ONLY answer questions about {company} or the {industry} industry.\n"
+            "3. NO HALLUCINATIONS: If the FAQ Context or Knowledge Base Documents below do not have the EXACT answer, you MUST NOT use your general LLM knowledge. You MUST NOT guess details like discounts, packs, or prices.\n"
+            f"4. FALLBACK: For ANY question you cannot answer using the provided Contexts, you MUST respond with this exact phrase (translated into {lang_name}): 'I do apologize, but I do not have specific details on that right now. Please provide your Name, Phone Number, and Email address, and our support team will contact you shortly to provide the information you need.'\n"
+            "5. VALIDATION: If the user provides their contact information, check for correctness:\n"
+            "   - Phone Number: Must be a valid format (usually 10 digits). If it looks wrong (e.g., too short or just random letters), tell the user: 'The phone number provided seems incorrect. Could you please provide a valid 10-digit number?'\n"
+            "   - Email: Must be a valid email format (e.g., name@example.com). If it is missing the '@' or has a typo in the domain (like 'gmiail.com'), politely ask them to correct it.\n"
+            "6. FORMAT: Use short, professional bullet points.\n"
+            "\n\nFAQ Context:\n{context}\n\n"
+            "{doc_context}"
+        )
 
-    system_prompt = (
-        f"You are a strict customer support chatbot for {company} ({industry}). "
-        f"Business Description: {desc}\n\n"
-        "### ABSOLUTE RULES:\n"
-        f"1. LANGUAGE: You MUST respond ONLY in {lang_name}. Translate your entire response into {lang_name}.\n"
-        f"2. SCOPE: ONLY answer questions about {company} or the {industry} industry.\n"
-        "3. NO HALLUCINATIONS: If the FAQ Context or Knowledge Base Documents below do not have the EXACT answer, you MUST NOT use your general LLM knowledge. You MUST NOT guess details like discounts, packs, or prices.\n"
-        f"4. FALLBACK: For ANY question you cannot answer using the provided Contexts, you MUST respond with this exact phrase (translated into {lang_name}): 'I do apologize, but I do not have specific details on that right now. Please provide your Name, Phone Number, and Email address, and our support team will contact you shortly to provide the information you need.'\n"
-        "5. VALIDATION: If the user provides their contact information, check for correctness:\n"
-        "   - Phone Number: Must be a valid format (usually 10 digits). If it looks wrong (e.g., too short or just random letters), tell the user: 'The phone number provided seems incorrect. Could you please provide a valid 10-digit number?'\n"
-        "   - Email: Must be a valid email format (e.g., name@example.com). If it is missing the '@' or has a typo in the domain (like 'gmiail.com'), politely ask them to correct it.\n"
-        "6. FORMAT: Use short, professional bullet points.\n"
-        "\n\nFAQ Context:\n{context}\n\n"
-        "{doc_context}"
-    )
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", system_prompt),
+            ("human", "{question}")
+        ])
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("human", "{question}")
-    ])
-
-    chain = prompt | llm
-    response = chain.invoke({"question": question, "context": context, "doc_context": doc_context})
-    return response.content.strip()
+        chain = prompt | llm
+        response = chain.invoke({"question": question, "context": context, "doc_context": doc_context})
+        return response.content.strip()
+    except Exception as e:
+        print(f"Error in get_answer: {e}")
+        return "I apologize, but I encountered an error. Please try again later."
+    finally:
+        if should_close:
+            db.close()
 
 
 if __name__ == "__main__":

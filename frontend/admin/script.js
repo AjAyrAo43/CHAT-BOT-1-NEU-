@@ -2,8 +2,8 @@ const API_BASE = 'http://127.0.0.1:8000';
 
 // We'll optionally base URL for links off standard ports for local test,
 // or whatever the streamlit apps used.
-const CLIENT_CHATBOT_URL = 'http://127.0.0.1:8000/frontend/chatbot';
-const CLIENT_ADMIN_URL = 'http://127.0.0.1:8000/frontend/client';
+const CLIENT_CHATBOT_URL = 'http://127.0.0.1:3001/chatbot';
+const CLIENT_ADMIN_URL = 'http://127.0.0.1:3001/client';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Views Elements
@@ -11,24 +11,29 @@ document.addEventListener('DOMContentLoaded', () => {
         login: document.getElementById('login-view'),
         dashboard: document.getElementById('dashboard-view')
     };
-
-    // Auth
+    
+    // Auth & Navigation
     const loginForm = document.getElementById('login-form');
     const loginError = document.getElementById('login-error');
     const logoutBtn = document.getElementById('logout-btn');
-
-    // Navigation & Tenant Selector
     const navBtns = document.querySelectorAll('.nav-btn[data-target]');
     const sections = document.querySelectorAll('.content-section');
-    const tenantSelector = document.getElementById('tenant-selector');
-    const currentTenantInfo = document.getElementById('current-tenant-info');
 
-    // Tab Elements
-    const tenantsList = document.getElementById('tenants-list');
-    const noTenants = document.getElementById('no-tenants');
+    // Tenant Banner (replaces dropdown)
+    const currentTenantInfo = document.getElementById('current-tenant-info');
+    const currentClientBanner = document.getElementById('current-client-banner');
+
+    // Clients View
     const createForm = document.getElementById('create-tenant-form');
     const createError = document.getElementById('create-error');
-    
+    const tenantsList = document.getElementById('tenants-list');
+    const noTenants = document.getElementById('no-tenants');
+
+    // Billing View
+    const chargeClientForm = document.getElementById('charge-client-form');
+    const chargeTenantId = document.getElementById('charge-tenant-id');
+    const chargeError = document.getElementById('charge-error');
+    const invoicesList = document.getElementById('invoices-list');
     // Tab: Identity
     const profileForm = document.getElementById('profile-form');
     const profileMsg = document.getElementById('profile-msg');
@@ -47,7 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let isAuthenticated = sessionStorage.getItem('seller_auth') === 'true';
     let globalTenants = [];
     let selectedTenantId = null;
-    let globalChatsData = []; // For current selected tenant
+    let globalChatsData = [];        // For current selected tenant
+    let _chatsLoadedForTenant = null; // Cache: track which tenant's chats are loaded
+    let _identityLoadedForTenant = null; // Cache: track which tenant's identity is loaded
 
     // Initialization
     if (isAuthenticated) {
@@ -106,26 +113,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    tenantSelector.addEventListener('change', (e) => {
-        selectedTenantId = e.target.value;
-        const t = globalTenants.find(x => x.id === selectedTenantId);
-        if(t) currentTenantInfo.textContent = `Viewing: ${t.name}`;
-        else currentTenantInfo.textContent = '';
-        
-        // Refresh active tab data
-        const activeTabBtn = document.querySelector('.nav-btn.active');
-        if(activeTabBtn) handleTabSwitch(activeTabBtn.dataset.target);
-    });
-
+    // --- Manage (select tenant from table row) ---
+    window.manageTenant = (id) => {
+        const t = globalTenants.find(x => x.id === id);
+        if (!t) return;
+        // Reset per-tenant caches when switching client
+        if (selectedTenantId !== id) {
+            _chatsLoadedForTenant = null;
+            _identityLoadedForTenant = null;
+            globalChatsData = [];
+        }
+        selectedTenantId = id;
+        // Update sidebar banner
+        currentTenantInfo.textContent = t.name;
+        currentClientBanner.style.display = 'block';
+        // Navigate to Business Identity tab
+        navBtns.forEach(b => b.classList.remove('active'));
+        sections.forEach(s => s.classList.remove('active'));
+        const identityBtn = document.querySelector('.nav-btn[data-target="tab-identity"]');
+        if (identityBtn) identityBtn.classList.add('active');
+        document.getElementById('tab-identity').classList.add('active');
+        handleTabSwitch('tab-identity');
+    };
     navBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             if(btn.id === 'logout-btn') return;
+            
             navBtns.forEach(b => b.classList.remove('active'));
             sections.forEach(s => s.classList.remove('active'));
             
             btn.classList.add('active');
             document.getElementById(btn.dataset.target).classList.add('active');
             
+            // Use in-memory globalTenants — do NOT re-fetch on every tab click
+            if (btn.dataset.target === 'tab-clients') renderTenantsTable();
+            if (btn.dataset.target === 'tab-billing') {
+                updateChargeClientDropdown();
+                loadInvoices();
+            }
+            // handleTabSwitch handles all data loading for tenant-specific tabs
             handleTabSwitch(btn.dataset.target);
         });
     });
@@ -133,6 +159,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleTabSwitch(tabId) {
         if (tabId === 'tab-clients') {
             renderTenantsTable();
+            return;
+        }
+        if (tabId === 'tab-register') {
+            return;
+        }
+        if (tabId === 'tab-billing') {
+            // Billing tab handles its own data loading (loadInvoices)
             return;
         }
 
@@ -171,29 +204,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`${API_BASE}/admin/tenants`);
             if (res.ok) {
                 globalTenants = await res.json();
-                
-                // Populate Tenant Selector
-                tenantSelector.innerHTML = '<option value="">-- Select Client --</option>';
-                globalTenants.forEach(t => {
-                    const opt = document.createElement('option');
-                    opt.value = t.id;
-                    opt.textContent = t.name;
-                    if(t.id === selectedTenantId) opt.selected = true;
-                    tenantSelector.appendChild(opt);
-                });
-                
-                if(!selectedTenantId && globalTenants.length > 0) {
-                    // select first active automatically for better UX
-                    selectedTenantId = globalTenants[0].id;
-                    tenantSelector.value = selectedTenantId;
-                    currentTenantInfo.textContent = `Viewing: ${globalTenants[0].name}`;
-                }
-
                 renderTenantsTable();
+                updateChargeClientDropdown();
             }
         } catch (err) {
             console.error('Failed to load tenants:', err);
         }
+    }
+
+    function updateChargeClientDropdown() {
+        if (!chargeTenantId) return;
+        chargeTenantId.innerHTML = '<option value="" disabled selected>-- Select a Client --</option>';
+        globalTenants.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = `${t.name} (ID: ${t.id.substring(0,8)})`;
+            chargeTenantId.appendChild(opt);
+        });
     }
 
     function renderTenantsTable() {
@@ -206,6 +233,23 @@ document.addEventListener('DOMContentLoaded', () => {
         
         globalTenants.forEach(t => {
             const tr = document.createElement('tr');
+            
+            // Calculate days left
+            let subText = "Expired";
+            let subStyle = "color: var(--danger-color); font-weight: bold;";
+            if (t.subscription_end_date) {
+                const endDate = new Date(t.subscription_end_date);
+                const now = new Date();
+                if (endDate > now) {
+                    const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+                    subText = `${daysLeft} days left`;
+                    subStyle = daysLeft < 7 ? "color: orange; font-weight: bold;" : "color: var(--success-color);";
+                }
+            } else {
+                subText = "Lifetime / Unknown";
+                subStyle = "color: var(--text-muted);";
+            }
+
             tr.innerHTML = `
                 <td>
                     <span class="status-indicator ${t.is_active ? 'status-active-dot' : 'status-inactive-dot'}"></span>
@@ -216,17 +260,52 @@ document.addEventListener('DOMContentLoaded', () => {
                     <small>ID: ${t.id}</small><br>
                     <small>API Key: <code>${t.api_key}</code></small>
                 </td>
+                <td>
+                    <small style="${subStyle}">${subText}</small><br>
+                    <small style="color:var(--text-muted); font-size:0.65rem;">Expires: ${t.subscription_end_date ? t.subscription_end_date.split('T')[0] : 'N/A'}</small>
+                </td>
                 <td><small>${t.created_at.substring(0, 16)}</small></td>
                 <td>
-                    ${t.is_active ? `<button class="btn danger-btn" onclick="deactivateTenant('${t.id}')">Deactivate</button>` : '-'}
-                    <div style="margin-top:5px;">
-                        <button class="btn outline-btn" style="font-size:0.7rem; padding:0.2rem;" onclick="alert('Client Chatbot URL:\\n${CLIENT_CHATBOT_URL}/index.html?tenant_id=${t.id}\\n\\nClient Admin URL:\\n${CLIENT_ADMIN_URL}/index.html?tenant_id=${t.id}')">View Links</button>
+                    <div style="display: flex; gap: 5px;">
+                        ${t.is_active ? 
+                            `<button class="btn danger-btn" style="padding:0.3rem 0.5rem; font-size:0.75rem;" onclick="deactivateTenant('${t.id}')">Deactivate</button>` : 
+                            `<button class="btn" style="padding:0.3rem 0.5rem; font-size:0.75rem; background-color:#ff4444; color:white;" onclick="deleteTenantHard('${t.id}')">Delete</button>`
+                        }
+                        <button class="btn primary-btn" style="padding:0.3rem 0.5rem; font-size:0.75rem;" onclick="extendSubscription('${t.id}')">+30 Days</button>
                     </div>
+                    <div style="margin-top:5px; font-size:0.65rem; color: #555;">
+                        <span style="display:block; margin-bottom: 2px;">Chatbot: <a href="${CLIENT_CHATBOT_URL}/index.html?tenant_id=${t.id}" target="_blank" style="color:#d35400;">Link</a></span>
+                        <span>Client Admin: <a href="${CLIENT_ADMIN_URL}/index.html?tenant_id=${t.id}" target="_blank" style="color:#d35400;">Link</a></span>
+                    </div>
+                </td>
+                <td>
+                    <button class="btn primary-btn" style="padding:0.4rem 0.8rem; font-size:0.8rem; white-space:nowrap;" onclick="manageTenant('${t.id}')">
+                        Manage &rarr;
+                    </button>
                 </td>
             `;
             tenantsList.appendChild(tr);
         });
     }
+
+    window.extendSubscription = async (id) => {
+        if (!confirm('Are you sure you want to grant +30 days to this client?')) return;
+        try {
+            const res = await fetch(`${API_BASE}/admin/tenant/${id}/extend-subscription`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ days: 30 })
+            });
+            if (res.ok) {
+                alert('Subscription extended successfully!');
+                await loadAllTenants();
+            } else {
+                alert('Failed to extend subscription.');
+            }
+        } catch (err) {
+            alert('Connection error');
+        }
+    };
 
     createForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -251,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 const data = await res.json();
                 createForm.reset();
-                alert(`✅ Client '${data.name}' registered!\nTenant ID: ${data.id}\nAPI Key: ${data.api_key}`);
+                alert(` Client '${data.name}' registered!\nTenant ID: ${data.id}\nAPI Key: ${data.api_key}`);
                 await loadAllTenants();
             } else {
                 const err = await res.json();
@@ -273,6 +352,21 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) { alert('Connection error'); }
     };
 
+    window.deleteTenantHard = async (id) => {
+        const confirmMsg = "WARNING: This action is irreversible. All client configuration, chatbots, and historical data will be permanently deleted. Are you absolutely sure?";
+        if (!confirm(confirmMsg)) return;
+        try {
+            const res = await fetch(`${API_BASE}/admin/tenant/${id}/hard-delete`, { method: 'DELETE' });
+            if (res.ok) {
+                alert('Client successfully deleted.');
+                await loadAllTenants();
+            } else {
+                const data = await res.json();
+                alert(`Failed to delete tenant: ${data.detail || 'Unknown error'}`);
+            }
+        } catch (err) { alert('Connection error'); }
+    };
+
     // --- Identity ---
     async function loadIdentity() {
         if (!selectedTenantId) return;
@@ -283,6 +377,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('profile-name').value = p.company_name;
                 document.getElementById('profile-ind').value = p.industry;
                 document.getElementById('profile-desc').value = p.business_description;
+                document.getElementById('profile-hours').value = p.business_hours || '';
+                
+                document.getElementById('profile-contact-name').value = p.contact_person_name || '';
+                document.getElementById('profile-contact-role').value = p.contact_person_role || '';
+                document.getElementById('profile-contact-email').value = p.contact_person_email || '';
+                document.getElementById('profile-contact-phone').value = p.contact_person_phone || '';
+                
+                document.getElementById('profile-address-street').value = p.address_street || '';
+                document.getElementById('profile-city').value = p.city || '';
+                document.getElementById('profile-state').value = p.state || '';
+                document.getElementById('profile-country').value = p.country || '';
+                document.getElementById('profile-zip').value = p.zip_code || '';
+                document.getElementById('profile-timezone').value = p.timezone || '';
+                
+                document.getElementById('profile-brand-primary').value = p.brand_color_primary || '';
+                document.getElementById('profile-brand-secondary').value = p.brand_color_secondary || '';
+                document.getElementById('profile-social-li').value = p.social_linkedin || '';
+                document.getElementById('profile-social-tw').value = p.social_twitter || '';
+                document.getElementById('profile-social-ig').value = p.social_instagram || '';
             }
         } catch(e) { console.error('Failed to load profile'); }
     }
@@ -297,7 +410,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     company_name: document.getElementById('profile-name').value,
                     industry: document.getElementById('profile-ind').value,
-                    business_description: document.getElementById('profile-desc').value
+                    business_description: document.getElementById('profile-desc').value,
+                    business_hours: document.getElementById('profile-hours').value,
+                    
+                    contact_person_name: document.getElementById('profile-contact-name').value,
+                    contact_person_role: document.getElementById('profile-contact-role').value,
+                    contact_person_email: document.getElementById('profile-contact-email').value,
+                    contact_person_phone: document.getElementById('profile-contact-phone').value,
+                    
+                    address_street: document.getElementById('profile-address-street').value,
+                    city: document.getElementById('profile-city').value,
+                    state: document.getElementById('profile-state').value,
+                    country: document.getElementById('profile-country').value,
+                    zip_code: document.getElementById('profile-zip').value,
+                    timezone: document.getElementById('profile-timezone').value,
+
+                    brand_color_primary: document.getElementById('profile-brand-primary').value,
+                    brand_color_secondary: document.getElementById('profile-brand-secondary').value,
+                    social_linkedin: document.getElementById('profile-social-li').value,
+                    social_twitter: document.getElementById('profile-social-tw').value,
+                    social_instagram: document.getElementById('profile-social-ig').value
                 })
             });
             if (res.ok) showMessage(profileMsg, 'Identity Updated!', 'success');
@@ -309,11 +441,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Analytics, Leads, Chats ---
     async function loadTenantChatsAndAnalytics() {
         if (!selectedTenantId) return;
+        // Use cached data if available for this tenant
+        if (_chatsLoadedForTenant === selectedTenantId && globalChatsData.length >= 0) {
+            renderAnalytics(globalChatsData);
+            renderLeads(globalChatsData);
+            const displayChats = [...globalChatsData].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+            renderChats(displayChats);
+            return;
+        }
         try {
             const res = await fetch(`${API_BASE}/admin/chats?tenant_id=${selectedTenantId}`);
             if (res.ok) {
                 globalChatsData = await res.json();
                 globalChatsData.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+                _chatsLoadedForTenant = selectedTenantId; // mark cached
                 
                 renderAnalytics(globalChatsData);
                 renderLeads(globalChatsData);
@@ -324,13 +465,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch(e) { console.error('Error fetching chats:', e); }
     }
 
-    function renderAnalytics(data) {
+    async function renderAnalytics(data) {
         if (data.length === 0) {
             document.getElementById('metric-total-queries').textContent = '0';
             document.getElementById('metric-intents').textContent = '0';
             document.getElementById('metric-recent').textContent = 'N/A';
             document.getElementById('intent-chart-container').innerHTML = '';
             document.getElementById('intent-chart-labels').innerHTML = '';
+            document.getElementById('quota-text').textContent = "0 messages used this month";
             return;
         }
 
@@ -356,6 +498,42 @@ document.addEventListener('DOMContentLoaded', () => {
             label.textContent = intent; label.style.width = `${100 / Object.keys(counts).length}%`; label.style.textAlign = 'center'; label.style.textTransform = 'capitalize';
             container.appendChild(col); labelsContainer.appendChild(label);
         });
+
+        // Calculate Monthly Quota
+        try {
+            const res = await fetch(`${API_BASE}/admin/tenant-info?tenant_id=${selectedTenantId}`);
+            if (res.ok) {
+                const info = await res.json();
+                const limit = info.limits.messages_per_month;
+                
+                // Count this month's messages
+                const now = new Date();
+                const currentMonthString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                let monthlyUsed = 0;
+                data.forEach(d => {
+                    if (d.created_at.startsWith(currentMonthString)) {
+                        monthlyUsed++;
+                    }
+                });
+
+                document.getElementById('quota-plan-badge').textContent = info.current_plan;
+                const progressEl = document.getElementById('quota-progress-bar');
+                const textEl = document.getElementById('quota-text');
+
+                if (limit >= 999999) {
+                    textEl.textContent = `${monthlyUsed} Messages (Enterprise Unlimited)`;
+                    progressEl.style.width = '100%';
+                    progressEl.style.background = '#107c41'; // Green for unlimited
+                } else {
+                    textEl.textContent = `${monthlyUsed} / ${limit} Messages Used`;
+                    let pct = Math.min((monthlyUsed / limit) * 100, 100);
+                    progressEl.style.width = `${pct}%`;
+                    if (pct > 90) progressEl.style.background = 'var(--danger-color)';
+                    else if (pct > 75) progressEl.style.background = 'orange';
+                    else progressEl.style.background = 'var(--primary-color)';
+                }
+            }
+        } catch(e) { console.error('Error fetching quota limits', e); }
     }
 
     function renderLeads(data) {
@@ -433,6 +611,78 @@ document.addEventListener('DOMContentLoaded', () => {
         XLSX.writeFile(workbook, "chat_logs.xlsx");
     });
 
+
+    // --- Billing & Invoices ---
+    chargeClientForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = chargeClientForm.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        chargeError.textContent = '';
+
+        const payload = {
+            tenant_id: chargeTenantId.value,
+            plan_name: document.getElementById('charge-plan').value,
+            amount_inr: parseFloat(document.getElementById('charge-amount').value)
+        };
+
+        try {
+            const res = await fetch(`${API_BASE}/admin/charge-client`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                alert('Payment recorded and subscription extended successfully!');
+                chargeClientForm.reset();
+                loadAllTenants();
+                loadInvoices();
+            } else {
+                const data = await res.json();
+                chargeError.textContent = data.detail || 'Failed to charge client.';
+            }
+        } catch (err) {
+            chargeError.textContent = 'Connection error.';
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    async function loadInvoices() {
+        try {
+            const res = await fetch(`${API_BASE}/admin/invoices`);
+            if(res.ok) {
+                const invoices = await res.json();
+                renderInvoices(invoices);
+            }
+        } catch(err) {
+            console.error('Failed to load invoices', err);
+        }
+    }
+
+    function renderInvoices(invoices) {
+        invoicesList.innerHTML = '';
+        if (invoices.length === 0) {
+            invoicesList.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 2rem;">No payment records found.</td></tr>';
+            return;
+        }
+
+        invoices.reverse().forEach(inv => {
+            const tr = document.createElement('tr');
+            
+            const t = globalTenants.find(x => x.id === inv.tenant_id);
+            const tName = t ? t.name : 'Unknown';
+
+            tr.innerHTML = `
+                <td><small><code>${inv.id.substring(0,8)}...</code></small></td>
+                <td><strong>${escapeHTML(tName)}</strong><br><small style="color:#666">${inv.tenant_id}</small></td>
+                <td><span class="tenant-badge">${escapeHTML(inv.plan_name)}</span></td>
+                <td><strong>₹${(inv.amount_inr || inv.amount_usd || 0).toFixed(2)}</strong></td>
+                <td><span style="color:var(--success-color); font-weight:bold;">${inv.status}</span></td>
+                <td><small>${inv.payment_date.split('.')[0].replace('T', ' ')}</small></td>
+            `;
+            invoicesList.appendChild(tr);
+        });
+    }
 
     // --- FAQs ---
     async function loadFaqs() {

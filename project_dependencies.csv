@@ -1,0 +1,24 @@
+Library,Version,Category,Description
+FastAPI,0.128.0,Backend,High-performance web framework
+Uvicorn,0.40.0,Server,ASGI server for FastAPI
+Streamlit,1.54.0,Frontend,Admin/Client Dashboards
+LangChain,1.2.10,AI,LLM orchestration framework
+LangChain-Groq,1.1.2,AI,Llama 3 Integration
+SQLAlchemy,2.0.47,Database,SQL Toolkit and ORM
+psycopg2-binary,2.9.11,Database,PostgreSQL Adapter
+Cryptography,46.0.3,Security,AES Encryption
+Bcrypt,5.0.0,Security,Password Hashing
+Pandas,2.3.3,Data,Log processing and analysis
+Plotly,6.5.2,Visuals,Interactive charts
+Openpyxl,3.1.5,Excel,Excel file reading/writing
+python-dotenv,1.2.1,Utils,Env var management
+SlowAPI,0.1.9,Security,API Rate limiting
+requests,2.32.5,Utils,HTTP requests handling
+python-multipart,0.0.22,Utils,Form data handling
+Python,3.11,Language,Core programming language used for backend and AI integration
+PostgreSQL,16+,Database,Core relational database
+Supabase,1.0,Infrastructure,Managed PostgreSQL and Auth
+Redis,7.0+,Cache,In-memory data store for caching and rate-limiting
+
+Not Done // -- Domain whiteListing
+

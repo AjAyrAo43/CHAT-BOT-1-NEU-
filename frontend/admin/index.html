@@ -11,8 +11,9 @@
         <!-- Login Screen -->
         <div id="login-view" class="view active">
             <div class="login-wrapper">
-                <div class="login-box">
-                    <h1>⚙️ Seller Admin Panel</h1>
+                <div class="login-box" style="text-align: center;">
+                    <img src="neuaitechnologies_logo.jpg" alt="NeuAI Logo" style="height: 130px; object-fit: contain; margin-bottom: 1.5rem;">
+                    <h1 style="font-size: 1.6rem; color: #5a3d31; font-weight: 600;">Seller Admin Panel</h1>
                     <p>Developer dashboard — manage all clients and their chatbot configurations.</p>
                     <form id="login-form">
                         <div class="input-group">
@@ -32,21 +33,23 @@
                 
                 <!-- Sidebar -->
                 <aside class="sidebar">
-                    <div class="sidebar-header">
-                        <h2>⚙️ Developer Admin</h2>
-                        <span class="tenant-badge">Superadmin</span>
+                    <div class="sidebar-header" style="text-align: center; padding-top: 2rem; padding-bottom: 1.5rem;">
+                        <img src="neuaitechnologies_logo.jpg" alt="NeuAI Logo" style="height: 80px; object-fit: contain; margin-bottom: 0.8rem;">
+                        <div style="font-weight: 600; font-size: 1rem; color: #5a3d31;">Developer Admin</div>
+                        <span class="tenant-badge" style="margin-top: 0.5rem; background: #fff5eb; color: var(--primary); border: 1px solid #fde0c4;">Superadmin</span>
                     </div>
                     
-                    <div style="padding: 1.5rem 1rem 0.5rem 1rem;">
-                        <h3 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;">🏢 Select Client</h3>
-                        <div class="input-group">
-                            <select id="tenant-selector" style="background:#fff;"></select>
-                            <div id="current-tenant-info" style="font-size: 0.75rem; color:var(--text-muted); margin-top: 5px;"></div>
+                    <div style="padding: 1rem 1rem 0.5rem 1rem;">
+                        <div id="current-client-banner" style="display:none; background:#fff5eb; border:1px solid #fde0c4; border-radius:8px; padding:0.7rem 1rem;">
+                            <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:2px;">VIEWING CLIENT</div>
+                            <div id="current-tenant-info" style="font-weight:700; color:#5a3d31; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
                         </div>
                     </div>
                     
                     <nav class="sidebar-nav">
-                        <button class="nav-btn active" data-target="tab-clients">Manage Clients (Global)</button>
+                        <button class="nav-btn active" data-target="tab-register">Register Client</button>
+                        <button class="nav-btn" data-target="tab-clients">Registered Clients</button>
+                        <button class="nav-btn" data-target="tab-billing"> Billing & Payments</button>
                         <!-- Tenant Specific Tabs -->
                         <div class="nav-group-title">Selected Client Data</div>
                         <button class="nav-btn" data-target="tab-identity">Business Identity</button>
@@ -63,10 +66,10 @@
 
                 <main class="main-content">
                     
-                    <!-- Tab: Manage Clients -->
-                    <section id="tab-clients" class="content-section active">
+                    <!-- Tab: Register Client -->
+                    <section id="tab-register" class="content-section active">
                         <header class="section-header">
-                            <h2>🏢 Manage Clients</h2>
+                            <h2> Register Client</h2>
                             <p style="color:var(--text-muted);">Register new clients and assign them their own database.</p>
                         </header>
                         
@@ -87,14 +90,22 @@
                                     <input type="password" id="admin-password" required value="admin">
                                     <small style="color:#888;">Password for the client to access their admin panel.</small>
                                 </div>
-                                <button type="submit" class="btn primary-btn">🚀 Register Client</button>
+                                <button type="submit" class="btn primary-btn"> Register Client</button>
                                 <div id="create-error" class="error-text"></div>
                             </form>
                         </div>
+                    </section>
+
+                    <!-- Tab: Registered Clients -->
+                    <section id="tab-clients" class="content-section">
+                        <header class="section-header">
+                            <h2> Registered Clients</h2>
+                            <p style="color:var(--text-muted);">View and manage all your onboarded clients.</p>
+                        </header>
 
                         <div class="card no-pad">
                             <div style="padding:1.5rem; border-bottom:1px solid var(--border-color);">
-                                <h3>Registered Clients</h3>
+                                <h3>Active Business Accounts</h3>
                             </div>
                             <div class="table-responsive">
                                 <table>
@@ -103,8 +114,10 @@
                                             <th>Status</th>
                                             <th>Name</th>
                                             <th>ID / API Key</th>
+                                            <th>Subscription</th>
                                             <th>Created At</th>
                                             <th>Action</th>
+                                            <th>Manage</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tenants-list"></tbody>
@@ -114,12 +127,74 @@
                         </div>
                     </section>
                     
+                    <!-- Tab: Billing & Payments -->
+                    <section id="tab-billing" class="content-section">
+                        <header class="section-header">
+                            <h2> Billing & Payments</h2>
+                            <p style="color:var(--text-muted);">Manage subscriptions and process manual client payments.</p>
+                        </header>
+
+                        <!-- Charge Form -->
+                        <div class="card bg-light" style="margin-bottom: 2rem;">
+                            <h3>Charge a Client</h3>
+                            <form id="charge-client-form">
+                                <div class="input-group">
+                                    <label for="charge-tenant-id">Select Client</label>
+                                    <select id="charge-tenant-id" required>
+                                        <option value="" disabled selected>-- Select a Client --</option>
+                                    </select>
+                                </div>
+                                <div style="display: flex; gap: 1rem;">
+                                    <div class="input-group" style="flex: 1;">
+                                        <label for="charge-plan">Plan Name</label>
+                                        <select id="charge-plan" required>
+                                            <option value="Starter Plan (₹499/mo)">Starter Plan (₹499/mo)</option>
+                                            <option value="Pro Plan (₹1999/mo)">Pro Plan (₹1999/mo)</option>
+                                            <option value="Enterprise Plan (₹4999/mo)">Enterprise Plan (₹4999/mo)</option>
+                                            <option value="Custom Term">Custom Term</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group" style="flex: 1;">
+                                        <label for="charge-amount">Amount (₹ INR)</label>
+                                        <input type="number" id="charge-amount" required min="0" step="0.01" placeholder="e.g. 2400.00">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn primary-btn"> Record Payment & Extend 30 Days</button>
+                                <div id="charge-error" class="error-text"></div>
+                            </form>
+                        </div>
+
+                        <!-- Invoice History -->
+                        <div class="card no-pad">
+                            <div style="padding:1.5rem; border-bottom:1px solid var(--border-color);">
+                                <h3>Global Payment History</h3>
+                            </div>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Invoice ID</th>
+                                            <th>Client Details</th>
+                                            <th>Plan</th>
+                                            <th>Amount (INR)</th>
+                                            <th>Status</th>
+                                            <th>Payment Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="invoices-list">
+                                        <!-- Invoices populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Tab: Business Identity -->
                     <section id="tab-identity" class="content-section">
                         <header class="section-header">
                             <h2>Customize Chatbot Identity</h2>
                         </header>
-                        <div id="identity-require-tenant" class="empty-state">Select a client from the sidebar.</div>
+                        <div id="identity-require-tenant" class="empty-state">Click <strong>Manage →</strong> on a client row in Registered Clients to view data.</div>
                         <div id="identity-content" style="display:none;">
                             <div class="card">
                                 <form id="profile-form">
@@ -127,15 +202,100 @@
                                         <label for="profile-name">Company Name</label>
                                         <input type="text" id="profile-name" required>
                                     </div>
-                                    <div class="input-group">
-                                        <label for="profile-ind">Industry</label>
-                                        <input type="text" id="profile-ind" required>
+                                    <div class="input-group" style="display: flex; gap: 1rem;">
+                                        <div style="flex: 1;">
+                                            <label for="profile-ind">Industry</label>
+                                            <input type="text" id="profile-ind" required style="width: 100%;">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label for="profile-hours">Business Hours</label>
+                                            <input type="text" id="profile-hours" placeholder="e.g., Mon-Fri 9AM-5PM" style="width: 100%;">
+                                        </div>
                                     </div>
                                     <div class="input-group">
                                         <label for="profile-desc">Business Description</label>
-                                        <textarea id="profile-desc" rows="5" required></textarea>
+                                        <textarea id="profile-desc" rows="3" required></textarea>
                                     </div>
-                                    <button type="submit" class="btn primary-btn">Update Identity</button>
+                                    
+                                    <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Point of Contact</h3>
+                                    <div class="input-group" style="display: flex; gap: 1rem;">
+                                        <div style="flex: 1;">
+                                            <label for="profile-contact-name">Contact Person Name</label>
+                                            <input type="text" id="profile-contact-name" style="width: 100%;">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label for="profile-contact-role">Contact Person Role</label>
+                                            <input type="text" id="profile-contact-role" placeholder="e.g. CEO, Operations Manager" style="width: 100%;">
+                                        </div>
+                                    </div>
+                                    <div class="input-group" style="display: flex; gap: 1rem;">
+                                        <div style="flex: 1;">
+                                            <label for="profile-contact-email">Contact Email (Direct)</label>
+                                            <input type="email" id="profile-contact-email" style="width: 100%;">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label for="profile-contact-phone">Contact Phone (Direct/WhatsApp)</label>
+                                            <input type="tel" id="profile-contact-phone" style="width: 100%;">
+                                        </div>
+                                    </div>
+
+                                    <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Location & Operations</h3>
+                                    <div class="input-group">
+                                        <label for="profile-address-street">Street Address</label>
+                                        <input type="text" id="profile-address-street" style="width: 100%;">
+                                    </div>
+                                    <div class="input-group" style="display: flex; gap: 1rem;">
+                                        <div style="flex: 1;">
+                                            <label for="profile-city">City</label>
+                                            <input type="text" id="profile-city" style="width: 100%;">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label for="profile-state">State</label>
+                                            <input type="text" id="profile-state" style="width: 100%;">
+                                        </div>
+                                    </div>
+                                    <div class="input-group" style="display: flex; gap: 1rem;">
+                                        <div style="flex: 1;">
+                                            <label for="profile-country">Country</label>
+                                            <input type="text" id="profile-country" style="width: 100%;">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label for="profile-zip">ZIP / Postal Code</label>
+                                            <input type="text" id="profile-zip" style="width: 100%;">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label for="profile-timezone">Timezone</label>
+                                            <input type="text" id="profile-timezone" placeholder="e.g. Asia/Kolkata" style="width: 100%;">
+                                        </div>
+                                    </div>
+
+                                    <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Branding & UI Customization</h3>
+                                    <div class="input-group" style="display: flex; gap: 1rem;">
+                                        <div style="flex: 1;">
+                                            <label for="profile-brand-primary">Primary Color (Hex)</label>
+                                            <input type="text" id="profile-brand-primary" placeholder="#FF5733" style="width: 100%;">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label for="profile-brand-secondary">Secondary Color (Hex)</label>
+                                            <input type="text" id="profile-brand-secondary" placeholder="#FFFFFF" style="width: 100%;">
+                                        </div>
+                                    </div>
+                                    <div class="input-group" style="display: flex; gap: 1rem;">
+                                        <div style="flex: 1;">
+                                            <label for="profile-social-li">LinkedIn URL</label>
+                                            <input type="url" id="profile-social-li" style="width: 100%;">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label for="profile-social-tw">Twitter URL</label>
+                                            <input type="url" id="profile-social-tw" style="width: 100%;">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label for="profile-social-ig">Instagram URL</label>
+                                            <input type="url" id="profile-social-ig" style="width: 100%;">
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" class="btn primary-btn" style="margin-top: 1.5rem;">Update Identity</button>
                                     <span id="profile-msg" class="msg-text"></span>
                                 </form>
                             </div>
@@ -147,7 +307,7 @@
                         <header class="section-header">
                             <h2>Analytics Overview</h2>
                         </header>
-                        <div id="analytics-require-tenant" class="empty-state">Select a client from the sidebar to view analytics.</div>
+                        <div id="analytics-require-tenant" class="empty-state">Click <strong>Manage →</strong> on a client row in Registered Clients to view analytics.</div>
                         <div id="analytics-content" style="display:none;">
                             <div class="metrics-grid">
                                 <div class="metric-card">
@@ -163,6 +323,17 @@
                                     <div class="metric-value" id="metric-recent" style="font-size:1.5rem;">-</div>
                                 </div>
                             </div>
+                            
+                            <div class="card" style="margin-top: 2rem;">
+                                <h3>Monthly Message Quota</h3>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span id="quota-text" style="font-weight:bold; color:var(--text-color);">Loading...</span>
+                                    <span id="quota-plan-badge" class="tenant-badge">Starter</span>
+                                </div>
+                                <div style="width: 100%; height: 12px; background: #e0e0e0; border-radius: 6px; overflow: hidden; margin-top: 5px;">
+                                    <div id="quota-progress-bar" style="height: 100%; background: var(--primary-color); width: 0%; transition: width 0.3s ease;"></div>
+                                </div>
+                            </div>
 
                             <div class="card" style="margin-top: 2rem;">
                                 <h3>Intent Distribution</h3>
@@ -175,10 +346,10 @@
                     <!-- Tab: Sales Leads -->
                     <section id="tab-leads" class="content-section">
                         <header class="section-header">
-                            <h2>🎯 Sales Leads Dashboard</h2>
+                            <h2> Sales Leads Dashboard</h2>
                             <p style="color:var(--text-muted);">These users provided their contact details for follow-up.</p>
                         </header>
-                        <div id="leads-require-tenant" class="empty-state">Select a client from the sidebar.</div>
+                        <div id="leads-require-tenant" class="empty-state">Click <strong>Manage →</strong> on a client row in Registered Clients to view leads.</div>
                         <div id="leads-content" style="display:none;">
                             <div class="card no-pad">
                                 <div class="table-responsive">
@@ -204,11 +375,11 @@
                         <header class="section-header flex-header">
                             <h2>Decrypted Chat History</h2>
                             <div style="display: flex; gap: 10px;">
-                                <button id="btn-export-csv" class="btn outline-btn" disabled>📄 Download CSV</button>
-                                <button id="btn-export-excel" class="btn outline-btn" style="color:#107c41; border-color:#107c41;" disabled>📗 Download Excel</button>
+                                <button id="btn-export-csv" class="btn outline-btn" disabled> Download CSV</button>
+                                <button id="btn-export-excel" class="btn outline-btn" style="color:#107c41; border-color:#107c41;" disabled> Download Excel</button>
                             </div>
                         </header>
-                        <div id="chats-require-tenant" class="empty-state">Select a client from the sidebar.</div>
+                        <div id="chats-require-tenant" class="empty-state">Click <strong>Manage →</strong> on a client row in Registered Clients to view chats.</div>
                         <div id="chats-content" style="display:none;">
                             <div class="card no-pad">
                                 <div class="table-responsive">
@@ -235,7 +406,7 @@
                         <header class="section-header flex-header">
                             <h2>Manage FAQs</h2>
                         </header>
-                        <div id="faq-require-tenant" class="empty-state">Select a client from the sidebar.</div>
+                        <div id="faq-require-tenant" class="empty-state">Click <strong>Manage →</strong> on a client row in Registered Clients to manage FAQs.</div>
                         
                         <div id="faq-content" style="display:none;">
                             <div class="card bg-light">
@@ -292,6 +463,6 @@
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="script.js"></script>
+    <script src="script.js?v=2"></script>
 </body>
 </html>

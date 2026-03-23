@@ -30,7 +30,6 @@ admin_app/
 # Secrets and local configurations
 .env
 .env.example
-tenants.json
 
 # Git
 .git/

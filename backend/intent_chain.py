@@ -8,23 +8,30 @@ from .database import get_tenant_session, BusinessProfile
 load_dotenv()
 
 
-def detect_intent(question: str, tenant_id: str = None) -> str:
+def detect_intent(question: str, tenant_id: str = None, db=None) -> str:
     """Detect intent from user question. If tenant_id is provided, uses tenant's business profile for context."""
     company = "the company"
     industry = "general services"
 
     if tenant_id:
         try:
-            db = get_tenant_session(tenant_id)
+            should_close = False
+            if db is None:
+                db = get_tenant_session(tenant_id)
+                should_close = True
+            
             profile = db.query(BusinessProfile).first()
-            db.close()
+            if should_close:
+                db.close()
+                
             if profile:
                 company = profile.company_name
                 industry = profile.industry
         except Exception:
             pass  # Fallback to defaults if tenant DB not available
 
-    llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
+    # Use llama-3.1-8b-instant for maximum speed
+    llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
 
     system_prompt = (
         f"You are an intent detection bot for {company}, a business in the {industry} industry. "

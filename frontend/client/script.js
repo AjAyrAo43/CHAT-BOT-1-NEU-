@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!tenantId) {
         document.querySelector('.login-box').innerHTML = `
             <div class="error-text" style="font-size:1rem; color: var(--danger);">
-                ⚠️ Missing tenant ID in URL.<br><br>
+                 Missing tenant ID in URL.<br><br>
                 Please use the link provided by the developer.<br>
                 Format: <code>/?tenant_id=your-id</code>
             </div>`;
@@ -105,6 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     logoutBtn.addEventListener('click', () => {
         sessionStorage.removeItem('client_auth');
+        // Reset caches on logout
+        _chatsLoaded = false;
+        _tenantInfoLoaded = false;
+        globalChatsData = [];
         showView('login');
     });
 
@@ -118,10 +122,14 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('active');
             document.getElementById(btn.dataset.target).classList.add('active');
             
-            // Reload data if needed based on tab open
-            if (btn.dataset.target === 'section-analytics') loadAnalyticsAndData();
-            if (btn.dataset.target === 'section-leads') loadAnalyticsAndData(); // Leads uses same data
-            if (btn.dataset.target === 'section-chats') loadAnalyticsAndData();
+            // Use cached data — don't re-fetch on every tab click
+            if (btn.dataset.target === 'section-analytics') renderAnalytics(globalChatsData);
+            if (btn.dataset.target === 'section-leads') renderLeads(globalChatsData);
+            if (btn.dataset.target === 'section-chats') {
+                const displayChats = [...globalChatsData].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+                renderChats(displayChats);
+            }
+            // These are fast per-tenant DB calls — fetch only if not cached
             if (btn.dataset.target === 'section-faqs') loadFaqs();
             if (btn.dataset.target === 'section-kb') loadDocs();
         });
@@ -130,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function initDashboard() {
         showView('dashboard');
         tenantBadge.textContent = tenantId;
+        loadTenantInfo();
         loadProfile();
         loadAnalyticsAndData(); // Load chats, leads, analytics
         loadFaqs();
@@ -137,21 +146,65 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Data Loading (Chats, Leads, Analytics) ---
-    // In streamlit it fetches /admin/chats once per tab, we fetch once and distribute
+    // Cache: only fetch once per session, re-render from memory on tab switch
     let globalChatsData = [];
+    let _chatsLoaded = false;
+    let _tenantInfoLoaded = false;
+    async function loadTenantInfo() {
+        if (_tenantInfoLoaded) return; // Skip fetch if already loaded
+        try {
+            const res = await fetch(`${API_BASE}/admin/tenant-info?tenant_id=${tenantId}`);
+            if (res.ok) {
+                const data = await res.json();
+                _tenantInfoLoaded = true; // Mark as loaded
+                tenantBadge.textContent = data.name; // Display the business name
+                const banner = document.getElementById('billing-banner');
+                banner.style.display = 'block';
+                
+                if (data.subscription_end_date) {
+                    const endDate = new Date(data.subscription_end_date);
+                    const now = new Date();
+                    
+                    if (endDate > now) {
+                        const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+                        banner.style.backgroundColor = 'var(--success-color)';
+                        banner.style.color = 'white';
+                        banner.innerHTML = `Subscription Status: <span style="font-weight:normal">Active (${daysLeft} days left)</span> &bull; Expires: ${endDate.toLocaleDateString()}`;
+                    } else {
+                        banner.style.backgroundColor = 'var(--danger-color)';
+                        banner.style.color = 'white';
+                        banner.innerHTML = `Subscription Status: <span style="font-weight:normal">Expired</span> &bull; Your chatbot will not answer new customer requests. Please contact support to renew.`;
+                    }
+                } else {
+                    banner.style.display = 'none'; // No end date found
+                }
+            }
+        } catch (err) {
+            console.error('Failed to load tenant info', err);
+        }
+    }
+
+
 
     async function loadAnalyticsAndData() {
+        // Use cached data if already loaded
+        if (_chatsLoaded) {
+            renderAnalytics(globalChatsData);
+            renderLeads(globalChatsData);
+            const displayChats = [...globalChatsData].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+            renderChats(displayChats);
+            return;
+        }
         try {
             const res = await fetch(`${API_BASE}/admin/chats?tenant_id=${tenantId}`);
             if (res.ok) {
                 globalChatsData = await res.json();
-                // Sort ascending by date for logical processing, just like Streamlit does for leads
                 globalChatsData.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+                _chatsLoaded = true; // mark cached
                 
                 renderAnalytics(globalChatsData);
                 renderLeads(globalChatsData);
                 
-                // For chat logs display, we usually want descending (newest first)
                 const displayChats = [...globalChatsData].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
                 renderChats(displayChats);
             }
@@ -160,13 +213,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderAnalytics(data) {
+    async function renderAnalytics(data) {
         if (data.length === 0) {
             document.getElementById('metric-total-queries').textContent = '0';
             document.getElementById('metric-intents').textContent = '0';
             document.getElementById('metric-recent').textContent = 'N/A';
             document.getElementById('intent-chart-container').innerHTML = '';
             document.getElementById('intent-chart-labels').innerHTML = '';
+            document.getElementById('quota-text').textContent = "0 messages used this month";
             return;
         }
 
@@ -207,6 +261,45 @@ document.addEventListener('DOMContentLoaded', () => {
             container.appendChild(col);
             labelsContainer.appendChild(label);
         });
+
+        // Calculate Monthly Quota
+        try {
+            if (!_tenantInfoLoaded) {
+                const res2 = await fetch(`${API_BASE}/admin/tenant-info?tenant_id=${tenantId}`);
+                if (res2.ok) {
+                    const info = await res2.json();
+                    _tenantInfoLoaded = info; // cache the response
+                    _applyQuota(info, data);
+                }
+            } else {
+                _applyQuota(_tenantInfoLoaded, data);
+            }
+        } catch(e) { console.error('Error fetching quota limits', e); }
+    }
+
+    function _applyQuota(info, data) {
+        const limit = info.limits.messages_per_month;
+        const now = new Date();
+        const currentMonthString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        let monthlyUsed = 0;
+        data.forEach(d => {
+            if (d.created_at.startsWith(currentMonthString)) monthlyUsed++;
+        });
+        document.getElementById('quota-plan-badge').textContent = info.current_plan;
+        const progressEl = document.getElementById('quota-progress-bar');
+        const textEl = document.getElementById('quota-text');
+        if (limit >= 999999) {
+            textEl.textContent = `${monthlyUsed} Messages (Unlimited Plan)`;
+            progressEl.style.width = '100%';
+            progressEl.style.background = '#107c41';
+        } else {
+            textEl.textContent = `${monthlyUsed} / ${limit} Messages Used`;
+            let pct = Math.min((monthlyUsed / limit) * 100, 100);
+            progressEl.style.width = `${pct}%`;
+            if (pct > 90) progressEl.style.background = 'var(--danger-color)';
+            else if (pct > 75) progressEl.style.background = 'orange';
+            else progressEl.style.background = 'var(--primary-color)';
+        }
     }
 
     function renderLeads(data) {
@@ -261,10 +354,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         chats.forEach(c => {
             const tr = document.createElement('tr');
+            const answerPreview = c.answer ? (c.answer.length > 100 ? c.answer.substring(0, 100) + '...' : c.answer) : '';
             tr.innerHTML = `
                 <td style="white-space:nowrap"><small>${new Date(c.created_at).toLocaleString()}</small></td>
                 <td><small style="color:var(--text-muted)">${escapeHTML(c.session_id.substring(0, 8))}...</small></td>
                 <td>${escapeHTML(c.question)}</td>
+                <td><small>${escapeHTML(answerPreview)}</small></td>
                 <td><code style="background:#f5f5f5;padding:2px 4px;">${escapeHTML(c.intent)}</code></td>
                 <td><a href="${escapeHTML(c.page_url)}" target="_blank" style="color:#0066cc;text-decoration:none;">Link</a></td>
             `;
@@ -277,12 +372,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!globalChatsData || globalChatsData.length === 0) return alert("No data to export");
         
         let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "created_at,question,intent,page_url\n"; // Headers
+        csvContent += "created_at,question,answer,intent,page_url\n"; // Headers
         
         globalChatsData.forEach(function(rowArray) {
             // Escape quotes inside fields
             const q = `"${rowArray.question.replace(/"/g, '""')}"`;
-            let row = `${rowArray.created_at},${q},${rowArray.intent},${rowArray.page_url}`;
+            const a = `"${(rowArray.answer || '').replace(/"/g, '""')}"`;
+            let row = `${rowArray.created_at},${q},${a},${rowArray.intent},${rowArray.page_url}`;
             csvContent += row + "\r\n";
         });
 
@@ -302,6 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const exportData = globalChatsData.map(c => ({
             created_at: c.created_at,
             question: c.question,
+            answer: c.answer || '',
             intent: c.intent,
             page_url: c.page_url
         }));
@@ -319,10 +416,30 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch(`${API_BASE}/admin/profile?tenant_id=${tenantId}`);
             if (res.ok) {
+                // Notice the variable name is `profile` not `p`
                 const profile = await res.json();
                 document.getElementById('company-name').value = profile.company_name;
                 document.getElementById('industry').value = profile.industry;
                 document.getElementById('biz-desc').value = profile.business_description;
+                document.getElementById('profile-hours').value = profile.business_hours || '';
+                
+                document.getElementById('profile-contact-name').value = profile.contact_person_name || '';
+                document.getElementById('profile-contact-role').value = profile.contact_person_role || '';
+                document.getElementById('profile-contact-email').value = profile.contact_person_email || '';
+                document.getElementById('profile-contact-phone').value = profile.contact_person_phone || '';
+                
+                document.getElementById('profile-address-street').value = profile.address_street || '';
+                document.getElementById('profile-city').value = profile.city || '';
+                document.getElementById('profile-state').value = profile.state || '';
+                document.getElementById('profile-country').value = profile.country || '';
+                document.getElementById('profile-zip').value = profile.zip_code || '';
+                document.getElementById('profile-timezone').value = profile.timezone || '';
+                
+                document.getElementById('profile-brand-primary').value = profile.brand_color_primary || '';
+                document.getElementById('profile-brand-secondary').value = profile.brand_color_secondary || '';
+                document.getElementById('profile-social-li').value = profile.social_linkedin || '';
+                document.getElementById('profile-social-tw').value = profile.social_twitter || '';
+                document.getElementById('profile-social-ig').value = profile.social_instagram || '';
             }
         } catch (e) {
             console.error('Failed to load profile');
@@ -334,7 +451,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const payload = {
             company_name: document.getElementById('company-name').value,
             industry: document.getElementById('industry').value,
-            business_description: document.getElementById('biz-desc').value
+            business_description: document.getElementById('biz-desc').value,
+            business_hours: document.getElementById('profile-hours').value,
+            
+            contact_person_name: document.getElementById('profile-contact-name').value,
+            contact_person_role: document.getElementById('profile-contact-role').value,
+            contact_person_email: document.getElementById('profile-contact-email').value,
+            contact_person_phone: document.getElementById('profile-contact-phone').value,
+            
+            address_street: document.getElementById('profile-address-street').value,
+            city: document.getElementById('profile-city').value,
+            state: document.getElementById('profile-state').value,
+            country: document.getElementById('profile-country').value,
+            zip_code: document.getElementById('profile-zip').value,
+            timezone: document.getElementById('profile-timezone').value,
+
+            brand_color_primary: document.getElementById('profile-brand-primary').value,
+            brand_color_secondary: document.getElementById('profile-brand-secondary').value,
+            social_linkedin: document.getElementById('profile-social-li').value,
+            social_twitter: document.getElementById('profile-social-tw').value,
+            social_instagram: document.getElementById('profile-social-ig').value
         };
         showMessage(profileMsg, 'Saving...', '');
         
@@ -367,11 +503,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
-                showMessage(pwdMsg, '✅ Password changed! Use new password next time.', 'success');
+                showMessage(pwdMsg, ' Password changed! Use new password next time.', 'success');
                 passwordForm.reset();
             } else {
                 const data = await res.json();
-                showMessage(pwdMsg, `❌ ${data.detail || 'Failed'}`, 'error');
+                showMessage(pwdMsg, ` ${data.detail || 'Failed'}`, 'error');
             }
         } catch (err) {
             showMessage(pwdMsg, 'Connection error.', 'error');
@@ -485,17 +621,17 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (res.ok) {
                 uploadStatus.style.color = '#107c41';
-                uploadStatus.textContent = '✅ Document uploaded and AI trained successfully!';
+                uploadStatus.textContent = ' Document uploaded and AI trained successfully!';
                 uploadDocForm.reset();
                 loadDocs();
             } else {
                 const data = await res.json();
                 uploadStatus.style.color = 'red';
-                uploadStatus.textContent = `❌ ${data.detail || 'Upload failed'}`;
+                uploadStatus.textContent = ` ${data.detail || 'Upload failed'}`;
             }
         } catch (err) {
             uploadStatus.style.color = 'red';
-            uploadStatus.textContent = '❌ Connection error during upload';
+            uploadStatus.textContent = ' Connection error during upload';
         } finally {
             btn.disabled = false;
             setTimeout(() => { if(uploadStatus.style.color==='rgb(16, 124, 65)') uploadStatus.style.display='none'}, 5000);

@@ -53,6 +53,8 @@
                 
                 <main class="main-content">
                     
+                    <div id="billing-banner" style="display: none; padding: 1rem; margin-bottom: 1.5rem; border-radius: 8px; font-weight: bold; text-align: center;"></div>
+                    
                     <!-- Analytics Section -->
                     <section id="section-analytics" class="content-section active">
                         <header class="section-header">
@@ -75,6 +77,17 @@
                         </div>
 
                         <div class="card" style="margin-top: 2rem;">
+                            <h3>Monthly Message Quota</h3>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span id="quota-text" style="font-weight:bold; color:var(--text-color);">Loading...</span>
+                                <span id="quota-plan-badge" class="tenant-badge">Starter</span>
+                            </div>
+                            <div style="width: 100%; height: 12px; background: #e0e0e0; border-radius: 6px; overflow: hidden; margin-top: 5px;">
+                                <div id="quota-progress-bar" style="height: 100%; background: var(--primary-color); width: 0%; transition: width 0.3s ease;"></div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="margin-top: 2rem;">
                             <h3>Intent Distribution</h3>
                             <div id="intent-chart-container" style="height: 300px; display: flex; align-items: flex-end; gap: 10px; margin-top: 20px;">
                                 <!-- Simple CSS Bar Chart will be rendered here -->
@@ -86,7 +99,7 @@
                     <!-- Sales Leads Section -->
                     <section id="section-leads" class="content-section">
                         <header class="section-header">
-                            <h2>🎯 Sales Leads Dashboard</h2>
+                            <h2> Sales Leads Dashboard</h2>
                             <p style="color:var(--text-muted); font-size:0.9rem;">These users provided their contact details for follow-up.</p>
                         </header>
                         <div class="card no-pad">
@@ -112,8 +125,8 @@
                         <header class="section-header flex-header">
                             <h2>Decrypted Chat History</h2>
                             <div style="display: flex; gap: 10px;">
-                                <button id="btn-export-csv" class="btn outline-btn">📄 Download CSV</button>
-                                <button id="btn-export-excel" class="btn outline-btn" style="color:#107c41; border-color:#107c41;">📗 Download Excel</button>
+                                <button id="btn-export-csv" class="btn outline-btn"> Download CSV</button>
+                                <button id="btn-export-excel" class="btn outline-btn" style="color:#107c41; border-color:#107c41;"> Download Excel</button>
                             </div>
                         </header>
                         <div class="card no-pad">
@@ -124,6 +137,7 @@
                                             <th>Date</th>
                                             <th>Session ID</th>
                                             <th>Question</th>
+                                            <th>AI Answer</th>
                                             <th>Intent</th>
                                             <th>URL</th>
                                         </tr>
@@ -203,15 +217,100 @@
                                     <label for="company-name">Company Name</label>
                                     <input type="text" id="company-name" required>
                                 </div>
-                                <div class="input-group">
-                                    <label for="industry">Industry</label>
-                                    <input type="text" id="industry" required>
+                                <div class="input-group" style="display: flex; gap: 1rem;">
+                                    <div style="flex: 1;">
+                                        <label for="industry">Industry</label>
+                                        <input type="text" id="industry" required style="width: 100%;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label for="profile-hours">Business Hours</label>
+                                        <input type="text" id="profile-hours" placeholder="e.g., Mon-Fri 9AM-5PM" style="width: 100%;">
+                                    </div>
                                 </div>
                                 <div class="input-group">
                                     <label for="biz-desc">Business Description (Used by AI as context)</label>
-                                    <textarea id="biz-desc" rows="5" required></textarea>
+                                    <textarea id="biz-desc" rows="3" required></textarea>
                                 </div>
-                                <button type="submit" class="btn primary-btn">Save Profile</button>
+                                
+                                <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Point of Contact</h3>
+                                <div class="input-group" style="display: flex; gap: 1rem;">
+                                    <div style="flex: 1;">
+                                        <label for="profile-contact-name">Contact Person Name</label>
+                                        <input type="text" id="profile-contact-name" style="width: 100%;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label for="profile-contact-role">Contact Person Role</label>
+                                        <input type="text" id="profile-contact-role" placeholder="e.g. CEO, Operations Manager" style="width: 100%;">
+                                    </div>
+                                </div>
+                                <div class="input-group" style="display: flex; gap: 1rem;">
+                                    <div style="flex: 1;">
+                                        <label for="profile-contact-email">Contact Email (Direct)</label>
+                                        <input type="email" id="profile-contact-email" style="width: 100%;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label for="profile-contact-phone">Contact Phone (Direct/WhatsApp)</label>
+                                        <input type="tel" id="profile-contact-phone" style="width: 100%;">
+                                    </div>
+                                </div>
+
+                                <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Location & Operations</h3>
+                                <div class="input-group">
+                                    <label for="profile-address-street">Street Address</label>
+                                    <input type="text" id="profile-address-street" style="width: 100%;">
+                                </div>
+                                <div class="input-group" style="display: flex; gap: 1rem;">
+                                    <div style="flex: 1;">
+                                        <label for="profile-city">City</label>
+                                        <input type="text" id="profile-city" style="width: 100%;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label for="profile-state">State</label>
+                                        <input type="text" id="profile-state" style="width: 100%;">
+                                    </div>
+                                </div>
+                                <div class="input-group" style="display: flex; gap: 1rem;">
+                                    <div style="flex: 1;">
+                                        <label for="profile-country">Country</label>
+                                        <input type="text" id="profile-country" style="width: 100%;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label for="profile-zip">ZIP / Postal Code</label>
+                                        <input type="text" id="profile-zip" style="width: 100%;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label for="profile-timezone">Timezone</label>
+                                        <input type="text" id="profile-timezone" placeholder="e.g. Asia/Kolkata" style="width: 100%;">
+                                    </div>
+                                </div>
+
+                                <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Branding & UI Customization</h3>
+                                <div class="input-group" style="display: flex; gap: 1rem;">
+                                    <div style="flex: 1;">
+                                        <label for="profile-brand-primary">Primary Color (Hex)</label>
+                                        <input type="text" id="profile-brand-primary" placeholder="#FF5733" style="width: 100%;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label for="profile-brand-secondary">Secondary Color (Hex)</label>
+                                        <input type="text" id="profile-brand-secondary" placeholder="#FFFFFF" style="width: 100%;">
+                                    </div>
+                                </div>
+                                <div class="input-group" style="display: flex; gap: 1rem;">
+                                    <div style="flex: 1;">
+                                        <label for="profile-social-li">LinkedIn URL</label>
+                                        <input type="url" id="profile-social-li" style="width: 100%;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label for="profile-social-tw">Twitter URL</label>
+                                        <input type="url" id="profile-social-tw" style="width: 100%;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label for="profile-social-ig">Instagram URL</label>
+                                        <input type="url" id="profile-social-ig" style="width: 100%;">
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn primary-btn" style="margin-top: 1.5rem;">Save Profile</button>
                                 <span id="profile-msg" class="msg-text"></span>
                             </form>
                         </div>

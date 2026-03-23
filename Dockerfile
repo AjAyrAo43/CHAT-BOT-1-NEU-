@@ -20,6 +20,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the core backend code
 COPY backend/ backend/
 
+# Copy tenant registry (needed at runtime)
+COPY tenants.json .
+
 # Expose port 8000 for Cloud Run
 EXPOSE 8000
 

@@ -1,5 +1,9 @@
 import os
-from fastapi import FastAPI, Depends, HTTPException, Request, Query, UploadFile, File
+import time
+import datetime
+import traceback
+from fastapi import FastAPI, Depends, HTTPException, Request, Query, UploadFile, File, BackgroundTasks
+from fastapi.responses import JSONResponse
 import io
 import PyPDF2
 import pandas as pd
@@ -13,21 +17,74 @@ from slowapi.errors import RateLimitExceeded
 
 from .database import (
     get_tenant_session, init_tenant_db,
-    register_tenant, get_all_tenants, get_tenant_by_id, deactivate_tenant,
+    register_tenant, get_all_tenants, get_tenant_by_id, deactivate_tenant, delete_tenant_hard,
     verify_client_password, update_tenant_password,
-    ChatLog, FAQ, Admin, BusinessProfile, KnowledgeDocument
+    ChatLog, FAQ, Admin, BusinessProfile, KnowledgeDocument,
+    get_tenant_limits
 )
 from .encryption import encrypt_text, decrypt_text
 from .email_notifier import send_lead_notification
 from .intent_chain import detect_intent
 from .faq_chain import get_answer
+from .logger import log_request, log_error, log_abuse, logger
+from .metrics_store import record_request, record_error, record_tokens, get_metrics_snapshot
+from .alerting import check_and_alert
 
 
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Multi-Tenant Chatbot API")
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+# ── Abuse logging: override rate-limit handler ──────────────────────────
+async def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    ip = request.client.host if request.client else "unknown"
+    log_abuse(ip=ip, path=request.url.path, reason=f"Rate limit exceeded: {exc.detail}")
+    record_error()
+    return JSONResponse(
+        status_code=429,
+        content={"detail": f"Rate limit exceeded: {exc.detail}"},
+    )
+
+
+app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
+
+
+# ── Request logging + metrics middleware ────────────────────────────────
+# Paths polled constantly — counted in metrics but NOT written to log file.
+_SILENT_PATHS = {"/admin/tenants", "/health", "/admin/metrics", "/"}
+
+@app.middleware("http")
+async def logging_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    tenant_id = request.query_params.get("tenant_id", "-")
+
+    record_request()
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        record_error()
+        tb = traceback.format_exc()
+        log_error(tenant_id=tenant_id, path=request.url.path, error=exc, tb=tb)
+        raise
+
+    duration_ms = (time.perf_counter() - start) * 1000
+    status = response.status_code
+
+    if status >= 500:
+        record_error()
+
+    # Only log meaningful endpoints — skip constant background polls
+    if request.url.path not in _SILENT_PATHS:
+        log_request(
+            tenant_id=tenant_id,
+            path=request.url.path,
+            method=request.method,
+            status=status,
+            duration_ms=duration_ms,
+        )
+    return response
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,6 +113,16 @@ def get_tenant_db(tenant_id: str = Query(..., description="The tenant/client ID"
 # ──────────────────────────────────────────────
 # Pydantic Models
 # ──────────────────────────────────────────────
+def format_utc(dt) -> str:
+    """Format a datetime as an ISO string with UTC timezone marker.
+    This ensures JavaScript's new Date() correctly interprets it as UTC."""
+    if dt is None:
+        return ""
+    if isinstance(dt, datetime.datetime):
+        return dt.strftime("%Y-%m-%dT%H:%M:%S") + "+00:00"
+    return str(dt)
+
+
 class ChatRequest(BaseModel):
     question: str
     session_id: str
@@ -80,6 +147,33 @@ class BusinessProfileBase(BaseModel):
     company_name: str
     industry: str
     business_description: str
+    website: str = ""
+    support_email: str = ""
+    phone: str = ""
+    
+    # 1. Point of Contact
+    contact_person_name: str = ""
+    contact_person_role: str = ""
+    contact_person_email: str = ""
+    contact_person_phone: str = ""
+    
+    # 2. Location & Operations
+    address_street: str = ""
+    city: str = ""
+    state: str = ""
+    country: str = ""
+    zip_code: str = ""
+    timezone: str = ""
+    business_hours: str = ""
+
+    # 3. Branding & UI Customization
+    brand_color_primary: str = ""
+    brand_color_secondary: str = ""
+    social_linkedin: str = ""
+    social_twitter: str = ""
+    social_instagram: str = ""
+    
+    logo_url: str = ""
 
 
 class FAQResponse(FAQBase):
@@ -94,6 +188,7 @@ class ChatLogResponse(BaseModel):
     id: str
     session_id: str
     question: str
+    answer: str
     intent: str
     page_url: str
     is_resolved: bool
@@ -120,6 +215,17 @@ class TenantResponse(BaseModel):
     api_key: str
     is_active: bool
     created_at: str
+    subscription_end_date: Optional[str] = None
+    current_plan: str = "Starter"
+    limits: Optional[dict] = None
+
+class InvoiceResponse(BaseModel):
+    id: str
+    tenant_id: str
+    amount_inr: float
+    plan_name: str
+    status: str
+    payment_date: str
 
 
 # ──────────────────────────────────────────────
@@ -128,6 +234,12 @@ class TenantResponse(BaseModel):
 @app.get("/")
 async def root():
     return {"message": "Multi-Tenant Chatbot API is running. Access /docs for documentation."}
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Cloud Run readiness probes."""
+    return {"status": "healthy"}
 
 
 class AuthRequest(BaseModel):
@@ -193,7 +305,10 @@ async def register_tenant_endpoint(payload: TenantCreate):
         name=new_tenant["name"],
         api_key=new_tenant["api_key"],
         is_active=new_tenant["is_active"],
-        created_at=new_tenant["created_at"]
+        created_at=new_tenant["created_at"],
+        subscription_end_date=new_tenant.get("subscription_end_date"),
+        current_plan=new_tenant.get("current_plan", "Starter"),
+        limits=get_tenant_limits(new_tenant["id"])
     )
 
 
@@ -204,7 +319,10 @@ async def list_tenants():
     return [
         TenantResponse(
             id=t["id"], name=t["name"], api_key=t["api_key"],
-            is_active=t["is_active"], created_at=t["created_at"]
+            is_active=t["is_active"], created_at=t["created_at"],
+            subscription_end_date=t.get("subscription_end_date"),
+            current_plan=t.get("current_plan", "Starter"),
+            limits=get_tenant_limits(t["id"])
         ) for t in tenants
     ]
 
@@ -218,39 +336,158 @@ async def deactivate_tenant_endpoint(tenant_id: str):
     return {"message": "Tenant deactivated."}
 
 
+@app.delete("/admin/tenant/{tenant_id}/hard-delete")
+async def hard_delete_tenant_endpoint(tenant_id: str):
+    """Permanently delete a client and drop their database."""
+    success = delete_tenant_hard(tenant_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Tenant not found or could not be deleted.")
+    return {"message": "Tenant and all associated data permanently deleted."}
+
+
+@app.get("/admin/tenant-info", response_model=TenantResponse)
+async def get_tenant_info(tenant_id: str):
+    """Get info for a specific tenant (used by client dashboard)."""
+    t = get_tenant_by_id(tenant_id)
+    if not t:
+        raise HTTPException(status_code=404, detail="Tenant not found.")
+    
+    return TenantResponse(
+        id=t["id"], name=t["name"], api_key=t["api_key"],
+        is_active=t["is_active"], created_at=t["created_at"],
+        subscription_end_date=t.get("subscription_end_date"),
+        current_plan=t.get("current_plan", "Starter"),
+        limits=get_tenant_limits(t["id"])
+    )
+
+
+class ExtendSubscriptionRequest(BaseModel):
+    days: int = 30
+
+
+@app.post("/admin/tenant/{tenant_id}/extend-subscription")
+async def extend_subscription_endpoint(tenant_id: str, payload: ExtendSubscriptionRequest):
+    """Extend a client's subscription by a given number of days."""
+    from .database import extend_subscription
+    new_date = extend_subscription(tenant_id, payload.days)
+    if new_date:
+        return {"message": f"Subscription extended.", "new_end_date": new_date}
+    raise HTTPException(status_code=404, detail="Tenant not found.")
+
+
+class ChargeClientRequest(BaseModel):
+    tenant_id: str
+    amount_inr: float
+    plan_name: str
+
+
+@app.post("/admin/charge-client")
+async def charge_client_endpoint(payload: ChargeClientRequest):
+    """Record a payment and extend subscription."""
+    from .database import record_payment
+    try:
+        # Starter = 30 days, Pro = 30 days, etc.
+        days_to_add = 30
+        result = record_payment(payload.tenant_id, payload.amount_inr, payload.plan_name, days_to_add)
+        return {"message": "Payment recorded successfully", "data": result}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Payment failed: {e}")
+
+
+@app.get("/admin/invoices", response_model=List[InvoiceResponse])
+async def list_invoices():
+    """List all global payment historical records."""
+    from .database import get_all_invoices_from_dbs
+    return get_all_invoices_from_dbs()
+
+
 # ──────────────────────────────────────────────
 # CHAT ENDPOINT (used by client's widget)
 # ──────────────────────────────────────────────
 @app.post("/chat", response_model=ChatResponse)
 @limiter.limit("10/minute")
-async def chat_endpoint(request: Request, payload: ChatRequest):
+async def chat_endpoint(request: Request, payload: ChatRequest, background_tasks: BackgroundTasks):
+    db = None
+    intent = "unknown"
     try:
-        # Get tenant-specific DB session
         try:
             db = get_tenant_session(payload.tenant_id)
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
 
-        # 1. Detect Intent (using tenant's business profile for context)
-        intent = detect_intent(payload.question, payload.tenant_id)
+        current_tenant = get_tenant_by_id(payload.tenant_id)
+        if current_tenant:
+            end_date_str = current_tenant.get("subscription_end_date")
+            if end_date_str:
+                try:
+                    end_date = datetime.datetime.fromisoformat(end_date_str)
+                    if end_date < datetime.datetime.utcnow():
+                        return ChatResponse(
+                            answer="This chatbot is currently disabled due to an expired subscription. Please contact support to renew your service.",
+                            intent="error_subscription_expired",
+                            resolved=False
+                        )
+                except (ValueError, TypeError):
+                    pass
+        
+        intent = detect_intent(payload.question, payload.tenant_id, db=db)
+        
+        limits = get_tenant_limits(payload.tenant_id)
+        if payload.language != "en" and limits.get("languages") != "all" and payload.language not in limits.get("languages", ["en"]):
+            return ChatResponse(
+                answer="Multi-language support is not available on your current plan. Please upgrade to Pro or Enterprise.",
+                intent="error_feature_gated",
+                resolved=False
+            )
+            
+        first_day_of_month = datetime.datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        monthly_messages = db.query(ChatLog).filter(ChatLog.created_at >= first_day_of_month).count()
+        if monthly_messages >= limits.get("messages_per_month", 1000):
+            return ChatResponse(
+                answer="Monthly message quota reached for your current plan. Please upgrade to continue.",
+                intent="error_quota_exceeded",
+                resolved=False
+            )
 
-        # 2. Get AI Answer (using tenant-specific FAQs and profile)
-        answer = get_answer(payload.question, intent, payload.tenant_id, payload.language)
+        # Pass the existing DB session to get_answer
+        answer = get_answer(payload.question, intent, payload.tenant_id, payload.language, db=db)
 
-        # 3. Encrypt Question before saving
+        # ── Token usage tracking (word-count heuristic × 1.3) ──────────
+        estimated_tokens = int(
+            (len(payload.question.split()) + len(answer.split())) * 1.3
+        )
+        record_tokens(estimated_tokens)
+
         encrypted_q = encrypt_text(payload.question)
+        encrypted_a = encrypt_text(answer)
 
-        # 4. Save to tenant's DB
         new_log = ChatLog(
             session_id=payload.session_id,
             encrypted_question=encrypted_q,
+            encrypted_answer=encrypted_a,
             detected_intent=intent,
             page_url=payload.page_url,
-            language=payload.language
+            language=payload.language,
+            user_ip=request.client.host if request.client else None
         )
         db.add(new_log)
         db.commit()
-        db.close()
+
+        if intent == "contact" and current_tenant:
+            notif_email = current_tenant.get("notification_email", "")
+            if notif_email:
+                background_tasks.add_task(
+                    send_lead_notification,
+                    client_email=notif_email,
+                    client_name=current_tenant.get("name", "Unknown"),
+                    lead_info=payload.question,
+                    inquiry="Contact request via chatbot"
+                )
+
+        # ── Check thresholds and alert if needed (non-blocking) ──────────
+        background_tasks.add_task(check_and_alert)
 
         return {
             "answer": answer,
@@ -262,20 +499,8 @@ async def chat_endpoint(request: Request, payload: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        # Send email notification for contact intents (runs in background)
-        try:
-            if intent == "contact":
-                tenant = get_tenant_by_id(payload.tenant_id)
-                if tenant:
-                    notif_email = tenant.get("notification_email", "")
-                    send_lead_notification(
-                        client_email=notif_email,
-                        client_name=tenant.get("name", "Unknown"),
-                        lead_info=payload.question,
-                        inquiry="Contact request via chatbot"
-                    )
-        except Exception:
-            pass  # Don't break chat if email fails
+        if db:
+            db.close()
 
 
 # ──────────────────────────────────────────────
@@ -287,21 +512,28 @@ async def get_all_chats(db: Session = Depends(get_tenant_db)):
     results = []
     for log in logs:
         decrypted_q = decrypt_text(log.encrypted_question)
+        decrypted_a = decrypt_text(log.encrypted_answer) if log.encrypted_answer else ""
         results.append({
             "id": log.id,
             "session_id": log.session_id if log.session_id else "unknown_session",
             "question": decrypted_q,
+            "answer": decrypted_a,
             "intent": log.detected_intent,
             "page_url": log.page_url,
             "is_resolved": log.is_resolved,
             "language": log.language,
-            "created_at": str(log.created_at)
+            "created_at": format_utc(log.created_at)
         })
     return results
 
 
 @app.post("/admin/faq", response_model=FAQResponse)
-async def create_faq(faq: FAQBase, db: Session = Depends(get_tenant_db)):
+async def create_faq(faq: FAQBase, tenant_id: str = Query(...), db: Session = Depends(get_tenant_db)):
+    limits = get_tenant_limits(tenant_id)
+    faq_count = db.query(FAQ).filter(FAQ.is_active == True).count()
+    if faq_count >= limits.get("faqs", 20):
+        raise HTTPException(status_code=403, detail=f"FAQ limit reached ({limits.get('faqs')}). Please upgrade.")
+        
     new_faq = FAQ(**faq.dict())
     db.add(new_faq)
     db.commit()
@@ -345,6 +577,31 @@ async def update_profile(profile_data: BusinessProfileBase, db: Session = Depend
     profile.company_name = profile_data.company_name
     profile.industry = profile_data.industry
     profile.business_description = profile_data.business_description
+    profile.website = profile_data.website
+    profile.support_email = profile_data.support_email
+    profile.phone = profile_data.phone
+    
+    # Update new fields
+    profile.contact_person_name = profile_data.contact_person_name
+    profile.contact_person_role = profile_data.contact_person_role
+    profile.contact_person_email = profile_data.contact_person_email
+    profile.contact_person_phone = profile_data.contact_person_phone
+    
+    profile.address_street = profile_data.address_street
+    profile.city = profile_data.city
+    profile.state = profile_data.state
+    profile.country = profile_data.country
+    profile.zip_code = profile_data.zip_code
+    profile.timezone = profile_data.timezone
+    profile.business_hours = profile_data.business_hours
+    
+    profile.brand_color_primary = profile_data.brand_color_primary
+    profile.brand_color_secondary = profile_data.brand_color_secondary
+    profile.social_linkedin = profile_data.social_linkedin
+    profile.social_twitter = profile_data.social_twitter
+    profile.social_instagram = profile_data.social_instagram
+
+    profile.logo_url = profile_data.logo_url
     db.commit()
     db.refresh(profile)
     return profile
@@ -352,9 +609,15 @@ async def update_profile(profile_data: BusinessProfileBase, db: Session = Depend
 
 @app.post("/admin/upload-doc", response_model=DocumentResponse)
 async def upload_document(
+    tenant_id: str = Query(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_tenant_db)
 ):
+    limits = get_tenant_limits(tenant_id)
+    doc_count = db.query(KnowledgeDocument).filter(KnowledgeDocument.is_active == True).count()
+    if doc_count >= limits.get("docs", 5):
+        raise HTTPException(status_code=403, detail=f"Document storage limit reached ({limits.get('docs')}). Please upgrade.")
+
     content = ""
     try:
         content_bytes = await file.read()
@@ -387,7 +650,7 @@ async def upload_document(
         "filename": doc.filename,
         "file_type": doc.file_type,
         "is_active": doc.is_active,
-        "created_at": str(doc.created_at)
+        "created_at": format_utc(doc.created_at)
     }
 
 
@@ -400,7 +663,7 @@ async def get_documents(db: Session = Depends(get_tenant_db)):
             "filename": d.filename,
             "file_type": d.file_type,
             "is_active": d.is_active,
-            "created_at": str(d.created_at)
+            "created_at": format_utc(d.created_at)
         } for d in docs
     ]
 
@@ -413,6 +676,24 @@ async def delete_document(doc_id: str, db: Session = Depends(get_tenant_db)):
     doc.is_active = False
     db.commit()
     return {"message": "Document deleted"}
+
+
+# ──────────────────────────────────────────────
+# METRICS ENDPOINT (Seller / Developer only)
+# ──────────────────────────────────────────────
+@app.get("/admin/metrics")
+async def get_live_metrics():
+    """
+    Returns a live snapshot of the last 60 seconds of activity.
+    Useful for the seller dashboard and debugging.
+    """
+    snap = get_metrics_snapshot()
+    snap["alert_thresholds"] = {
+        "traffic_rpm": int(os.getenv("ALERT_TRAFFIC_RPM", "50")),
+        "error_rate_pct": float(os.getenv("ALERT_ERROR_RATE_PCT", "20")),
+        "tokens_per_min": int(os.getenv("ALERT_TOKENS_PER_MIN", "50000")),
+    }
+    return snap
 
 
 if __name__ == "__main__":
