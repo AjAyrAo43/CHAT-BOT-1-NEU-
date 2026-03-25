@@ -1,9 +1,9 @@
 const API_BASE = 'https://chat-bot-1-neu-1.onrender.com';
 
-// Stable Vercel production URLs for the other two frontends.
-// Update these if you redeploy to different Vercel project names.
-const CLIENT_CHATBOT_URL = 'https://neuai-chatbot-ofy1.vercel.app/';
-const CLIENT_ADMIN_URL = 'https://neuai-chatbot-wkvn.vercel.app/';
+// Render Static Site URLs for the other two frontends.
+// IMPORTANT: Replace these with your actual Render static site URLs after deployment.
+const CLIENT_CHATBOT_URL = 'https://chat-bot-1-neu-1-rf14.onrender.com/';
+const CLIENT_ADMIN_URL = 'https://chat-bot-1-neu.onrender.com/';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Views Elements
