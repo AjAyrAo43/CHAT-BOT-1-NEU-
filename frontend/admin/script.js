@@ -2,8 +2,8 @@ const API_BASE = 'https://chat-bot-1-neu-1.onrender.com';
 
 // Stable Vercel production URLs for the other two frontends.
 // Update these if you redeploy to different Vercel project names.
-const CLIENT_CHATBOT_URL = 'https://chatbot-neuai-tech-ukqi.vercel.app';
-const CLIENT_ADMIN_URL = 'https://chatbot-neuai-tech-qs9b.vercel.app';
+const CLIENT_CHATBOT_URL = 'https://neuai-chatbot-ofy1.vercel.app/';
+const CLIENT_ADMIN_URL = 'https://neuai-chatbot-wkvn.vercel.app/';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Views Elements
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         login: document.getElementById('login-view'),
         dashboard: document.getElementById('dashboard-view')
     };
-    
+
     // Auth & Navigation
     const loginForm = document.getElementById('login-form');
     const loginError = document.getElementById('login-error');
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatsList = document.getElementById('chats-list');
     const btnExportCsv = document.getElementById('btn-export-csv');
     const btnExportExcel = document.getElementById('btn-export-excel');
-    
+
     // Tab: FAQs
     const addFaqForm = document.getElementById('add-faq-form');
     const faqsList = document.getElementById('faqs-list');
@@ -69,17 +69,17 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const pwd = document.getElementById('seller-password').value;
         const btn = loginForm.querySelector('button');
-        
+
         btn.disabled = true;
         loginError.textContent = '';
-        
+
         try {
             const res = await fetch(`${API_BASE}/admin/seller-auth`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password: pwd })
             });
-            
+
             if (res.ok) {
                 sessionStorage.setItem('seller_auth', 'true');
                 isAuthenticated = true;
@@ -138,13 +138,13 @@ document.addEventListener('DOMContentLoaded', () => {
     navBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             if(btn.id === 'logout-btn') return;
-            
+
             navBtns.forEach(b => b.classList.remove('active'));
             sections.forEach(s => s.classList.remove('active'));
-            
+
             btn.classList.add('active');
             document.getElementById(btn.dataset.target).classList.add('active');
-            
+
             // Use in-memory globalTenants — do NOT re-fetch on every tab click
             if (btn.dataset.target === 'tab-clients') renderTenantsTable();
             if (btn.dataset.target === 'tab-billing') {
@@ -172,11 +172,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // All other tabs require a specific tenant selected
         const requireEls = document.querySelectorAll(`[id$="-require-tenant"]`);
         const contentEls = document.querySelectorAll(`[id$="-content"]`);
-        
+
         // Setup visibility based on selection
         const targetReqId = tabId.replace('tab-', '') + '-require-tenant';
         const targetContId = tabId.replace('tab-', '') + '-content';
-        
+
         const reqEl = document.getElementById(targetReqId);
         const contEl = document.getElementById(targetContId);
 
@@ -192,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Load specific tenant data
         if (tabId === 'tab-identity') loadIdentity();
         if (tabId === 'tab-analytics' || tabId === 'tab-leads' || tabId === 'tab-chats') {
-            loadTenantChatsAndAnalytics(); 
+            loadTenantChatsAndAnalytics();
         }
         if (tabId === 'tab-faq') loadFaqs();
     }
@@ -230,10 +230,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         document.getElementById('no-tenants').style.display = 'none';
-        
+
         globalTenants.forEach(t => {
             const tr = document.createElement('tr');
-            
+
             // Calculate days left
             let subText = "Expired";
             let subStyle = "color: var(--danger-color); font-weight: bold;";
@@ -267,8 +267,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><small>${t.created_at.substring(0, 16)}</small></td>
                 <td>
                     <div style="display: flex; gap: 5px;">
-                        ${t.is_active ? 
-                            `<button class="btn danger-btn" style="padding:0.3rem 0.5rem; font-size:0.75rem;" onclick="deactivateTenant('${t.id}')">Deactivate</button>` : 
+                        ${t.is_active ?
+                            `<button class="btn danger-btn" style="padding:0.3rem 0.5rem; font-size:0.75rem;" onclick="deactivateTenant('${t.id}')">Deactivate</button>` :
                             `<button class="btn" style="padding:0.3rem 0.5rem; font-size:0.75rem; background-color:#ff4444; color:white;" onclick="deleteTenantHard('${t.id}')">Delete</button>`
                         }
                         <button class="btn primary-btn" style="padding:0.3rem 0.5rem; font-size:0.75rem;" onclick="extendSubscription('${t.id}')">+30 Days</button>
@@ -378,19 +378,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('profile-ind').value = p.industry;
                 document.getElementById('profile-desc').value = p.business_description;
                 document.getElementById('profile-hours').value = p.business_hours || '';
-                
+
                 document.getElementById('profile-contact-name').value = p.contact_person_name || '';
                 document.getElementById('profile-contact-role').value = p.contact_person_role || '';
                 document.getElementById('profile-contact-email').value = p.contact_person_email || '';
                 document.getElementById('profile-contact-phone').value = p.contact_person_phone || '';
-                
+
                 document.getElementById('profile-address-street').value = p.address_street || '';
                 document.getElementById('profile-city').value = p.city || '';
                 document.getElementById('profile-state').value = p.state || '';
                 document.getElementById('profile-country').value = p.country || '';
                 document.getElementById('profile-zip').value = p.zip_code || '';
                 document.getElementById('profile-timezone').value = p.timezone || '';
-                
+
                 document.getElementById('profile-brand-primary').value = p.brand_color_primary || '';
                 document.getElementById('profile-brand-secondary').value = p.brand_color_secondary || '';
                 document.getElementById('profile-social-li').value = p.social_linkedin || '';
@@ -412,12 +412,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     industry: document.getElementById('profile-ind').value,
                     business_description: document.getElementById('profile-desc').value,
                     business_hours: document.getElementById('profile-hours').value,
-                    
+
                     contact_person_name: document.getElementById('profile-contact-name').value,
                     contact_person_role: document.getElementById('profile-contact-role').value,
                     contact_person_email: document.getElementById('profile-contact-email').value,
                     contact_person_phone: document.getElementById('profile-contact-phone').value,
-                    
+
                     address_street: document.getElementById('profile-address-street').value,
                     city: document.getElementById('profile-city').value,
                     state: document.getElementById('profile-state').value,
@@ -455,7 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 globalChatsData = await res.json();
                 globalChatsData.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
                 _chatsLoadedForTenant = selectedTenantId; // mark cached
-                
+
                 renderAnalytics(globalChatsData);
                 renderLeads(globalChatsData);
 
@@ -477,10 +477,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         document.getElementById('metric-total-queries').textContent = data.length;
-        
+
         const counts = {};
         data.forEach(d => { counts[d.intent] = (counts[d.intent] || 0) + 1; });
-        
+
         document.getElementById('metric-intents').textContent = Object.keys(counts).length;
         document.getElementById('metric-recent').textContent = new Date(data[data.length-1].created_at).toLocaleDateString();
 
@@ -489,7 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = '';
         labelsContainer.innerHTML = '';
         const maxCount = Math.max(...Object.values(counts));
-        
+
         Object.entries(counts).forEach(([intent, count]) => {
             const heightPercent = (count / maxCount) * 100;
             const col = document.createElement('div');
@@ -505,7 +505,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 const info = await res.json();
                 const limit = info.limits.messages_per_month;
-                
+
                 // Count this month's messages
                 const now = new Date();
                 const currentMonthString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -570,10 +570,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderChats(chats) {
         chatsList.innerHTML = '';
-        if (chats.length === 0) { 
-            document.getElementById('no-chats').style.display = 'block'; 
+        if (chats.length === 0) {
+            document.getElementById('no-chats').style.display = 'block';
             btnExportCsv.disabled = true; btnExportExcel.disabled = true;
-            return; 
+            return;
         }
         document.getElementById('no-chats').style.display = 'none';
         btnExportCsv.disabled = false; btnExportExcel.disabled = false;
@@ -668,7 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         invoices.reverse().forEach(inv => {
             const tr = document.createElement('tr');
-            
+
             const t = globalTenants.find(x => x.id === inv.tenant_id);
             const tName = t ? t.name : 'Unknown';
 
@@ -694,7 +694,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 faqsList.innerHTML = '';
                 if (faqs.length === 0) { document.getElementById('no-faqs').style.display = 'block'; return; }
                 document.getElementById('no-faqs').style.display = 'none';
-                
+
                 faqs.forEach(f => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
@@ -742,7 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.values(views).forEach(v => v.classList.remove('active'));
         if (views[viewName]) views[viewName].classList.add('active');
     }
-    
+
     function showMessage(el, text, type) {
         el.textContent = text;
         el.className = 'msg-text' + (type === 'success' ? ' msg-success' : (type==='error'?' error-text':''));
