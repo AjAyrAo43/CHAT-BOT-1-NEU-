@@ -274,8 +274,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="btn primary-btn" style="padding:0.3rem 0.5rem; font-size:0.75rem;" onclick="extendSubscription('${t.id}')">+30 Days</button>
                     </div>
                     <div style="margin-top:5px; font-size:0.65rem; color: #555;">
-                        <span style="display:block; margin-bottom: 2px;">Chatbot: <a href="${CLIENT_CHATBOT_URL}/index.html?tenant_id=${t.id}" target="_blank" style="color:#d35400;">Link</a></span>
-                        <span>Client Admin: <a href="${CLIENT_ADMIN_URL}/index.html?tenant_id=${t.id}" target="_blank" style="color:#d35400;">Link</a></span>
+                        <span style="display:block; margin-bottom: 2px;">Chatbot: <a href="${CLIENT_CHATBOT_URL}?tenant_id=${t.id}" target="_blank" style="color:#d35400;">Link</a></span>
+                        <span>Client Admin: <a href="${CLIENT_ADMIN_URL}?tenant_id=${t.id}" target="_blank" style="color:#d35400;">Link</a></span>
                     </div>
                 </td>
                 <td>
