@@ -331,8 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         const logoB64 = document.getElementById('reg-profile-logo-b64').value;
         if (logoB64) payload.logo_b64 = logoB64;
-        const logoB64 = document.getElementById('reg-profile-logo-b64').value;
-        if (logoB64) payload.logo_b64 = logoB64;
         const dbUrl = document.getElementById('db-url').value;
         if (dbUrl) payload.db_url = dbUrl;
         else payload.db_url = `sqlite:///tenants/${payload.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.db`;
@@ -495,6 +493,51 @@ document.addEventListener('DOMContentLoaded', () => {
         logoPlaceholder.style.display = 'block';
         clearLogoBtn.style.display = 'none';
     });
+
+    // --- Registration Form Logo Handler (for new client registration) ---
+    const regLogoInput = document.getElementById('reg-profile-logo');
+    const regLogoB64Input = document.getElementById('reg-profile-logo-b64');
+    const regLogoPreview = document.getElementById('reg-logo-preview');
+    const regLogoPlaceholder = document.getElementById('reg-logo-placeholder');
+    const regClearLogoBtn = document.getElementById('reg-clear-logo-btn');
+
+    if (regLogoInput) {
+        regLogoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const MAX_SIZE = 200;
+                    let width = img.width, height = img.height;
+                    if (width > MAX_SIZE || height > MAX_SIZE) {
+                        if (width > height) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+                        else { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width; canvas.height = height;
+                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                    const dataUrl = canvas.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.7);
+                    regLogoB64Input.value = dataUrl;
+                    regLogoPreview.src = dataUrl;
+                    regLogoPreview.style.display = 'block';
+                    regLogoPlaceholder.style.display = 'none';
+                    regClearLogoBtn.style.display = 'inline-block';
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+        regClearLogoBtn.addEventListener('click', () => {
+            regLogoInput.value = '';
+            regLogoB64Input.value = '';
+            regLogoPreview.src = '';
+            regLogoPreview.style.display = 'none';
+            regLogoPlaceholder.style.display = 'inline';
+            regClearLogoBtn.style.display = 'none';
+        });
+    }
 
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
