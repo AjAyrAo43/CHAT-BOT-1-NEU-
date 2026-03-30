@@ -429,3 +429,5 @@ sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) SSL connection has 
 FROM tenants LEFT OUTER JOIN plans AS plans_1 ON plans_1.id = tenants.current_plan_id]
 (Background on this error at: https://sqlalche.me/e/20/e3q8)
 
+2026-03-30 13:21:15 | INFO     | Central DB tables initialized.
+2026-03-30 13:22:51 | INFO     | [REQUEST] tenant=-  GET /favicon.ico  →  404  (0.8 ms)

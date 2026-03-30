@@ -46,6 +46,7 @@ class CentralTenant(CentralBase):
     __tablename__ = "tenants"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, unique=True, index=True)
+    username = Column(String, unique=True, index=True)  # Customer-facing login handle, e.g. "acmecorp"
     db_url = Column(String)
     api_key = Column(String, default=lambda: str(uuid.uuid4()))
     admin_password_hash = Column(String)
@@ -109,6 +110,18 @@ def get_tenant_limits(tenant_id: str) -> dict:
     finally:
         session.close()
 
+def _generate_username(name: str, session) -> str:
+    """Generate a unique, clean alphanumeric username from a tenant name."""
+    import re
+    base = re.sub(r'[^a-z0-9]', '', name.lower())[:20] or "client"
+    candidate = base
+    counter = 1
+    while session.query(CentralTenant).filter(CentralTenant.username == candidate).first():
+        candidate = f"{base}{counter}"
+        counter += 1
+    return candidate
+
+
 def register_tenant(name: str, db_url: str, admin_password: str = "admin", notification_email: str = "") -> dict:
     """Register a new client and create their database tables."""
     session = _get_central_session()
@@ -126,10 +139,12 @@ def register_tenant(name: str, db_url: str, admin_password: str = "admin", notif
              session.refresh(starter_plan)
 
         password_hash = bcrypt.hashpw(admin_password.encode(), bcrypt.gensalt()).decode()
+        username = _generate_username(name, session)
 
         new_tenant = CentralTenant(
             id=str(uuid.uuid4()),
             name=name,
+            username=username,
             db_url=db_url,
             admin_password_hash=password_hash,
             notification_email=notification_email,
@@ -155,6 +170,7 @@ def _tenant_to_dict(tenant: CentralTenant, plan_name: str = None) -> dict:
     return {
         "id": tenant.id,
         "name": tenant.name,
+        "username": tenant.username or "",
         "db_url": tenant.db_url,
         "api_key": tenant.api_key,
         "admin_password_hash": tenant.admin_password_hash,
@@ -193,6 +209,25 @@ def get_tenant_by_id(tenant_id: str) -> dict:
     try:
         t = session.query(CentralTenant).options(joinedload(CentralTenant.plan)).filter(
             CentralTenant.id == tenant_id, CentralTenant.is_active == True
+        ).first()
+        return _tenant_to_dict(t, plan_name=t.plan.name if t and t.plan else "Starter")
+    finally:
+        session.close()
+
+
+def get_tenant_by_username(username: str) -> Optional[dict]:
+    """Look up an active tenant by their human-readable username."""
+    username = username.strip().lower()
+    # Try cache first
+    cached = get_all_tenants()
+    for t in cached:
+        if t.get("username", "").lower() == username and t.get("is_active"):
+            return t
+    # Fallback to DB
+    session = _get_central_session()
+    try:
+        t = session.query(CentralTenant).options(joinedload(CentralTenant.plan)).filter(
+            CentralTenant.username == username, CentralTenant.is_active == True
         ).first()
         return _tenant_to_dict(t, plan_name=t.plan.name if t and t.plan else "Starter")
     finally:
@@ -502,6 +537,37 @@ def init_tenant_db(db_url: str):
     """Create all tables in a tenant's database."""
     engine = _get_tenant_engine(db_url)
     TenantBase.metadata.create_all(bind=engine)
+
+
+def migrate_usernames():
+    """Backfill username for any existing tenants that don't have one yet.
+    Safe to run multiple times (skips tenants that already have a username).
+    Called automatically on module load so no manual migration step is needed.
+    """
+    session = _get_central_session()
+    try:
+        tenants_without_username = session.query(CentralTenant).filter(
+            (CentralTenant.username == None) | (CentralTenant.username == "")
+        ).all()
+        if not tenants_without_username:
+            return
+        for tenant in tenants_without_username:
+            tenant.username = _generate_username(tenant.name, session)
+        session.commit()
+        _invalidate_tenant_cache()
+        print(f"[migrate_usernames] Backfilled usernames for {len(tenants_without_username)} tenants.")
+    except Exception as e:
+        session.rollback()
+        print(f"[migrate_usernames] Warning: could not backfill usernames: {e}")
+    finally:
+        session.close()
+
+
+# Run migration on import so existing tenants get usernames automatically
+try:
+    migrate_usernames()
+except Exception:
+    pass  # Non-fatal: app still starts normally
 
 
 if __name__ == "__main__":

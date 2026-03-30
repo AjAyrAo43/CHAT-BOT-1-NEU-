@@ -257,8 +257,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
                 <td><strong>${escapeHTML(t.name)}</strong></td>
                 <td>
-                    <small>ID: ${t.id}</small><br>
-                    <small>API Key: <code>${t.api_key}</code></small>
+                    <small>Username: <code style="background:#f0f4ff;padding:2px 6px;border-radius:4px;font-weight:bold;letter-spacing:0.5px">${escapeHTML(t.username || '—')}</code></small><br>
+                    <small style="color:var(--text-muted)">ID: ${t.id.substring(0,8)}...</small>
                 </td>
                 <td>
                     <small style="${subStyle}">${subText}</small><br>
@@ -275,7 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div style="margin-top:5px; font-size:0.65rem; color: #555;">
                         <span style="display:block; margin-bottom: 2px;">Chatbot: <a href="${CLIENT_CHATBOT_URL}?tenant_id=${t.id}" target="_blank" style="color:#d35400;">Link</a></span>
-                        <span>Client Admin: <a href="${CLIENT_ADMIN_URL}?tenant_id=${t.id}" target="_blank" style="color:#d35400;">Link</a></span>
+                        <span>Client Admin: <a href="${CLIENT_ADMIN_URL}?username=${t.username || t.id}" target="_blank" style="color:#d35400;">Link</a></span>
                     </div>
                 </td>
                 <td>
@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 const data = await res.json();
                 createForm.reset();
-                alert(` Client '${data.name}' registered!\nTenant ID: ${data.id}\nAPI Key: ${data.api_key}`);
+                alert(` Client '${data.name}' registered!\nUsername: ${data.username}\nAPI Key: ${data.api_key}\n\nShare the login username (above) with your client. Do NOT share the API key.`);
                 await loadAllTenants();
             } else {
                 const err = await res.json();

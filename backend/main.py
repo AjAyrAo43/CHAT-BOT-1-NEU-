@@ -17,7 +17,8 @@ from slowapi.errors import RateLimitExceeded
 
 from .database import (
     get_tenant_session, init_tenant_db,
-    register_tenant, get_all_tenants, get_tenant_by_id, deactivate_tenant, delete_tenant_hard,
+    register_tenant, get_all_tenants, get_tenant_by_id, get_tenant_by_username,
+    deactivate_tenant, delete_tenant_hard,
     verify_client_password, update_tenant_password,
     ChatLog, FAQ, Admin, BusinessProfile, KnowledgeDocument,
     get_tenant_limits
@@ -35,6 +36,20 @@ from .alerting import check_and_alert
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Multi-Tenant Chatbot API")
 app.state.limiter = limiter
+
+
+@app.on_event("startup")
+async def startup_initialize_db():
+    """Create central DB tables (tenants, plans) on first boot if they don't exist yet.
+    Safe to run every time — SQLAlchemy's create_all is a no-op if tables already exist.
+    """
+    from .database import _get_central_engine, CentralBase
+    try:
+        engine = _get_central_engine()
+        CentralBase.metadata.create_all(bind=engine)
+        logger.info("Central DB tables initialized.")
+    except Exception as e:
+        logger.warning(f"Could not initialize central DB tables: {e}")
 
 
 # ── Abuse logging: override rate-limit handler ──────────────────────────
@@ -212,6 +227,7 @@ class TenantCreate(BaseModel):
 class TenantResponse(BaseModel):
     id: str
     name: str
+    username: str = ""
     api_key: str
     is_active: bool
     created_at: str
@@ -253,6 +269,21 @@ async def authenticate_client(payload: AuthRequest):
     if verify_client_password(payload.tenant_id, payload.password):
         return {"authenticated": True}
     raise HTTPException(status_code=401, detail="Invalid password.")
+
+
+class ResolveUsernameRequest(BaseModel):
+    username: str
+
+
+@app.post("/admin/resolve-username")
+async def resolve_username(payload: ResolveUsernameRequest):
+    """Resolve a customer-facing username to a tenant_id.
+    Clients call this first, then use the returned tenant_id for /admin/auth.
+    """
+    tenant = get_tenant_by_username(payload.username)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Username not found.")
+    return {"tenant_id": tenant["id"], "username": tenant["username"]}
 
 
 class ChangePasswordRequest(BaseModel):
@@ -303,6 +334,7 @@ async def register_tenant_endpoint(payload: TenantCreate):
     return TenantResponse(
         id=new_tenant["id"],
         name=new_tenant["name"],
+        username=new_tenant.get("username", ""),
         api_key=new_tenant["api_key"],
         is_active=new_tenant["is_active"],
         created_at=new_tenant["created_at"],
@@ -318,7 +350,8 @@ async def list_tenants():
     tenants = get_all_tenants()
     return [
         TenantResponse(
-            id=t["id"], name=t["name"], api_key=t["api_key"],
+            id=t["id"], name=t["name"], username=t.get("username", ""),
+            api_key=t["api_key"],
             is_active=t["is_active"], created_at=t["created_at"],
             subscription_end_date=t.get("subscription_end_date"),
             current_plan=t.get("current_plan", "Starter"),
@@ -353,7 +386,8 @@ async def get_tenant_info(tenant_id: str):
         raise HTTPException(status_code=404, detail="Tenant not found.")
     
     return TenantResponse(
-        id=t["id"], name=t["name"], api_key=t["api_key"],
+        id=t["id"], name=t["name"], username=t.get("username", ""),
+        api_key=t["api_key"],
         is_active=t["is_active"], created_at=t["created_at"],
         subscription_end_date=t.get("subscription_end_date"),
         current_plan=t.get("current_plan", "Starter"),

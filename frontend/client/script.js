@@ -46,33 +46,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const docsList = document.getElementById('docs-list');
     const noDocs = document.getElementById('no-docs');
 
-    // State
-    const urlParams = new URLSearchParams(window.location.search);
-    let tenantIdStr = urlParams.get('tenant_id');
-    let tenantId = sessionStorage.getItem('tenant_id') || tenantIdStr;
+    // State — tenant_id is resolved from username at login; never shown raw to user
+    let tenantId = sessionStorage.getItem('tenant_id') || null;
 
-    // We MUST have a tenant ID.
-    if (!tenantId) {
-        document.querySelector('.login-box').innerHTML = `
-            <div class="error-text" style="font-size:1rem; color: var(--danger);">
-                 Missing tenant ID in URL.<br><br>
-                Please use the link provided by the developer.<br>
-                Format: <code>/?tenant_id=your-id</code>
-            </div>`;
-        return;
-    }
-
-    if (sessionStorage.getItem('client_auth') === 'true') {
+    // Check if already authenticated
+    if (sessionStorage.getItem('client_auth') === 'true' && tenantId) {
         initDashboard();
     } else {
-        document.getElementById('tenant-id').value = tenantId;
         showView('login');
     }
 
     // --- Authentication ---
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const tid = document.getElementById('tenant-id').value.trim();
+        const usernameInput = document.getElementById('username-input').value.trim();
         const pwd = document.getElementById('password').value;
         const btn = loginForm.querySelector('button');
         
@@ -80,15 +67,28 @@ document.addEventListener('DOMContentLoaded', () => {
         loginError.textContent = '';
         
         try {
+            // Step 1: resolve username → tenant_id
+            const resolveRes = await fetch(`${API_BASE}/admin/resolve-username`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: usernameInput })
+            });
+            if (!resolveRes.ok) {
+                loginError.textContent = 'Username not found. Check your credentials.';
+                return;
+            }
+            const { tenant_id } = await resolveRes.json();
+
+            // Step 2: authenticate with the resolved tenant_id
             const res = await fetch(`${API_BASE}/admin/auth`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tenant_id: tid, password: pwd })
+                body: JSON.stringify({ tenant_id, password: pwd })
             });
             
             if (res.ok) {
-                tenantId = tid;
-                sessionStorage.setItem('tenant_id', tid);
+                tenantId = tenant_id;
+                sessionStorage.setItem('tenant_id', tenant_id);
                 sessionStorage.setItem('client_auth', 'true');
                 loginForm.reset();
                 initDashboard();
