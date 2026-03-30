@@ -214,7 +214,7 @@ def _generate_username(name: str, session) -> str:
     return candidate
 
 
-def register_tenant(name: str, db_url: str, admin_password: str = "admin", notification_email: str = "") -> dict:
+def register_tenant(name: str, db_url: str, admin_password: str = "admin", notification_email: str = "", logo_b64: str = None) -> dict:
     """Register a new client and create their database tables."""
     session = _get_central_session()
     try:
@@ -249,6 +249,25 @@ def register_tenant(name: str, db_url: str, admin_password: str = "admin", notif
 
         # Auto-create tables in the client's database
         init_tenant_db(db_url)
+
+        # Populate initial logo if provided
+        if logo_b64:
+            tenant_session = get_tenant_session(new_tenant.id)
+            try:
+                profile = BusinessProfile(
+                    id="default",
+                    company_name=name,
+                    industry="Technology",
+                    business_description="We provide innovative solutions.",
+                    logo_url=logo_b64
+                )
+                tenant_session.add(profile)
+                tenant_session.commit()
+            except Exception as e:
+                tenant_session.rollback()
+                print(f"Failed to save initial logo: {e}")
+            finally:
+                tenant_session.close()
 
         return _tenant_to_dict(new_tenant, plan_name=starter_plan.name)
     finally:

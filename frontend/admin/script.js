@@ -329,6 +329,10 @@ document.addEventListener('DOMContentLoaded', () => {
             name: document.getElementById('tenant-name').value,
             admin_password: document.getElementById('admin-password').value,
         };
+        const logoB64 = document.getElementById('reg-profile-logo-b64').value;
+        if (logoB64) payload.logo_b64 = logoB64;
+        const logoB64 = document.getElementById('reg-profile-logo-b64').value;
+        if (logoB64) payload.logo_b64 = logoB64;
         const dbUrl = document.getElementById('db-url').value;
         if (dbUrl) payload.db_url = dbUrl;
         else payload.db_url = `sqlite:///tenants/${payload.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.db`;

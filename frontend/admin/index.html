@@ -91,6 +91,19 @@
                                     <input type="password" id="admin-password" required value="admin">
                                     <small style="color:#888;">Password for the client to access their admin panel.</small>
                                 </div>
+                                <div class="input-group" style="margin-top: 1rem;">
+                                    <label>Client Logo Upload (Optional)</label>
+                                    <div style="display: flex; align-items: center; gap: 1rem;">
+                                        <div id="reg-logo-preview-container" style="width: 50px; height: 50px; border-radius: 50%; background: #eee; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc;">
+                                            <img id="reg-logo-preview" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                                            <span id="reg-logo-placeholder" style="font-size: 0.8rem; color: #888;">None</span>
+                                        </div>
+                                        <input type="file" id="reg-profile-logo" accept="image/png, image/jpeg, image/jpg, image/svg+xml" style="flex: 1;">
+                                        <button type="button" id="reg-clear-logo-btn" class="btn text-danger" style="display: none; padding: 0.3rem 0.6rem;">Remove</button>
+                                    </div>
+                                    <input type="hidden" id="reg-profile-logo-b64">
+                                    <small style="color:#888;">Upload a small image. It will be resized automatically (max 200px).</small>
+                                </div>
                                 <button type="submit" class="btn primary-btn"> Register Client</button>
                                 <div id="create-error" class="error-text"></div>
                             </form>

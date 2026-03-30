@@ -222,6 +222,7 @@ class TenantCreate(BaseModel):
     db_url: str
     admin_password: str = "admin"
     notification_email: str = ""
+    logo_b64: Optional[str] = None
 
 
 class TenantResponse(BaseModel):
@@ -337,7 +338,13 @@ async def authenticate_seller(payload: SellerAuthRequest):
 async def register_tenant_endpoint(payload: TenantCreate):
     """Register a new client — creates their database tables automatically."""
     try:
-        new_tenant = register_tenant(payload.name, payload.db_url, payload.admin_password, payload.notification_email)
+        new_tenant = register_tenant(
+            payload.name, 
+            payload.db_url, 
+            payload.admin_password, 
+            payload.notification_email,
+            payload.logo_b64
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

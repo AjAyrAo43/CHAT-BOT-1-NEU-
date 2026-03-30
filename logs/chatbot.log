@@ -435,3 +435,5 @@ FROM tenants LEFT OUTER JOIN plans AS plans_1 ON plans_1.id = tenants.current_pl
 2026-03-30 14:05:08 | INFO     | [REQUEST] tenant=-  POST /chat  →  404  (3472.5 ms)
 2026-03-30 14:22:05 | INFO     | Central DB tables initialized.
 2026-03-30 14:22:38 | INFO     | Central DB tables initialized.
+2026-03-30 15:53:50 | INFO     | Central DB tables initialized.
+2026-03-30 15:54:05 | INFO     | Central DB tables initialized.
