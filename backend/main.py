@@ -243,6 +243,18 @@ class InvoiceResponse(BaseModel):
     status: str
     payment_date: str
 
+class PlanRequest(BaseModel):
+    name: str
+    price_inr: float = 0.0
+    messages_per_month: int = 1000
+    docs_limit: int = 5
+    faqs_limit: int = 20
+    export_enabled: bool = False
+    languages: str = "en"
+
+class PlanResponse(PlanRequest):
+    id: str
+
 
 # ──────────────────────────────────────────────
 # TENANT MANAGEMENT ENDPOINTS (Developer Only)
@@ -435,6 +447,42 @@ async def list_invoices():
     """List all global payment historical records."""
     from .database import get_all_invoices_from_dbs
     return get_all_invoices_from_dbs()
+
+@app.get("/admin/plans", response_model=List[PlanResponse])
+async def list_plans():
+    """List all subscription plans."""
+    from .database import get_all_plans
+    return get_all_plans()
+
+@app.post("/admin/plans", response_model=PlanResponse)
+async def create_new_plan(payload: PlanRequest):
+    """Create a new subscription plan."""
+    from .database import create_plan
+    try:
+        return create_plan(payload.dict())
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/admin/plans/{plan_id}", response_model=PlanResponse)
+async def update_existing_plan(plan_id: str, payload: PlanRequest):
+    """Update an existing subscription plan."""
+    from .database import update_plan
+    try:
+        return update_plan(plan_id, payload.dict(exclude_unset=True))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/admin/plans/{plan_id}")
+async def delete_existing_plan(plan_id: str):
+    """Delete a subscription plan."""
+    from .database import delete_plan
+    try:
+        success = delete_plan(plan_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Plan not found")
+        return {"message": "Plan deleted successfully."}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # ──────────────────────────────────────────────

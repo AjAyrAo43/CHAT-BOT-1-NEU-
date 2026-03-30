@@ -50,6 +50,7 @@
                         <button class="nav-btn active" data-target="tab-register">Register Client</button>
                         <button class="nav-btn" data-target="tab-clients">Registered Clients</button>
                         <button class="nav-btn" data-target="tab-billing"> Billing & Payments</button>
+                        <button class="nav-btn" data-target="tab-plans"> Manage Plans</button>
                         <!-- Tenant Specific Tabs -->
                         <div class="nav-group-title">Selected Client Data</div>
                         <button class="nav-btn" data-target="tab-identity">Business Identity</button>
@@ -148,10 +149,7 @@
                                     <div class="input-group" style="flex: 1;">
                                         <label for="charge-plan">Plan Name</label>
                                         <select id="charge-plan" required>
-                                            <option value="Starter Plan (₹499/mo)">Starter Plan (₹499/mo)</option>
-                                            <option value="Pro Plan (₹1999/mo)">Pro Plan (₹1999/mo)</option>
-                                            <option value="Enterprise Plan (₹4999/mo)">Enterprise Plan (₹4999/mo)</option>
-                                            <option value="Custom Term">Custom Term</option>
+                                            <option value="" disabled selected>-- Loading Plans --</option>
                                         </select>
                                     </div>
                                     <div class="input-group" style="flex: 1;">
@@ -183,6 +181,87 @@
                                     </thead>
                                     <tbody id="invoices-list">
                                         <!-- Invoices populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Tab: Manage Plans -->
+                    <section id="tab-plans" class="content-section">
+                        <header class="section-header">
+                            <h2> Manage Subscription Plans</h2>
+                            <p style="color:var(--text-muted);">Create and modify global subscription tiers.</p>
+                        </header>
+
+                        <!-- Create/Edit Plan Form -->
+                        <div class="card bg-light" style="margin-bottom: 2rem;">
+                            <h3 id="plan-form-title">Create New Plan</h3>
+                            <form id="plan-form">
+                                <input type="hidden" id="plan-id">
+                                <div class="input-group">
+                                    <label for="plan-name">Plan Name</label>
+                                    <input type="text" id="plan-name" required placeholder="e.g. Starter Plan">
+                                </div>
+                                <div style="display: flex; gap: 1rem;">
+                                    <div class="input-group" style="flex: 1;">
+                                        <label for="plan-price">Price (₹ INR / month)</label>
+                                        <input type="number" id="plan-price" required min="0" step="0.01" value="0.00">
+                                    </div>
+                                    <div class="input-group" style="flex: 1;">
+                                        <label for="plan-messages">Messages per Month</label>
+                                        <input type="number" id="plan-messages" required min="1" value="1000">
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 1rem;">
+                                    <div class="input-group" style="flex: 1;">
+                                        <label for="plan-docs">Knowledge Documents Limit</label>
+                                        <input type="number" id="plan-docs" required min="0" value="5">
+                                    </div>
+                                    <div class="input-group" style="flex: 1;">
+                                        <label for="plan-faqs">FAQs Limit</label>
+                                        <input type="number" id="plan-faqs" required min="0" value="20">
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 1rem; align-items: center;">
+                                    <div class="input-group" style="flex: 1; flex-direction: row; gap: 10px;">
+                                        <input type="checkbox" id="plan-export" style="width: auto;">
+                                        <label for="plan-export" style="margin: 0;">Enable Data Export</label>
+                                    </div>
+                                    <div class="input-group" style="flex: 1;">
+                                        <label for="plan-languages">Supported Languages</label>
+                                        <input type="text" id="plan-languages" required value="en" placeholder="e.g. en,fr,de or all">
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                                    <button type="submit" class="btn primary-btn" id="plan-submit-btn"> Save Plan</button>
+                                    <button type="button" class="btn outline-btn" id="plan-cancel-btn" style="display: none;">Cancel Edit</button>
+                                </div>
+                                <div id="plan-error" class="error-text"></div>
+                            </form>
+                        </div>
+
+                        <!-- Plans List -->
+                        <div class="card no-pad">
+                            <div style="padding:1.5rem; border-bottom:1px solid var(--border-color);">
+                                <h3>Available Plans</h3>
+                            </div>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Price (INR)</th>
+                                            <th>Messages/mo</th>
+                                            <th>Docs Limit</th>
+                                            <th>FAQs Limit</th>
+                                            <th>Export</th>
+                                            <th>Languages</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="plans-list">
+                                        <!-- Plans populated dynamically -->
                                     </tbody>
                                 </table>
                             </div>
@@ -293,6 +372,20 @@
                                             <label for="profile-social-ig">Instagram URL</label>
                                             <input type="url" id="profile-social-ig" style="width: 100%;">
                                         </div>
+                                    </div>
+                                    
+                                    <div class="input-group" style="margin-top: 1rem;">
+                                        <label>Bot Avatar / Logo Upload (Optional)</label>
+                                        <div style="display: flex; align-items: center; gap: 1rem;">
+                                            <div id="logo-preview-container" style="width: 50px; height: 50px; border-radius: 50%; background: #eee; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc;">
+                                                <img id="logo-preview" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                                                <span id="logo-placeholder" style="font-size: 0.8rem; color: #888;">None</span>
+                                            </div>
+                                            <input type="file" id="profile-logo" accept="image/png, image/jpeg, image/jpg, image/svg+xml" style="flex: 1;">
+                                            <button type="button" id="clear-logo-btn" class="btn text-danger" style="display: none; padding: 0.3rem 0.6rem;">Remove</button>
+                                        </div>
+                                        <input type="hidden" id="profile-logo-b64">
+                                        <small style="color:#888;">Upload a small image. It will be resized automatically (max 200px).</small>
                                     </div>
 
                                     <button type="submit" class="btn primary-btn" style="margin-top: 1.5rem;">Update Identity</button>

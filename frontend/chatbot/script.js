@@ -22,12 +22,22 @@
         const sendBtn = document.getElementById('cb-send-btn');
         const titleEl = document.querySelector('.cb-title');
 
+        let botLogoB64 = null;
+
         // Fetch company profile to update chat title AND the Demo Page
         fetch(`${API_BASE}/admin/profile?tenant_id=${tenantId}`)
             .then(res => res.json())
             .then(data => {
                 const companyName = (data && data.company_name) ? data.company_name : tenantId;
                 if (titleEl) titleEl.textContent = companyName + " Support";
+                
+                if (data && data.logo_url) {
+                    botLogoB64 = data.logo_url;
+                    const headerAvatar = document.getElementById('cb-header-avatar');
+                    if (headerAvatar) {
+                        headerAvatar.innerHTML = `<img src="${botLogoB64}" alt="Bot Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                    }
+                }
                 
                 // Update Demo page elements if they exist
                 const demoTitle = document.getElementById('demo-title');
@@ -104,12 +114,33 @@
             }
         });
 
+        function getBotIconHTML() {
+            if (botLogoB64) {
+                return `<img src="${botLogoB64}" alt="Bot" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+            }
+            return `<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="12" width="24" height="18" rx="5" fill="white" fill-opacity="0.95"/><rect x="19" y="5" width="2" height="7" rx="1" fill="white" fill-opacity="0.9"/><circle cx="20" cy="4.5" r="2.5" fill="white"/><circle cx="14.5" cy="20" r="3" fill="#ea580c"/><circle cx="25.5" cy="20" r="3" fill="#ea580c"/><circle cx="15.5" cy="19" r="1" fill="white"/><circle cx="26.5" cy="19" r="1" fill="white"/><rect x="13" y="25" width="14" height="2.5" rx="1.25" fill="#ea580c" fill-opacity="0.7"/><rect x="4" y="17" width="4" height="6" rx="2" fill="white" fill-opacity="0.8"/><rect x="32" y="17" width="4" height="6" rx="2" fill="white" fill-opacity="0.8"/></svg>`;
+        }
+
         function appendMsg(sender, text) {
+            let container = msgsArea;
+            
+            // For bot messages, wrap in a container to hold avatar + bubble
+            if (sender === 'bot') {
+                container = document.createElement('div');
+                container.className = 'cb-msg-container';
+                
+                // Add tiny bot avatar next to bubble
+                const avatar = document.createElement('div');
+                avatar.className = 'cb-bot-icon';
+                avatar.innerHTML = getBotIconHTML();
+                container.appendChild(avatar);
+                msgsArea.appendChild(container);
+            }
+
             const div = document.createElement('div');
             div.className = `cb-msg cb-${sender}`;
             
             if (sender === 'bot') {
-                // If marked.js is available, use it, otherwise simple escape
                 if (typeof marked !== 'undefined') {
                     div.innerHTML = marked.parse(text);
                 } else {
@@ -119,17 +150,28 @@
                 div.textContent = text;
             }
             
-            msgsArea.appendChild(div);
+            container.appendChild(div);
             scrollToBottom();
         }
 
         function showTyping() {
             const id = 'typing-' + Date.now();
+            
+            const container = document.createElement('div');
+            container.className = 'cb-msg-container';
+            container.id = id;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'cb-bot-icon';
+            avatar.innerHTML = getBotIconHTML();
+            container.appendChild(avatar);
+
             const div = document.createElement('div');
             div.className = 'cb-msg cb-bot';
-            div.id = id;
             div.innerHTML = `<div class="cb-typing"><div class="cb-dot"></div><div class="cb-dot"></div><div class="cb-dot"></div></div>`;
-            msgsArea.appendChild(div);
+            container.appendChild(div);
+
+            msgsArea.appendChild(container);
             scrollToBottom();
             return id;
         }

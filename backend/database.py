@@ -110,6 +110,98 @@ def get_tenant_limits(tenant_id: str) -> dict:
     finally:
         session.close()
 
+def get_all_plans() -> list:
+    """Return all subscription plans in the central registry."""
+    session = _get_central_session()
+    try:
+        plans = session.query(Plan).all()
+        return [{
+            "id": p.id,
+            "name": p.name,
+            "price_inr": p.price_inr,
+            "messages_per_month": p.messages_per_month,
+            "docs_limit": p.docs_limit,
+            "faqs_limit": p.faqs_limit,
+            "export_enabled": p.export_enabled,
+            "languages": p.languages
+        } for p in plans]
+    finally:
+        session.close()
+
+def create_plan(plan_data: dict) -> dict:
+    """Create a new subscription plan."""
+    session = _get_central_session()
+    try:
+        if session.query(Plan).filter(Plan.name == plan_data["name"]).first():
+            raise ValueError(f"Plan '{plan_data['name']}' already exists.")
+        new_plan = Plan(
+            id=str(uuid.uuid4()),
+            name=plan_data["name"],
+            price_inr=plan_data.get("price_inr", 0.0),
+            messages_per_month=plan_data.get("messages_per_month", 1000),
+            docs_limit=plan_data.get("docs_limit", 5),
+            faqs_limit=plan_data.get("faqs_limit", 20),
+            export_enabled=plan_data.get("export_enabled", False),
+            languages=plan_data.get("languages", "en")
+        )
+        session.add(new_plan)
+        session.commit()
+        session.refresh(new_plan)
+        return {
+            "id": new_plan.id, "name": new_plan.name, "price_inr": new_plan.price_inr,
+            "messages_per_month": new_plan.messages_per_month, "docs_limit": new_plan.docs_limit,
+            "faqs_limit": new_plan.faqs_limit, "export_enabled": new_plan.export_enabled, "languages": new_plan.languages
+        }
+    finally:
+        session.close()
+
+def update_plan(plan_id: str, plan_data: dict) -> dict:
+    """Update an existing subscription plan."""
+    session = _get_central_session()
+    try:
+        plan = session.query(Plan).filter(Plan.id == plan_id).first()
+        if not plan:
+            raise ValueError(f"Plan '{plan_id}' not found.")
+        
+        if "name" in plan_data and plan_data["name"] != plan.name:
+            if session.query(Plan).filter(Plan.name == plan_data["name"]).first():
+                raise ValueError(f"Plan '{plan_data['name']}' already exists.")
+            plan.name = plan_data["name"]
+        
+        plan.price_inr = plan_data.get("price_inr", plan.price_inr)
+        plan.messages_per_month = plan_data.get("messages_per_month", plan.messages_per_month)
+        plan.docs_limit = plan_data.get("docs_limit", plan.docs_limit)
+        plan.faqs_limit = plan_data.get("faqs_limit", plan.faqs_limit)
+        plan.export_enabled = plan_data.get("export_enabled", plan.export_enabled)
+        plan.languages = plan_data.get("languages", plan.languages)
+        
+        session.commit()
+        session.refresh(plan)
+        return {
+            "id": plan.id, "name": plan.name, "price_inr": plan.price_inr,
+            "messages_per_month": plan.messages_per_month, "docs_limit": plan.docs_limit,
+            "faqs_limit": plan.faqs_limit, "export_enabled": plan.export_enabled, "languages": plan.languages
+        }
+    finally:
+        session.close()
+
+def delete_plan(plan_id: str) -> bool:
+    """Delete a subscription plan (checks usage first)."""
+    session = _get_central_session()
+    try:
+        plan = session.query(Plan).filter(Plan.id == plan_id).first()
+        if not plan:
+            return False
+        # Do not allow deletion if tenants are using it
+        if session.query(CentralTenant).filter(CentralTenant.current_plan_id == plan_id).first():
+            raise ValueError("Cannot delete plan currently in use by an active client.")
+            
+        session.delete(plan)
+        session.commit()
+        return True
+    finally:
+        session.close()
+
 def _generate_username(name: str, session) -> str:
     """Generate a unique, clean alphanumeric username from a tenant name."""
     import re

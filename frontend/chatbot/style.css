@@ -104,6 +104,28 @@
     background: rgba(255, 255, 255, 0.1);
 }
 
+.cb-header-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.cb-avatar {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cb-avatar svg {
+    width: 20px;
+    height: 20px;
+}
+
 .cb-title {
     font-family: 'Outfit', sans-serif;
     font-weight: 600;
@@ -182,6 +204,31 @@
     border-radius: 12px;
 }
 
+/* Container for bot avatar + message */
+.cb-msg-container {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    align-self: flex-start;
+    max-width: 90%;
+}
+
+.cb-bot-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--cb-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cb-bot-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
 .cb-msg.cb-user {
     align-self: flex-end;
     background: var(--cb-gradient);
@@ -192,13 +239,13 @@
 }
 
 .cb-msg.cb-bot {
-    align-self: flex-start;
     background-color: var(--cb-bg-light);
     color: var(--cb-text-main);
     padding: 0.875rem 1.125rem;
     border-radius: 18px 18px 18px 2px;
     border: 1px solid var(--cb-border);
     box-shadow: var(--cb-shadow-sm);
+    /* No align-self here, the container handles it */
 }
 
 .cb-msg.cb-bot p { margin: 0; }

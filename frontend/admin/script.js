@@ -48,9 +48,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const addFaqForm = document.getElementById('add-faq-form');
     const faqsList = document.getElementById('faqs-list');
 
+    // Tab: Plans
+    const planForm = document.getElementById('plan-form');
+    const plansList = document.getElementById('plans-list');
+    const planError = document.getElementById('plan-error');
+    const chargePlanSelect = document.getElementById('charge-plan');
+
     // State
     let isAuthenticated = sessionStorage.getItem('seller_auth') === 'true';
     let globalTenants = [];
+    let globalPlans = [];
     let selectedTenantId = null;
     let globalChatsData = [];        // For current selected tenant
     let _chatsLoadedForTenant = null; // Cache: track which tenant's chats are loaded
@@ -106,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Navigation & Tenant Selection ---
     async function initDashboard() {
         await loadAllTenants();
+        await loadPlans();
         // Load whatever tab is active
         const activeTabBtn = document.querySelector('.nav-btn.active');
         if(activeTabBtn) {
@@ -149,7 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (btn.dataset.target === 'tab-clients') renderTenantsTable();
             if (btn.dataset.target === 'tab-billing') {
                 updateChargeClientDropdown();
+                updateChargePlanDropdown();
                 loadInvoices();
+            }
+            if (btn.dataset.target === 'tab-plans') {
+                renderPlansTable();
             }
             // handleTabSwitch handles all data loading for tenant-specific tabs
             handleTabSwitch(btn.dataset.target);
@@ -164,8 +176,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tabId === 'tab-register') {
             return;
         }
-        if (tabId === 'tab-billing') {
-            // Billing tab handles its own data loading (loadInvoices)
+        if (tabId === 'tab-billing' || tabId === 'tab-plans') {
+            // Billing & Plans tabs handle their own data loading
             return;
         }
 
@@ -396,9 +408,89 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('profile-social-li').value = p.social_linkedin || '';
                 document.getElementById('profile-social-tw').value = p.social_twitter || '';
                 document.getElementById('profile-social-ig').value = p.social_instagram || '';
+                
+                const logoB64 = document.getElementById('profile-logo-b64');
+                const logoPreview = document.getElementById('logo-preview');
+                const logoPlaceholder = document.getElementById('logo-placeholder');
+                const clearLogoBtn = document.getElementById('clear-logo-btn');
+                const fileInput = document.getElementById('profile-logo');
+                
+                logoB64.value = p.logo_url || '';
+                fileInput.value = ''; // clear any selected file
+                if (p.logo_url) {
+                    logoPreview.src = p.logo_url;
+                    logoPreview.style.display = 'block';
+                    logoPlaceholder.style.display = 'none';
+                    clearLogoBtn.style.display = 'block';
+                } else {
+                    logoPreview.src = '';
+                    logoPreview.style.display = 'none';
+                    logoPlaceholder.style.display = 'block';
+                    clearLogoBtn.style.display = 'none';
+                }
             }
         } catch(e) { console.error('Failed to load profile'); }
     }
+
+    // Handle Image Upload & Resize
+    const logoInput = document.getElementById('profile-logo');
+    const logoB64Input = document.getElementById('profile-logo-b64');
+    const logoPreview = document.getElementById('logo-preview');
+    const logoPlaceholder = document.getElementById('logo-placeholder');
+    const clearLogoBtn = document.getElementById('clear-logo-btn');
+
+    logoInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                // Resize if needed
+                const MAX_SIZE = 200;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > MAX_SIZE || height > MAX_SIZE) {
+                    if (width > height) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
+                    } else {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Compress heavily to avoid DB bloat (webp or jpeg preferred)
+                let mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+                const dataUrl = canvas.toDataURL(mimeType, 0.7);
+                
+                logoB64Input.value = dataUrl;
+                logoPreview.src = dataUrl;
+                logoPreview.style.display = 'block';
+                logoPlaceholder.style.display = 'none';
+                clearLogoBtn.style.display = 'block';
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    clearLogoBtn.addEventListener('click', () => {
+        logoInput.value = '';
+        logoB64Input.value = '';
+        logoPreview.src = '';
+        logoPreview.style.display = 'none';
+        logoPlaceholder.style.display = 'block';
+        clearLogoBtn.style.display = 'none';
+    });
 
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -429,7 +521,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     brand_color_secondary: document.getElementById('profile-brand-secondary').value,
                     social_linkedin: document.getElementById('profile-social-li').value,
                     social_twitter: document.getElementById('profile-social-tw').value,
-                    social_instagram: document.getElementById('profile-social-ig').value
+                    social_instagram: document.getElementById('profile-social-ig').value,
+                    logo_url: document.getElementById('profile-logo-b64').value
                 })
             });
             if (res.ok) showMessage(profileMsg, 'Identity Updated!', 'success');
@@ -683,6 +776,141 @@ document.addEventListener('DOMContentLoaded', () => {
             invoicesList.appendChild(tr);
         });
     }
+
+    // --- Manage Plans ---
+    async function loadPlans() {
+        try {
+            const res = await fetch(`${API_BASE}/admin/plans`);
+            if (res.ok) {
+                globalPlans = await res.json();
+                if (document.getElementById('tab-plans').classList.contains('active')) {
+                    renderPlansTable();
+                }
+                updateChargePlanDropdown();
+            }
+        } catch (err) { console.error('Failed to load plans', err); }
+    }
+
+    function renderPlansTable() {
+        plansList.innerHTML = '';
+        if (globalPlans.length === 0) {
+            plansList.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem;">No plans found.</td></tr>';
+            return;
+        }
+
+        globalPlans.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${escapeHTML(p.name)}</strong></td>
+                <td>₹${p.price_inr.toFixed(2)}</td>
+                <td>${p.messages_per_month}</td>
+                <td>${p.docs_limit}</td>
+                <td>${p.faqs_limit}</td>
+                <td>${p.export_enabled ? 'Yes' : 'No'}</td>
+                <td>${escapeHTML(p.languages)}</td>
+                <td>
+                    <button class="btn outline-btn" onclick="editPlan('${p.id}')" style="padding:0.2rem 0.6rem;font-size:0.75rem;">Edit</button>
+                    <button class="btn danger-btn" onclick="deletePlan('${p.id}')" style="padding:0.2rem 0.6rem;font-size:0.75rem; margin-left:5px;">Delete</button>
+                </td>
+            `;
+            plansList.appendChild(tr);
+        });
+    }
+
+    function updateChargePlanDropdown() {
+        if (!chargePlanSelect) return;
+        chargePlanSelect.innerHTML = '<option value="" disabled selected>-- Select a Plan --</option>';
+        globalPlans.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.name;
+            opt.textContent = `${p.name} (₹${p.price_inr}/mo)`;
+            chargePlanSelect.appendChild(opt);
+        });
+    }
+
+    window.editPlan = (id) => {
+        const p = globalPlans.find(x => x.id === id);
+        if(!p) return;
+        document.getElementById('plan-id').value = p.id;
+        document.getElementById('plan-name').value = p.name;
+        document.getElementById('plan-price').value = p.price_inr;
+        document.getElementById('plan-messages').value = p.messages_per_month;
+        document.getElementById('plan-docs').value = p.docs_limit;
+        document.getElementById('plan-faqs').value = p.faqs_limit;
+        document.getElementById('plan-export').checked = p.export_enabled;
+        document.getElementById('plan-languages').value = p.languages;
+        
+        document.getElementById('plan-form-title').textContent = 'Edit Plan';
+        document.getElementById('plan-submit-btn').textContent = 'Update Plan';
+        document.getElementById('plan-cancel-btn').style.display = 'inline-block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    if (document.getElementById('plan-cancel-btn')) {
+        document.getElementById('plan-cancel-btn').addEventListener('click', () => {
+            if(planForm) planForm.reset();
+            document.getElementById('plan-id').value = '';
+            document.getElementById('plan-form-title').textContent = 'Create New Plan';
+            document.getElementById('plan-submit-btn').textContent = 'Save Plan';
+            document.getElementById('plan-cancel-btn').style.display = 'none';
+            if(planError) planError.textContent = '';
+        });
+    }
+
+    if (planForm) {
+        planForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            planError.textContent = '';
+            
+            const payload = {
+                name: document.getElementById('plan-name').value,
+                price_inr: parseFloat(document.getElementById('plan-price').value),
+                messages_per_month: parseInt(document.getElementById('plan-messages').value),
+                docs_limit: parseInt(document.getElementById('plan-docs').value),
+                faqs_limit: parseInt(document.getElementById('plan-faqs').value),
+                export_enabled: document.getElementById('plan-export').checked,
+                languages: document.getElementById('plan-languages').value
+            };
+
+            const id = document.getElementById('plan-id').value;
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_BASE}/admin/plans/${id}` : `${API_BASE}/admin/plans`;
+
+            const btn = document.getElementById('plan-submit-btn');
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if(res.ok) {
+                    alert(id ? 'Plan updated successfully' : 'Plan created successfully');
+                    document.getElementById('plan-cancel-btn').click(); // reset form
+                    await loadPlans();
+                } else {
+                    const data = await res.json();
+                    planError.textContent = data.detail || 'Failed to save plan';
+                }
+            } catch(err) { planError.textContent = 'Connection error'; }
+            finally { btn.disabled = false; }
+        });
+    }
+
+    window.deletePlan = async (id) => {
+        if(!confirm('Are you sure you want to delete this plan?')) return;
+        try {
+            const res = await fetch(`${API_BASE}/admin/plans/${id}`, { method: 'DELETE' });
+            if(res.ok) {
+                alert('Plan deleted.');
+                await loadPlans();
+            } else {
+                const data = await res.json();
+                alert(data.detail || 'Failed to delete plan');
+            }
+        } catch(err) { alert('Connection error'); }
+    };
 
     // --- FAQs ---
     async function loadFaqs() {
