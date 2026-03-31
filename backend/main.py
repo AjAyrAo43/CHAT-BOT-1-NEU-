@@ -555,6 +555,73 @@ async def chat_endpoint(request: Request, payload: ChatRequest, background_tasks
                 resolved=False
             )
 
+        # ── Lead detection: check BEFORE calling LLM ────────────────────────────
+        # If the user submits a 10-digit phone + email + name, skip the LLM entirely
+        phone_match = re.search(r'\b(\d{10})\b', payload.question)
+        email_match = re.search(r'[\w.+-]+@[\w-]+\.[\w.]+', payload.question)
+        words = payload.question.split()
+        name_words = [w for w in words
+                      if not re.fullmatch(r'\d+', w)
+                      and '@' not in w
+                      and len(w) >= 2]
+        has_contact_info = bool(phone_match and email_match and name_words)
+
+        if has_contact_info:
+            # Extract parsed fields
+            phone_str = phone_match.group(1)
+            email_str = email_match.group(0)
+            name_str = " ".join(
+                w for w in words
+                if w != phone_str and w != email_str and w not in (",", ";", "-")
+            ).strip()
+
+            thank_you = "Thank you! Our support team has received your details and will contact you shortly."
+            intent = "lead_captured"
+
+            encrypted_q = encrypt_text(payload.question)
+            encrypted_a = encrypt_text(thank_you)
+            record_tokens(int((len(words) + len(thank_you.split())) * 1.3))
+
+            new_log = ChatLog(
+                session_id=payload.session_id,
+                encrypted_question=encrypted_q,
+                encrypted_answer=encrypted_a,
+                detected_intent=intent,
+                page_url=payload.page_url,
+                language=payload.language,
+                is_resolved=True,
+                user_ip=request.client.host if request.client else None
+            )
+            db.add(new_log)
+
+            lead_record = Lead(
+                session_id=payload.session_id,
+                name=name_str,
+                phone=phone_str,
+                email=email_str,
+                raw_message=payload.question,
+                page_url=payload.page_url,
+                is_notified=False
+            )
+            db.add(lead_record)
+            db.commit()
+
+            notif_email = current_tenant.get("notification_email", "") if current_tenant else ""
+            if notif_email:
+                lead_info = f"Name: {name_str}\nPhone: {phone_str}\nEmail: {email_str}"
+                background_tasks.add_task(
+                    send_lead_notification,
+                    client_email=notif_email,
+                    client_name=current_tenant.get("name", "Unknown"),
+                    lead_info=lead_info,
+                    inquiry=payload.question
+                )
+                lead_record.is_notified = True
+                db.commit()
+
+            background_tasks.add_task(check_and_alert)
+            return {"answer": thank_you, "intent": intent, "resolved": True}
+
         # Pass the existing DB session to get_answer
         answer = get_answer(payload.question, intent, payload.tenant_id, payload.language, db=db)
 
@@ -567,19 +634,7 @@ async def chat_endpoint(request: Request, payload: ChatRequest, background_tasks
         encrypted_q = encrypt_text(payload.question)
         encrypted_a = encrypt_text(answer)
 
-        is_resolved = False
-
-        # ── Lead detection: check if the user just submitted their contact info ──────
-        # We look for all three: a name-like word, a 10-digit phone, and an email
-        phone_match = re.search(r'\b(\d{10})\b', payload.question)
-        email_match = re.search(r'[\w.+-]+@[\w-]+\.[\w.]+', payload.question)
-        # Name heuristic: at least one word that is NOT purely digits and NOT an email
-        words = payload.question.split()
-        name_words = [w for w in words
-                      if not re.fullmatch(r'\d+', w)
-                      and '@' not in w
-                      and len(w) >= 2]
-        has_contact_info = bool(phone_match and email_match and name_words)
+        has_contact_info = False  # already handled above before LLM call
 
         new_log = ChatLog(
             session_id=payload.session_id,
@@ -588,48 +643,11 @@ async def chat_endpoint(request: Request, payload: ChatRequest, background_tasks
             detected_intent=intent,
             page_url=payload.page_url,
             language=payload.language,
-            is_resolved=has_contact_info,   # mark as resolved when lead captured
+            is_resolved=False,
             user_ip=request.client.host if request.client else None
         )
         db.add(new_log)
-
-        if has_contact_info and current_tenant:
-            # Derive the name from whatever is NOT the phone / email in the message
-            phone_str = phone_match.group(1)
-            email_str = email_match.group(0)
-            name_str = " ".join(
-                w for w in words
-                if w != phone_str and w != email_str and w not in (",", ";", "-")
-            ).strip()
-
-            # Save lead to dedicated leads table
-            lead_record = Lead(
-                session_id=payload.session_id,
-                name=name_str,
-                phone=phone_str,
-                email=email_str,
-                raw_message=payload.question,
-                page_url=payload.page_url,
-                is_notified=False
-            )
-            db.add(lead_record)
-            db.commit()  # commit both ChatLog and Lead together
-
-            # Send notification email with the actual contact details
-            notif_email = current_tenant.get("notification_email", "")
-            if notif_email:
-                lead_info = f"Name: {name_str}\nPhone: {phone_str}\nEmail: {email_str}"
-                background_tasks.add_task(
-                    send_lead_notification,
-                    client_email=notif_email,
-                    client_name=current_tenant.get("name", "Unknown"),
-                    lead_info=lead_info,
-                    inquiry=payload.question
-                )
-                # Mark lead as notified (best-effort in background)
-                lead_record.is_notified = True
-        else:
-            db.commit()
+        db.commit()
 
         # ── Check thresholds and alert if needed (non-blocking) ──────────
         background_tasks.add_task(check_and_alert)
