@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Use cached data — don't re-fetch on every tab click
             if (btn.dataset.target === 'section-analytics') renderAnalytics(globalChatsData);
-            if (btn.dataset.target === 'section-leads') renderLeads(globalChatsData);
+            if (btn.dataset.target === 'section-leads') renderLeads();
             if (btn.dataset.target === 'section-chats') {
                 const displayChats = [...globalChatsData].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
                 renderChats(displayChats);
@@ -157,7 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 const data = await res.json();
                 _tenantInfoLoaded = true; // Mark as loaded
-                tenantBadge.textContent = data.name; // Display the business name
+                tenantBadge.textContent = data.name;
+
+                // ── Update sidebar brand header ──
+                const sidebarName = document.getElementById('sidebar-company-name');
+                if (sidebarName) sidebarName.textContent = data.name;
                 const banner = document.getElementById('billing-banner');
                 banner.style.display = 'block';
                 
@@ -203,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 _chatsLoaded = true; // mark cached
                 
                 renderAnalytics(globalChatsData);
-                renderLeads(globalChatsData);
+                renderLeads();
                 
                 const displayChats = [...globalChatsData].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
                 renderChats(displayChats);
@@ -302,46 +306,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderLeads(data) {
+    async function renderLeads() {
         leadsList.innerHTML = '';
-        const leadsFiles = data.filter(d => d.intent === 'contact');
-        
-        if (leadsFiles.length === 0) {
-            noLeads.style.display = 'block';
-            return;
-        }
-        noLeads.style.display = 'none';
+        try {
+            const res = await fetch(`${API_BASE}/admin/leads?tenant_id=${tenantId}`);
+            if (!res.ok) { noLeads.style.display = 'block'; return; }
+            const leads = await res.json();
 
-        // Replicating logic: find standard inquiry exactly before contact intent in the same session
-        const leadsDataDisplay = [];
-        leadsFiles.forEach(lead => {
-            const sessionMsgs = data.filter(d => d.session_id === lead.session_id);
-            const prevMsgs = sessionMsgs.filter(d => new Date(d.created_at) < new Date(lead.created_at));
-            
-            let inquiry = "Unknown inquiry";
-            if (prevMsgs.length > 0) {
-                inquiry = prevMsgs[prevMsgs.length - 1].question;
+            if (!leads || leads.length === 0) {
+                noLeads.style.display = 'block';
+                return;
             }
+            noLeads.style.display = 'none';
 
-            leadsDataDisplay.push({
-                date: new Date(lead.created_at).toLocaleString(),
-                contactInfo: lead.question,
-                inquiry: inquiry,
-                sessionId: lead.session_id.substring(0, 8) + '...'
+            leads.forEach(lead => {
+                const tr = document.createElement('tr');
+                const contactInfo = [lead.name, lead.phone, lead.email].filter(Boolean).join(' · ');
+                tr.innerHTML = `
+                    <td style="white-space:nowrap"><small>${new Date(lead.created_at).toLocaleString()}</small></td>
+                    <td><strong>${escapeHTML(contactInfo)}</strong></td>
+                    <td>${escapeHTML(lead.raw_message || '')}</td>
+                    <td><small style="color:var(--text-muted)">${escapeHTML((lead.session_id || '').substring(0, 8))}...</small></td>
+                `;
+                leadsList.appendChild(tr);
             });
-        });
-
-        // Reverse to show newest leads first
-        leadsDataDisplay.reverse().forEach(ld => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="white-space:nowrap"><small>${ld.date}</small></td>
-                <td><strong>${escapeHTML(ld.contactInfo)}</strong></td>
-                <td>${escapeHTML(ld.inquiry)}</td>
-                <td><small style="color:var(--text-muted)">${escapeHTML(ld.sessionId)}</small></td>
-            `;
-            leadsList.appendChild(tr);
-        });
+        } catch (err) {
+            console.error('Failed to load leads', err);
+            noLeads.style.display = 'block';
+        }
     }
 
     function renderChats(chats) {
@@ -422,6 +414,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('industry').value = profile.industry;
                 document.getElementById('biz-desc').value = profile.business_description;
                 document.getElementById('profile-hours').value = profile.business_hours || '';
+
+                // ── Update sidebar brand logo ──
+                const logoImg = document.getElementById('sidebar-logo-img');
+                const logoPlaceholder = document.getElementById('sidebar-logo-placeholder');
+                const sidebarName = document.getElementById('sidebar-company-name');
+                if (profile.logo_url && logoImg) {
+                    logoImg.src = profile.logo_url;
+                    logoImg.style.display = 'block';
+                    if (logoPlaceholder) logoPlaceholder.style.display = 'none';
+                } else if (logoPlaceholder) {
+                    // Show initials as fallback
+                    const initials = (profile.company_name || 'C').trim().charAt(0).toUpperCase();
+                    logoPlaceholder.textContent = initials;
+                    logoPlaceholder.style.display = 'flex';
+                    if (logoImg) logoImg.style.display = 'none';
+                }
+                // Also set company name if not already set by loadTenantInfo
+                if (sidebarName && sidebarName.textContent === 'Loading...') {
+                    sidebarName.textContent = profile.company_name || 'Dashboard';
+                }
                 
                 document.getElementById('profile-contact-name').value = profile.contact_person_name || '';
                 document.getElementById('profile-contact-role').value = profile.contact_person_role || '';

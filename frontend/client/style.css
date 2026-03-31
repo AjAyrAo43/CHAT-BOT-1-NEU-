@@ -121,8 +121,59 @@ h1, h2, h3 { font-weight: 500; margin-bottom: 0.5em; }
     flex-direction: column;
 }
 .sidebar-header {
-    padding: 1.5rem;
+    padding: 1.25rem 1.5rem;
     border-bottom: 1px solid var(--border-color);
+}
+
+/* ── Brand header: logo + company name side by side ── */
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sidebar-logo-wrap {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.sidebar-logo-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #333 0%, #666 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+.sidebar-company-name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
 }
 .tenant-badge {
     display: inline-block;
@@ -205,17 +256,21 @@ tr:last-child td { border-bottom: none; }
     .layout { flex-direction: column; }
     .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border-color); }
     .sidebar-header {
-        padding: 1rem;
+        padding: 0.85rem 1rem;
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
     }
-    .sidebar-header h2 {
-        font-size: 1.2rem;
-        margin-bottom: 0;
+    .sidebar-brand {
+        gap: 10px;
     }
-    .tenant-badge {
-        margin-bottom: 0;
+    .sidebar-logo-wrap {
+        width: 36px;
+        height: 36px;
+    }
+    .sidebar-company-name {
+        font-size: 1.05rem;
+        max-width: 220px;
     }
     .sidebar-nav {
         display: flex;

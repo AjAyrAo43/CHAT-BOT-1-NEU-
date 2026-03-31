@@ -35,8 +35,15 @@
             <div class="layout">
                 <aside class="sidebar">
                     <div class="sidebar-header">
-                        <h2>Client Portal</h2>
-                        <div class="tenant-badge" id="display-tenant-id"></div>
+                        <div class="sidebar-brand">
+                            <div class="sidebar-logo-wrap" id="sidebar-logo-wrap">
+                                <img id="sidebar-logo-img" src="" alt="Logo" class="sidebar-logo-img" style="display:none;">
+                                <div id="sidebar-logo-placeholder" class="sidebar-logo-placeholder"></div>
+                            </div>
+                            <span id="sidebar-company-name" class="sidebar-company-name">Loading...</span>
+                        </div>
+                        <!-- Hidden badge kept for internal JS use -->
+                        <div class="tenant-badge" id="display-tenant-id" style="display:none;"></div>
                     </div>
                     <nav class="sidebar-nav">
                         <button class="nav-btn active" data-target="section-analytics">Analytics Overview</button>
