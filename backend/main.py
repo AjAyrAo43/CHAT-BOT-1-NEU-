@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import datetime
 import traceback
@@ -20,7 +21,7 @@ from .database import (
     register_tenant, get_all_tenants, get_tenant_by_id, get_tenant_by_username,
     deactivate_tenant, delete_tenant_hard,
     verify_client_password, update_tenant_password,
-    ChatLog, FAQ, Admin, BusinessProfile, KnowledgeDocument,
+    ChatLog, FAQ, Admin, BusinessProfile, KnowledgeDocument, Lead,
     get_tenant_limits
 )
 from .encryption import encrypt_text, decrypt_text
@@ -42,14 +43,28 @@ app.state.limiter = limiter
 async def startup_initialize_db():
     """Create central DB tables (tenants, plans) on first boot if they don't exist yet.
     Safe to run every time — SQLAlchemy's create_all is a no-op if tables already exist.
+    Also migrates all existing tenant DBs (adds new tables like 'leads').
     """
-    from .database import _get_central_engine, CentralBase
+    from .database import _get_central_engine, CentralBase, TenantBase, _get_tenant_engine, get_all_tenants
     try:
         engine = _get_central_engine()
         CentralBase.metadata.create_all(bind=engine)
         logger.info("Central DB tables initialized.")
     except Exception as e:
         logger.warning(f"Could not initialize central DB tables: {e}")
+
+    # Auto-migrate every existing tenant DB (adds new tables, no-op for existing)
+    try:
+        tenants = get_all_tenants()
+        for t in tenants:
+            try:
+                engine = _get_tenant_engine(t["db_url"])
+                TenantBase.metadata.create_all(bind=engine)
+            except Exception as te:
+                logger.warning(f"Could not migrate tenant {t['id']} DB: {te}")
+        logger.info(f"Tenant DB migration complete for {len(tenants)} tenants.")
+    except Exception as e:
+        logger.warning(f"Could not run tenant DB migrations: {e}")
 
 
 # ── Abuse logging: override rate-limit handler ──────────────────────────
@@ -552,6 +567,20 @@ async def chat_endpoint(request: Request, payload: ChatRequest, background_tasks
         encrypted_q = encrypt_text(payload.question)
         encrypted_a = encrypt_text(answer)
 
+        is_resolved = False
+
+        # ── Lead detection: check if the user just submitted their contact info ──────
+        # We look for all three: a name-like word, a 10-digit phone, and an email
+        phone_match = re.search(r'\b(\d{10})\b', payload.question)
+        email_match = re.search(r'[\w.+-]+@[\w-]+\.[\w.]+', payload.question)
+        # Name heuristic: at least one word that is NOT purely digits and NOT an email
+        words = payload.question.split()
+        name_words = [w for w in words
+                      if not re.fullmatch(r'\d+', w)
+                      and '@' not in w
+                      and len(w) >= 2]
+        has_contact_info = bool(phone_match and email_match and name_words)
+
         new_log = ChatLog(
             session_id=payload.session_id,
             encrypted_question=encrypted_q,
@@ -559,21 +588,48 @@ async def chat_endpoint(request: Request, payload: ChatRequest, background_tasks
             detected_intent=intent,
             page_url=payload.page_url,
             language=payload.language,
+            is_resolved=has_contact_info,   # mark as resolved when lead captured
             user_ip=request.client.host if request.client else None
         )
         db.add(new_log)
-        db.commit()
 
-        if intent == "contact" and current_tenant:
+        if has_contact_info and current_tenant:
+            # Derive the name from whatever is NOT the phone / email in the message
+            phone_str = phone_match.group(1)
+            email_str = email_match.group(0)
+            name_str = " ".join(
+                w for w in words
+                if w != phone_str and w != email_str and w not in (",", ";", "-")
+            ).strip()
+
+            # Save lead to dedicated leads table
+            lead_record = Lead(
+                session_id=payload.session_id,
+                name=name_str,
+                phone=phone_str,
+                email=email_str,
+                raw_message=payload.question,
+                page_url=payload.page_url,
+                is_notified=False
+            )
+            db.add(lead_record)
+            db.commit()  # commit both ChatLog and Lead together
+
+            # Send notification email with the actual contact details
             notif_email = current_tenant.get("notification_email", "")
             if notif_email:
+                lead_info = f"Name: {name_str}\nPhone: {phone_str}\nEmail: {email_str}"
                 background_tasks.add_task(
                     send_lead_notification,
                     client_email=notif_email,
                     client_name=current_tenant.get("name", "Unknown"),
-                    lead_info=payload.question,
-                    inquiry="Contact request via chatbot"
+                    lead_info=lead_info,
+                    inquiry=payload.question
                 )
+                # Mark lead as notified (best-effort in background)
+                lead_record.is_notified = True
+        else:
+            db.commit()
 
         # ── Check thresholds and alert if needed (non-blocking) ──────────
         background_tasks.add_task(check_and_alert)
@@ -595,6 +651,27 @@ async def chat_endpoint(request: Request, payload: ChatRequest, background_tasks
 # ──────────────────────────────────────────────
 # ADMIN ENDPOINTS (scoped to a tenant)
 # ──────────────────────────────────────────────
+
+@app.get("/admin/leads")
+async def get_leads(db: Session = Depends(get_tenant_db)):
+    """Return all captured leads for this tenant, newest first."""
+    leads = db.query(Lead).order_by(Lead.created_at.desc()).all()
+    return [
+        {
+            "id": lead.id,
+            "session_id": lead.session_id,
+            "name": lead.name,
+            "phone": lead.phone,
+            "email": lead.email,
+            "raw_message": lead.raw_message,
+            "page_url": lead.page_url,
+            "is_notified": lead.is_notified,
+            "created_at": format_utc(lead.created_at)
+        }
+        for lead in leads
+    ]
+
+
 @app.get("/admin/chats", response_model=List[ChatLogResponse])
 async def get_all_chats(db: Session = Depends(get_tenant_db)):
     logs = db.query(ChatLog).all()

@@ -606,6 +606,20 @@ class KnowledgeDocument(TenantBase):
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
 
+class Lead(TenantBase):
+    """Stores captured visitor contact information (leads) from the chatbot."""
+    __tablename__ = "leads"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    session_id = Column(String, index=True)
+    name = Column(String, default="")
+    phone = Column(String, default="")
+    email = Column(String, default="")
+    raw_message = Column(Text, default="")   # the original message the user typed
+    page_url = Column(String, default="")
+    is_notified = Column(Boolean, default=False)  # True once email notification sent
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
 # ──────────────────────────────────────────────
 # DYNAMIC TENANT CONNECTION MANAGEMENT
 # ──────────────────────────────────────────────
