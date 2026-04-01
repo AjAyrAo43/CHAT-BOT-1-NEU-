@@ -122,7 +122,12 @@
         }
 
         function appendMsg(sender, text) {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             let container = msgsArea;
+            
+            const msgWrapper = document.createElement('div');
+            msgWrapper.className = `cb-msg-wrapper cb-wrapper-${sender}`;
             
             // For bot messages, wrap in a container to hold avatar + bubble
             if (sender === 'bot') {
@@ -134,7 +139,16 @@
                 avatar.className = 'cb-bot-icon';
                 avatar.innerHTML = getBotIconHTML();
                 container.appendChild(avatar);
+                
+                container.appendChild(msgWrapper);
                 msgsArea.appendChild(container);
+            } else if (sender === 'user') {
+                container = document.createElement('div');
+                container.className = 'cb-msg-container cb-user-container';
+                container.appendChild(msgWrapper);
+                msgsArea.appendChild(container);
+            } else {
+                msgsArea.appendChild(msgWrapper);
             }
 
             const div = document.createElement('div');
@@ -150,7 +164,15 @@
                 div.textContent = text;
             }
             
-            container.appendChild(div);
+            msgWrapper.appendChild(div);
+            
+            if (sender !== 'system') {
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'cb-msg-time';
+                timeDiv.textContent = timeString;
+                msgWrapper.appendChild(timeDiv);
+            }
+            
             scrollToBottom();
         }
 
@@ -165,11 +187,16 @@
             avatar.className = 'cb-bot-icon';
             avatar.innerHTML = getBotIconHTML();
             container.appendChild(avatar);
+            
+            const msgWrapper = document.createElement('div');
+            msgWrapper.className = 'cb-msg-wrapper cb-wrapper-bot';
 
             const div = document.createElement('div');
             div.className = 'cb-msg cb-bot';
             div.innerHTML = `<div class="cb-typing"><div class="cb-dot"></div><div class="cb-dot"></div><div class="cb-dot"></div></div>`;
-            container.appendChild(div);
+            
+            msgWrapper.appendChild(div);
+            container.appendChild(msgWrapper);
 
             msgsArea.appendChild(container);
             scrollToBottom();

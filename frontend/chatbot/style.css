@@ -133,6 +133,23 @@
     letter-spacing: -0.01em;
 }
 
+.cb-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: #ffd8cc; /* Soft contrasting color on orange gradient */
+    margin-top: 2px;
+}
+
+.cb-status-dot {
+    width: 6px;
+    height: 6px;
+    background-color: #4ade80; /* Bright green */
+    border-radius: 50%;
+    display: inline-block;
+}
+
 .cb-btn-close {
     background: rgba(255, 255, 255, 0.2);
     border: none;
@@ -178,8 +195,29 @@
     border-radius: 10px;
 }
 
+.cb-msg-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 100%;
+}
+
+.cb-wrapper-user {
+    align-items: flex-end;
+    align-self: flex-end;
+}
+
+.cb-wrapper-bot {
+    align-items: flex-start;
+}
+
+.cb-msg-time {
+    font-size: 0.65rem;
+    color: var(--cb-text-muted);
+}
+
 .cb-msg {
-    max-width: 85%;
+    max-width: 100%;
     font-size: 0.925rem;
     line-height: 1.6;
     word-wrap: break-word;
@@ -213,6 +251,11 @@
     max-width: 90%;
 }
 
+.cb-user-container {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
 .cb-bot-icon {
     width: 28px;
     height: 28px;
@@ -230,7 +273,6 @@
 }
 
 .cb-msg.cb-user {
-    align-self: flex-end;
     background: var(--cb-gradient);
     color: white;
     padding: 0.875rem 1.125rem;

@@ -83,12 +83,20 @@
             flex-direction: column; gap: 1.25rem; background-color: var(--cb-bg-tint);
         }
 
-        .cb-msg { max-width: 85%; font-size: 0.925rem; line-height: 1.6; animation: cb-fade-in 0.3s ease-out; }
+        .cb-msg-wrapper { display: flex; flex-direction: column; gap: 4px; max-width: 85%; }
+        .cb-wrapper-user { align-items: flex-end; align-self: flex-end; }
+        .cb-wrapper-bot { align-items: flex-start; align-self: flex-start; }
+        .cb-msg-time { font-size: 0.65rem; color: var(--cb-text-muted); }
+
+        .cb-msg { max-width: 100%; font-size: 0.925rem; line-height: 1.6; animation: cb-fade-in 0.3s ease-out; }
         @keyframes cb-fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
+        .cb-status { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; color: #ffd8cc; margin-top: 2px; }
+        .cb-status-dot { width: 6px; height: 6px; background-color: #4ade80; border-radius: 50%; display: inline-block; }
+
         .cb-msg.cb-system { align-self: center; color: var(--cb-text-muted); font-size: 0.75rem; background: rgba(0,0,0,0.03); padding: 4px 12px; border-radius: 12px; }
-        .cb-msg.cb-user { align-self: flex-end; background: var(--cb-gradient); color: white; padding: 0.875rem 1.125rem; border-radius: 18px 18px 2px 18px; }
-        .cb-msg.cb-bot { align-self: flex-start; background-color: var(--cb-bg-light); color: var(--cb-text-main); padding: 0.875rem 1.125rem; border-radius: 18px 18px 18px 2px; border: 1px solid var(--cb-border); }
+        .cb-msg.cb-user { background: var(--cb-gradient); color: white; padding: 0.875rem 1.125rem; border-radius: 18px 18px 2px 18px; }
+        .cb-msg.cb-bot { background-color: var(--cb-bg-light); color: var(--cb-text-main); padding: 0.875rem 1.125rem; border-radius: 18px 18px 18px 2px; border: 1px solid var(--cb-border); }
 
         .cb-input-area { padding: 1.25rem; border-top: 1px solid var(--cb-border); background-color: var(--cb-bg-light); }
         #cb-form { display: flex; align-items: center; gap: 0.75rem; background: var(--cb-bg-tint); padding: 4px 4px 4px 12px; border-radius: 28px; border: 1px solid var(--cb-border); }
@@ -118,7 +126,10 @@
         </button>
         <div id="cb-window" class="cb-window">
             <div class="cb-header">
-                <div class="cb-title">Support Chat</div>
+                <div>
+                    <div class="cb-title">Support Chat</div>
+                    <div class="cb-status"><span class="cb-status-dot"></span>Online</div>
+                </div>
                 <button id="cb-close-btn" class="cb-btn-close" aria-label="Close Chat">&times;</button>
             </div>
             <div id="cb-messages" class="cb-messages">
@@ -135,7 +146,7 @@
                     </button>
                 </form>
             </div>
-            <div class="cb-footer">Powered by NEUAI Technologies</div>
+            <div class="cb-footer">Powered by <a href="https://www.neuaitechnologies.com/" target="_blank" style="color: inherit; text-decoration: none; font-weight: 500;">NEUAI Technologies</a></div>
         </div>
     `;
     document.body.appendChild(container);
@@ -200,20 +211,41 @@
     };
 
     function appendMsg(sender, text) {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        const wrapper = document.createElement('div');
+        wrapper.className = `cb-msg-wrapper cb-wrapper-${sender}`;
+        
         const div = document.createElement('div');
         div.className = `cb-msg cb-${sender}`;
-        div.innerHTML = (sender === 'bot' && typeof marked !== 'undefined') ? marked.parse(text) : `<p>${text}</p>`;
-        msgsArea.appendChild(div);
+        div.innerHTML = (sender === 'bot' && typeof marked !== 'undefined') ? marked.parse(text) : (sender === 'system' ? text : `<p>${text}</p>`);
+        
+        wrapper.appendChild(div);
+        
+        if (sender !== 'system') {
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'cb-msg-time';
+            timeDiv.textContent = timeString;
+            wrapper.appendChild(timeDiv);
+        }
+        
+        msgsArea.appendChild(wrapper);
         msgsArea.scrollTop = msgsArea.scrollHeight;
     }
 
     function showTyping() {
         const id = 'typing-' + Date.now();
+        const wrapper = document.createElement('div');
+        wrapper.className = 'cb-msg-wrapper cb-wrapper-bot';
+        wrapper.id = id;
+        
         const div = document.createElement('div');
         div.className = 'cb-msg cb-bot';
-        div.id = id;
         div.innerHTML = `<div class="cb-typing"><div class="cb-dot"></div><div class="cb-dot"></div><div class="cb-dot"></div></div>`;
-        msgsArea.appendChild(div);
+        
+        wrapper.appendChild(div);
+        msgsArea.appendChild(wrapper);
         msgsArea.scrollTop = msgsArea.scrollHeight;
         return id;
     }
