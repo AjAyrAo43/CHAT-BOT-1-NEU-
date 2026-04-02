@@ -610,6 +610,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('metric-total-queries').textContent = '0';
             document.getElementById('metric-intents').textContent = '0';
             document.getElementById('metric-recent').textContent = 'N/A';
+            document.getElementById('metric-resolution').textContent = '0%';
+            document.getElementById('metric-leads-count').textContent = '0';
+            document.getElementById('metric-language').textContent = 'N/A';
+            document.getElementById('resolution-text').textContent = "0% AI Resolved";
+            document.getElementById('resolution-progress-bar').style.width = '0%';
             document.getElementById('intent-chart-container').innerHTML = '';
             document.getElementById('intent-chart-labels').innerHTML = '';
             document.getElementById('quota-text').textContent = "0 messages used this month";
@@ -619,10 +624,43 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('metric-total-queries').textContent = data.length;
 
         const counts = {};
-        data.forEach(d => { counts[d.intent] = (counts[d.intent] || 0) + 1; });
+        let resolvedCount = 0;
+        const languages = {};
+        
+        data.forEach(d => { 
+            counts[d.intent] = (counts[d.intent] || 0) + 1; 
+            if(d.is_resolved) resolvedCount++;
+            let lang = d.language || 'en';
+            languages[lang] = (languages[lang] || 0) + 1;
+        });
 
         document.getElementById('metric-intents').textContent = Object.keys(counts).length;
         document.getElementById('metric-recent').textContent = new Date(data[data.length-1].created_at).toLocaleDateString();
+
+        // Resolution metrics
+        const resRate = Math.round((resolvedCount / data.length) * 100);
+        document.getElementById('metric-resolution').textContent = resRate + '%';
+        document.getElementById('resolution-text').textContent = resRate + '% AI Resolved';
+        document.getElementById('resolution-progress-bar').style.width = resRate + '%';
+
+        // Top language
+        let topLang = 'en';
+        let topLangCount = 0;
+        Object.entries(languages).forEach(([lang, count]) => {
+            if (count > topLangCount) { topLang = lang; topLangCount = count; }
+        });
+        document.getElementById('metric-language').textContent = topLang;
+
+        // Fetch leads for Leads count
+        try {
+            const resLeads = await fetch(`${API_BASE}/admin/leads?tenant_id=${selectedTenantId}`);
+            if (resLeads.ok) {
+                const leads = await resLeads.json();
+                document.getElementById('metric-leads-count').textContent = leads ? leads.length : '0';
+            } else {
+                document.getElementById('metric-leads-count').textContent = '0';
+            }
+        } catch(e) { document.getElementById('metric-leads-count').textContent = '0'; }
 
         const container = document.getElementById('intent-chart-container');
         const labelsContainer = document.getElementById('intent-chart-labels');

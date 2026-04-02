@@ -437,3 +437,11 @@ FROM tenants LEFT OUTER JOIN plans AS plans_1 ON plans_1.id = tenants.current_pl
 2026-03-30 14:22:38 | INFO     | Central DB tables initialized.
 2026-03-30 15:53:50 | INFO     | Central DB tables initialized.
 2026-03-30 15:54:05 | INFO     | Central DB tables initialized.
+2026-04-02 14:24:16 | INFO     | Central DB tables initialized.
+2026-04-02 14:25:02 | INFO     | Tenant DB migration complete for 4 tenants.
+2026-04-02 14:42:58 | INFO     | Central DB tables initialized.
+2026-04-02 14:43:43 | INFO     | Tenant DB migration complete for 4 tenants.
+2026-04-02 14:45:59 | INFO     | Central DB tables initialized.
+2026-04-02 14:46:34 | INFO     | Tenant DB migration complete for 4 tenants.
+2026-04-02 17:46:04 | INFO     | Central DB tables initialized.
+2026-04-02 17:46:47 | INFO     | Tenant DB migration complete for 4 tenants.

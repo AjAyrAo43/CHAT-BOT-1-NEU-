@@ -81,16 +81,47 @@
                                 <h3>Recent Query</h3>
                                 <div class="metric-value" id="metric-recent" style="font-size:1.5rem;">-</div>
                             </div>
+                            <div class="metric-card">
+                                <h3>Resolution Rate</h3>
+                                <div class="metric-value" id="metric-resolution" style="color: #107c41;">-</div>
+                            </div>
+                            <div class="metric-card">
+                                <h3>Sales Leads</h3>
+                                <div class="metric-value" id="metric-leads-count" style="color: #0078d4;">-</div>
+                            </div>
+                            <div class="metric-card">
+                                <h3>Top Language</h3>
+                                <div class="metric-value" id="metric-language" style="font-size:1.5rem; text-transform: uppercase;">-</div>
+                            </div>
                         </div>
 
                         <div class="card" style="margin-top: 2rem;">
-                            <h3>Monthly Message Quota</h3>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                <span id="quota-text" style="font-weight:bold; color:var(--text-color);">Loading...</span>
-                                <span id="quota-plan-badge" class="tenant-badge">Starter</span>
-                            </div>
-                            <div style="width: 100%; height: 12px; background: #e0e0e0; border-radius: 6px; overflow: hidden; margin-top: 5px;">
-                                <div id="quota-progress-bar" style="height: 100%; background: var(--primary-color); width: 0%; transition: width 0.3s ease;"></div>
+                            <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 300px;">
+                                    <h3>Monthly Message Quota</h3>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                        <span id="quota-text" style="font-weight:bold; color:var(--text-color);">Loading...</span>
+                                        <span id="quota-plan-badge" class="tenant-badge">Starter</span>
+                                    </div>
+                                    <div style="width: 100%; height: 12px; background: #e0e0e0; border-radius: 6px; overflow: hidden; margin-top: 5px;">
+                                        <div id="quota-progress-bar" style="height: 100%; background: var(--primary-color); width: 0%; transition: width 0.3s ease;"></div>
+                                    </div>
+                                </div>
+                                <div style="flex: 1; min-width: 300px;">
+                                    <h3>Resolution Status</h3>
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                        <span id="resolution-text" style="font-weight:bold; color:var(--text-color);">Loading...</span>
+                                        <span class="tenant-badge" style="background:#eafaf1;color:#107c41;border:none;">Resolved</span>
+                                    </div>
+                                    <div style="width: 100%; height: 12px; background: #f8ca27; border-radius: 6px; overflow: hidden; margin-top: 5px; display: flex;" title="Green: Resolved completely, Yellow: Transferred/Needs Human">
+                                        <!-- resolved part -->
+                                        <div id="resolution-progress-bar" style="height: 100%; background: #107c41; width: 0%; transition: width 0.3s ease;"></div>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 0.8rem; color: #666;">
+                                        <span>Resolved by AI</span>
+                                        <span>Requires Human</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
