@@ -123,7 +123,10 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById(btn.dataset.target).classList.add('active');
             
             // Use cached data — don't re-fetch on every tab click
-            if (btn.dataset.target === 'section-analytics') renderAnalytics(globalChatsData);
+            if (btn.dataset.target === 'section-analytics') {
+                const filtered = filterByDays(globalChatsData, _activeDateFilter);
+                renderAnalytics(filtered);
+            }
             if (btn.dataset.target === 'section-leads') renderLeads();
             if (btn.dataset.target === 'section-chats') {
                 const displayChats = [...globalChatsData].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
@@ -145,11 +148,14 @@ document.addEventListener('DOMContentLoaded', () => {
         loadDocs();
     }
 
-    // --- Data Loading (Chats, Leads, Analytics) ---
+    // Data Loading (Chats, Leads, Analytics)
     // Cache: only fetch once per session, re-render from memory on tab switch
     let globalChatsData = [];
+    let globalLeadsData = [];
     let _chatsLoaded = false;
     let _tenantInfoLoaded = false;
+    let _activeChartInstances = {};   // track Chart.js instances for cleanup
+    let _activeDateFilter = 7;        // default: last 7 days
     async function loadTenantInfo() {
         if (_tenantInfoLoaded) return; // Skip fetch if already loaded
         try {
@@ -193,8 +199,9 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadAnalyticsAndData() {
         // Use cached data if already loaded
         if (_chatsLoaded) {
-            renderAnalytics(globalChatsData);
-            renderLeads(globalChatsData);
+            const filtered = filterByDays(globalChatsData, _activeDateFilter);
+            renderAnalytics(filtered);
+            renderLeads();
             const displayChats = [...globalChatsData].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
             renderChats(displayChats);
             return;
@@ -204,11 +211,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 globalChatsData = await res.json();
                 globalChatsData.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-                _chatsLoaded = true; // mark cached
-                
-                renderAnalytics(globalChatsData);
+                _chatsLoaded = true;
+
+                // Pre-load leads too
+                try {
+                    const rLeads = await fetch(`${API_BASE}/admin/leads?tenant_id=${tenantId}`);
+                    if (rLeads.ok) globalLeadsData = await rLeads.json();
+                } catch(e) { globalLeadsData = []; }
+
+                const filtered = filterByDays(globalChatsData, _activeDateFilter);
+                renderAnalytics(filtered);
                 renderLeads();
-                
+
                 const displayChats = [...globalChatsData].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
                 renderChats(displayChats);
             }
@@ -217,106 +231,287 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Date filter helper ---
+    function filterByDays(data, days) {
+        if (!days || days === 0) return data;
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        return data.filter(d => new Date(d.created_at) >= cutoff);
+    }
+
+    // Wire up date filter buttons
+    document.querySelectorAll('.date-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.date-filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            _activeDateFilter = parseInt(btn.dataset.days);
+            const filtered = filterByDays(globalChatsData, _activeDateFilter);
+            renderAnalytics(filtered);
+        });
+    });
+
     async function renderAnalytics(data) {
-        if (data.length === 0) {
-            document.getElementById('metric-total-queries').textContent = '0';
-            document.getElementById('metric-intents').textContent = '0';
-            document.getElementById('metric-recent').textContent = 'N/A';
+        const CHART_COLORS = ['#6366f1','#0ea5e9','#f59e0b','#10b981','#ef4444','#ec4899','#8b5cf6','#06b6d4','#f97316','#84cc16'];
+
+        // --- Destroy existing Chart.js instances to avoid canvas reuse errors ---
+        Object.values(_activeChartInstances).forEach(c => { try { c.destroy(); } catch(e){} });
+        _activeChartInstances = {};
+
+        // --- Empty state ---
+        if (!data || data.length === 0) {
+            ['metric-total-queries','metric-unique-users','metric-intents','metric-ai-resolved',
+             'metric-human-handover','metric-resolution','metric-leads-count','metric-conversion-rate',
+             'metric-language','metric-recent'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = '0';
+            });
             document.getElementById('metric-resolution').textContent = '0%';
-            document.getElementById('metric-leads-count').textContent = '0';
+            document.getElementById('metric-conversion-rate').textContent = '0%';
             document.getElementById('metric-language').textContent = 'N/A';
-            document.getElementById('resolution-text').textContent = "0% AI Resolved";
+            document.getElementById('metric-recent').textContent = 'N/A';
+            document.getElementById('resolution-text').textContent = '0% AI Resolved';
             document.getElementById('resolution-progress-bar').style.width = '0%';
-            document.getElementById('intent-chart-container').innerHTML = '';
-            document.getElementById('intent-chart-labels').innerHTML = '';
-            document.getElementById('quota-text').textContent = "0 messages used this month";
+            document.getElementById('quota-text').textContent = '0 messages used this month';
+            document.getElementById('funnel-chart-container').innerHTML = '<p style="color:#999;text-align:center;">No data yet.</p>';
             return;
         }
 
-        // Calculate Metrics
-        document.getElementById('metric-total-queries').textContent = data.length;
-        
-        const counts = {};
+        // ── Compute core metrics ──
+        const totalQueries = data.length;
+        const uniqueUsers = new Set(data.map(d => d.session_id)).size;
+        const intentCounts = {};
+        const langCounts = {};
         let resolvedCount = 0;
-        const languages = {};
-        
-        data.forEach(d => {
-            counts[d.intent] = (counts[d.intent] || 0) + 1;
-            if(d.is_resolved) resolvedCount++;
-            let lang = d.language || 'en';
-            languages[lang] = (languages[lang] || 0) + 1;
-        });
-        
-        document.getElementById('metric-intents').textContent = Object.keys(counts).length;
-        document.getElementById('metric-recent').textContent = new Date(data[data.length-1].created_at).toLocaleDateString();
 
-        // Resolution metrics
-        const resRate = Math.round((resolvedCount / data.length) * 100);
+        data.forEach(d => {
+            intentCounts[d.intent] = (intentCounts[d.intent] || 0) + 1;
+            if (d.is_resolved) resolvedCount++;
+            const lang = d.language || 'en';
+            langCounts[lang] = (langCounts[lang] || 0) + 1;
+        });
+
+        const humanCount = totalQueries - resolvedCount;
+        const resRate = Math.round((resolvedCount / totalQueries) * 100);
+        const leadsCount = globalLeadsData.length;
+        const convRate = totalQueries > 0 ? Math.round((leadsCount / uniqueUsers) * 100) : 0;
+
+        let topLang = 'en', topLangCount = 0;
+        Object.entries(langCounts).forEach(([l, c]) => { if (c > topLangCount) { topLang = l; topLangCount = c; } });
+
+        const sortedDates = [...data].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+        const recentDate = sortedDates.length ? new Date(sortedDates[0].created_at).toLocaleDateString() : 'N/A';
+
+        // ── KPI Updates ──
+        document.getElementById('metric-total-queries').textContent = totalQueries;
+        document.getElementById('metric-unique-users').textContent = uniqueUsers;
+        document.getElementById('metric-intents').textContent = Object.keys(intentCounts).length;
+        document.getElementById('metric-ai-resolved').textContent = resolvedCount;
+        document.getElementById('metric-human-handover').textContent = humanCount;
         document.getElementById('metric-resolution').textContent = resRate + '%';
+        document.getElementById('metric-leads-count').textContent = leadsCount;
+        document.getElementById('metric-conversion-rate').textContent = convRate + '%';
+        document.getElementById('metric-language').textContent = topLang.toUpperCase();
+        document.getElementById('metric-recent').textContent = recentDate;
         document.getElementById('resolution-text').textContent = resRate + '% AI Resolved';
         document.getElementById('resolution-progress-bar').style.width = resRate + '%';
 
-        // Top language
-        let topLang = 'en';
-        let topLangCount = 0;
-        Object.entries(languages).forEach(([lang, count]) => {
-            if (count > topLangCount) { topLang = lang; topLangCount = count; }
-        });
-        document.getElementById('metric-language').textContent = topLang;
-
-        // Fetch leads for Leads count
-        try {
-            const resLeads = await fetch(`${API_BASE}/admin/leads?tenant_id=${tenantId}`);
-            if (resLeads.ok) {
-                const leads = await resLeads.json();
-                document.getElementById('metric-leads-count').textContent = leads ? leads.length : '0';
-            } else {
-                document.getElementById('metric-leads-count').textContent = '0';
-            }
-        } catch(e) { 
-            document.getElementById('metric-leads-count').textContent = '0'; 
-        }
-
-        // Build simple CSS bar chart to replace Plotly pie chart
-        const container = document.getElementById('intent-chart-container');
-        const labelsContainer = document.getElementById('intent-chart-labels');
-        container.innerHTML = '';
-        labelsContainer.innerHTML = '';
-
-        const maxCount = Math.max(...Object.values(counts));
-        
-        Object.entries(counts).forEach(([intent, count]) => {
-            const heightPercent = (count / maxCount) * 100;
-            
-            const col = document.createElement('div');
-            col.className = 'bar-col';
-            col.style.height = `${heightPercent}%`;
-            col.title = `${intent}: ${count}`;
-            col.textContent = count; // Number at top of bar
-            
-            const label = document.createElement('div');
-            label.textContent = intent;
-            label.style.width = `${100 / Object.keys(counts).length}%`;
-            label.style.textAlign = 'center';
-            label.style.textTransform = 'capitalize';
-            
-            container.appendChild(col);
-            labelsContainer.appendChild(label);
-        });
-
-        // Calculate Monthly Quota
+        // ── Quota ──
         try {
             if (!_tenantInfoLoaded) {
                 const res2 = await fetch(`${API_BASE}/admin/tenant-info?tenant_id=${tenantId}`);
                 if (res2.ok) {
                     const info = await res2.json();
-                    _tenantInfoLoaded = info; // cache the response
-                    _applyQuota(info, data);
+                    _tenantInfoLoaded = info;
+                    _applyQuota(info, globalChatsData);
                 }
             } else {
-                _applyQuota(_tenantInfoLoaded, data);
+                _applyQuota(_tenantInfoLoaded, globalChatsData);
             }
-        } catch(e) { console.error('Error fetching quota limits', e); }
+        } catch(e) { console.error('Quota error', e); }
+
+        // ─────────────────────────────────────────────────
+        // CHART 1 — Intent Distribution (Pie)
+        // ─────────────────────────────────────────────────
+        const intentLabels = Object.keys(intentCounts);
+        const intentValues = Object.values(intentCounts);
+        _activeChartInstances['intent-pie'] = new Chart(document.getElementById('chart-intent-pie'), {
+            type: 'doughnut',
+            data: {
+                labels: intentLabels.map(l => l.charAt(0).toUpperCase() + l.slice(1)),
+                datasets: [{ data: intentValues, backgroundColor: CHART_COLORS, borderWidth: 2, borderColor: '#fff' }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { position: 'bottom', labels: { padding: 14, font: { size: 12 } } } }
+            }
+        });
+
+        // ─────────────────────────────────────────────────
+        // CHART 2 — Conversations Over Time (Line)
+        // ─────────────────────────────────────────────────
+        const dayMap = {};
+        data.forEach(d => {
+            const day = d.created_at.substring(0, 10);
+            dayMap[day] = (dayMap[day] || 0) + 1;
+        });
+        const dayLabels = Object.keys(dayMap).sort();
+        const dayValues = dayLabels.map(d => dayMap[d]);
+        _activeChartInstances['convos-line'] = new Chart(document.getElementById('chart-convos-line'), {
+            type: 'line',
+            data: {
+                labels: dayLabels,
+                datasets: [{
+                    label: 'Conversations',
+                    data: dayValues,
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99,102,241,0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#6366f1',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { maxTicksLimit: 8, font: { size: 10 } } },
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+
+        // ─────────────────────────────────────────────────
+        // CHART 3 — AI vs Human Resolution Over Time (Line)
+        // ─────────────────────────────────────────────────
+        const resDayAI = {}, resDayHuman = {};
+        data.forEach(d => {
+            const day = d.created_at.substring(0, 10);
+            if (d.is_resolved) resDayAI[day] = (resDayAI[day] || 0) + 1;
+            else resDayHuman[day] = (resDayHuman[day] || 0) + 1;
+        });
+        const resDayLabels = [...new Set([...Object.keys(resDayAI), ...Object.keys(resDayHuman)])].sort();
+        _activeChartInstances['resolution-line'] = new Chart(document.getElementById('chart-resolution-line'), {
+            type: 'line',
+            data: {
+                labels: resDayLabels,
+                datasets: [
+                    {
+                        label: 'AI Resolved',
+                        data: resDayLabels.map(d => resDayAI[d] || 0),
+                        borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)',
+                        fill: true, tension: 0.4, pointRadius: 3
+                    },
+                    {
+                        label: 'Human Required',
+                        data: resDayLabels.map(d => resDayHuman[d] || 0),
+                        borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)',
+                        fill: true, tension: 0.4, pointRadius: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { position: 'top' } },
+                scales: { x: { ticks: { maxTicksLimit: 8, font: { size: 10 } } }, y: { beginAtZero: true } }
+            }
+        });
+
+        // ─────────────────────────────────────────────────
+        // CHART 4 — Top 10 Questions (Horizontal Bar)
+        // ─────────────────────────────────────────────────
+        const qMap = {};
+        data.forEach(d => { if (d.question) qMap[d.question] = (qMap[d.question] || 0) + 1; });
+        const topQ = Object.entries(qMap).sort((a,b) => b[1] - a[1]).slice(0, 10);
+        const topQLabels = topQ.map(([q]) => q.length > 35 ? q.substring(0,35)+'…' : q);
+        const topQValues = topQ.map(([,c]) => c);
+        _activeChartInstances['top-questions'] = new Chart(document.getElementById('chart-top-questions'), {
+            type: 'bar',
+            data: {
+                labels: topQLabels,
+                datasets: [{ label: 'Count', data: topQValues, backgroundColor: CHART_COLORS.slice(0,10), borderRadius: 6 }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } }, y: { ticks: { font: { size: 10 } } } }
+            }
+        });
+
+        // ─────────────────────────────────────────────────
+        // CHART 5 — Language Distribution (Pie)
+        // ─────────────────────────────────────────────────
+        const langLabels = Object.keys(langCounts).map(l => l.toUpperCase());
+        const langValues = Object.values(langCounts);
+        _activeChartInstances['language-pie'] = new Chart(document.getElementById('chart-language-pie'), {
+            type: 'pie',
+            data: {
+                labels: langLabels,
+                datasets: [{ data: langValues, backgroundColor: ['#6366f1','#0ea5e9','#f59e0b','#10b981','#ef4444'], borderWidth: 2, borderColor: '#fff' }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { position: 'bottom', labels: { padding: 14 } } }
+            }
+        });
+
+        // ─────────────────────────────────────────────────
+        // CHART 6 — Peak Usage by Hour (Bar)
+        // ─────────────────────────────────────────────────
+        const hourMap = new Array(24).fill(0);
+        data.forEach(d => {
+            const h = new Date(d.created_at).getHours();
+            hourMap[h]++;
+        });
+        const hourLabels = Array.from({length:24}, (_,i) => i + ':00');
+        _activeChartInstances['peak-hours'] = new Chart(document.getElementById('chart-peak-hours'), {
+            type: 'bar',
+            data: {
+                labels: hourLabels,
+                datasets: [{
+                    label: 'Messages',
+                    data: hourMap,
+                    backgroundColor: hourMap.map(v => {
+                        const max = Math.max(...hourMap);
+                        const alpha = max > 0 ? 0.3 + (v/max)*0.7 : 0.3;
+                        return `rgba(99,102,241,${alpha.toFixed(2)})`;
+                    }),
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: { x: { ticks: { maxTicksLimit: 12, font: { size: 9 } } }, y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
+
+        // ─────────────────────────────────────────────────
+        // FUNNEL — Lead Conversion (CSS-based)
+        // ─────────────────────────────────────────────────
+        const funnelContainer = document.getElementById('funnel-chart-container');
+        funnelContainer.innerHTML = '';
+        const funnelSteps = [
+            { label: 'Total Visitors (Sessions)', value: uniqueUsers, color: '#6366f1' },
+            { label: 'Started a Chat', value: totalQueries, color: '#0ea5e9' },
+            { label: 'Asked Pricing / Info', value: (intentCounts['pricing'] || 0) + (intentCounts['information'] || 0), color: '#f59e0b' },
+            { label: 'Contact Requested', value: intentCounts['contact'] || 0, color: '#10b981' },
+            { label: 'Lead Captured', value: leadsCount, color: '#ec4899' }
+        ];
+        const maxFunnelVal = funnelSteps[0].value || 1;
+        funnelSteps.forEach((step, i) => {
+            const pct = Math.round((step.value / maxFunnelVal) * 100);
+            const convPct = i > 0 && funnelSteps[i-1].value > 0
+                ? Math.round((step.value / funnelSteps[i-1].value) * 100) : 100;
+            const div = document.createElement('div');
+            div.style.cssText = `width: ${Math.max(pct, 10)}%; max-width: 100%; background: ${step.color};
+                color: white; border-radius: 6px; padding: 0.55rem 1.2rem;
+                display: flex; justify-content: space-between; align-items: center;
+                transition: width 0.5s ease; font-weight: 600; font-size: 0.88rem; min-width: 180px;`;
+            div.innerHTML = `<span>${step.label}</span><span style="opacity:0.9">${step.value} ${i>0?'('+convPct+'%)':''}</span>`;
+            funnelContainer.appendChild(div);
+        });
     }
 
     function _applyQuota(info, data) {
@@ -330,14 +525,17 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('quota-plan-badge').textContent = info.current_plan;
         const progressEl = document.getElementById('quota-progress-bar');
         const textEl = document.getElementById('quota-text');
+        const pctLabel = document.getElementById('quota-pct-label');
         if (limit >= 999999) {
             textEl.textContent = `${monthlyUsed} Messages (Unlimited Plan)`;
             progressEl.style.width = '100%';
             progressEl.style.background = '#107c41';
+            if (pctLabel) pctLabel.textContent = 'Unlimited';
         } else {
             textEl.textContent = `${monthlyUsed} / ${limit} Messages Used`;
             let pct = Math.min((monthlyUsed / limit) * 100, 100);
             progressEl.style.width = `${pct}%`;
+            if (pctLabel) pctLabel.textContent = pct.toFixed(1) + '%';
             if (pct > 90) progressEl.style.background = 'var(--danger-color)';
             else if (pct > 75) progressEl.style.background = 'orange';
             else progressEl.style.background = 'var(--primary-color)';
@@ -350,6 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`${API_BASE}/admin/leads?tenant_id=${tenantId}`);
             if (!res.ok) { noLeads.style.display = 'block'; return; }
             const leads = await res.json();
+            globalLeadsData = leads || [];
 
             if (!leads || leads.length === 0) {
                 noLeads.style.display = 'block';
