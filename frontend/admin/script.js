@@ -54,14 +54,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const planError = document.getElementById('plan-error');
     const chargePlanSelect = document.getElementById('charge-plan');
 
-    // State
     let isAuthenticated = sessionStorage.getItem('seller_auth') === 'true';
     let globalTenants = [];
     let globalPlans = [];
     let selectedTenantId = null;
     let globalChatsData = [];        // For current selected tenant
-    let _chatsLoadedForTenant = null; // Cache: track which tenant's chats are loaded
-    let _identityLoadedForTenant = null; // Cache: track which tenant's identity is loaded
+    let globalLeadsDataAdmin = [];   // Leads for current selected tenant
+    let _chatsLoadedForTenant = null;
+    let _identityLoadedForTenant = null;
+    let _adminChartInstances = {};   // Chart.js instances
+    let _adminDateFilter = 7;        // Default: last 7 days
 
     // Initialization
     if (isAuthenticated) {
@@ -207,6 +209,24 @@ document.addEventListener('DOMContentLoaded', () => {
             loadTenantChatsAndAnalytics();
         }
         if (tabId === 'tab-faq') loadFaqs();
+    }
+
+    // Wire up analytics date filter buttons (super admin)
+    document.querySelectorAll('#analytics-date-filter .date-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#analytics-date-filter .date-filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            _adminDateFilter = parseInt(btn.dataset.days);
+            const filtered = _filterAdminByDays(globalChatsData, _adminDateFilter);
+            renderAnalytics(filtered);
+        });
+    });
+
+    function _filterAdminByDays(data, days) {
+        if (!days || days === 0) return data;
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        return data.filter(d => new Date(d.created_at) >= cutoff);
     }
 
 
@@ -581,9 +601,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Analytics, Leads, Chats ---
     async function loadTenantChatsAndAnalytics() {
         if (!selectedTenantId) return;
-        // Use cached data if available for this tenant
         if (_chatsLoadedForTenant === selectedTenantId && globalChatsData.length >= 0) {
-            renderAnalytics(globalChatsData);
+            const filtered = _filterAdminByDays(globalChatsData, _adminDateFilter);
+            renderAnalytics(filtered);
             renderLeads(globalChatsData);
             const displayChats = [...globalChatsData].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
             renderChats(displayChats);
@@ -594,11 +614,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 globalChatsData = await res.json();
                 globalChatsData.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
-                _chatsLoadedForTenant = selectedTenantId; // mark cached
+                _chatsLoadedForTenant = selectedTenantId;
 
-                renderAnalytics(globalChatsData);
+                // Pre-fetch leads
+                try {
+                    const rL = await fetch(`${API_BASE}/admin/leads?tenant_id=${selectedTenantId}`);
+                    if (rL.ok) globalLeadsDataAdmin = await rL.json();
+                    else globalLeadsDataAdmin = [];
+                } catch(e) { globalLeadsDataAdmin = []; }
+
+                const filtered = _filterAdminByDays(globalChatsData, _adminDateFilter);
+                renderAnalytics(filtered);
                 renderLeads(globalChatsData);
-
                 const displayChats = [...globalChatsData].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
                 renderChats(displayChats);
             }
@@ -606,112 +633,170 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function renderAnalytics(data) {
-        if (data.length === 0) {
-            document.getElementById('metric-total-queries').textContent = '0';
-            document.getElementById('metric-intents').textContent = '0';
-            document.getElementById('metric-recent').textContent = 'N/A';
-            document.getElementById('metric-resolution').textContent = '0%';
-            document.getElementById('metric-leads-count').textContent = '0';
-            document.getElementById('metric-language').textContent = 'N/A';
-            document.getElementById('resolution-text').textContent = "0% AI Resolved";
-            document.getElementById('resolution-progress-bar').style.width = '0%';
-            document.getElementById('intent-chart-container').innerHTML = '';
-            document.getElementById('intent-chart-labels').innerHTML = '';
-            document.getElementById('quota-text').textContent = "0 messages used this month";
+        const CHART_COLORS = ['#6366f1','#0ea5e9','#f59e0b','#10b981','#ef4444','#ec4899','#8b5cf6','#06b6d4','#f97316','#84cc16'];
+
+        // Destroy old Chart.js instances
+        Object.values(_adminChartInstances).forEach(c => { try { c.destroy(); } catch(e){} });
+        _adminChartInstances = {};
+
+        if (!data || data.length === 0) {
+            ['metric-total-queries','metric-unique-users','metric-intents','metric-ai-resolved',
+             'metric-human-handover','metric-leads-count','metric-conversion-rate','metric-language','metric-recent']
+            .forEach(id => { const el = document.getElementById(id); if(el) el.textContent = '0'; });
+            const res = document.getElementById('metric-resolution');
+            if(res) res.textContent = '0%';
+            const rt = document.getElementById('resolution-text');
+            if(rt) rt.textContent = '0% AI Resolved';
+            const rp = document.getElementById('resolution-progress-bar');
+            if(rp) rp.style.width = '0%';
+            const fc = document.getElementById('funnel-chart-container');
+            if(fc) fc.innerHTML = '<p style="color:#999;text-align:center;">No data yet.</p>';
             return;
         }
 
-        document.getElementById('metric-total-queries').textContent = data.length;
-
-        const counts = {};
+        // Compute metrics
+        const totalQueries = data.length;
+        const uniqueUsers = new Set(data.map(d => d.session_id)).size;
+        const intentCounts = {};
+        const langCounts = {};
         let resolvedCount = 0;
-        const languages = {};
-        
-        data.forEach(d => { 
-            counts[d.intent] = (counts[d.intent] || 0) + 1; 
-            if(d.is_resolved) resolvedCount++;
-            let lang = d.language || 'en';
-            languages[lang] = (languages[lang] || 0) + 1;
+        data.forEach(d => {
+            intentCounts[d.intent] = (intentCounts[d.intent] || 0) + 1;
+            if (d.is_resolved) resolvedCount++;
+            const lang = d.language || 'en';
+            langCounts[lang] = (langCounts[lang] || 0) + 1;
         });
+        const humanCount = totalQueries - resolvedCount;
+        const resRate = Math.round((resolvedCount / totalQueries) * 100);
+        const leadsCount = globalLeadsDataAdmin.length;
+        const convRate = uniqueUsers > 0 ? Math.round((leadsCount / uniqueUsers) * 100) : 0;
+        let topLang = 'en', topLangCount = 0;
+        Object.entries(langCounts).forEach(([l,c]) => { if(c > topLangCount){ topLang=l; topLangCount=c; } });
+        const sorted = [...data].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+        const recentDate = sorted.length ? new Date(sorted[0].created_at).toLocaleDateString() : 'N/A';
 
-        document.getElementById('metric-intents').textContent = Object.keys(counts).length;
-        document.getElementById('metric-recent').textContent = new Date(data[data.length-1].created_at).toLocaleDateString();
+        // Update KPIs
+        const _set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+        _set('metric-total-queries', totalQueries);
+        _set('metric-unique-users', uniqueUsers);
+        _set('metric-intents', Object.keys(intentCounts).length);
+        _set('metric-ai-resolved', resolvedCount);
+        _set('metric-human-handover', humanCount);
+        _set('metric-resolution', resRate + '%');
+        _set('metric-leads-count', leadsCount);
+        _set('metric-conversion-rate', convRate + '%');
+        _set('metric-language', topLang.toUpperCase());
+        _set('metric-recent', recentDate);
+        _set('resolution-text', resRate + '% AI Resolved');
+        const rp = document.getElementById('resolution-progress-bar');
+        if(rp) rp.style.width = resRate + '%';
 
-        // Resolution metrics
-        const resRate = Math.round((resolvedCount / data.length) * 100);
-        document.getElementById('metric-resolution').textContent = resRate + '%';
-        document.getElementById('resolution-text').textContent = resRate + '% AI Resolved';
-        document.getElementById('resolution-progress-bar').style.width = resRate + '%';
-
-        // Top language
-        let topLang = 'en';
-        let topLangCount = 0;
-        Object.entries(languages).forEach(([lang, count]) => {
-            if (count > topLangCount) { topLang = lang; topLangCount = count; }
-        });
-        document.getElementById('metric-language').textContent = topLang;
-
-        // Fetch leads for Leads count
-        try {
-            const resLeads = await fetch(`${API_BASE}/admin/leads?tenant_id=${selectedTenantId}`);
-            if (resLeads.ok) {
-                const leads = await resLeads.json();
-                document.getElementById('metric-leads-count').textContent = leads ? leads.length : '0';
-            } else {
-                document.getElementById('metric-leads-count').textContent = '0';
-            }
-        } catch(e) { document.getElementById('metric-leads-count').textContent = '0'; }
-
-        const container = document.getElementById('intent-chart-container');
-        const labelsContainer = document.getElementById('intent-chart-labels');
-        container.innerHTML = '';
-        labelsContainer.innerHTML = '';
-        const maxCount = Math.max(...Object.values(counts));
-
-        Object.entries(counts).forEach(([intent, count]) => {
-            const heightPercent = (count / maxCount) * 100;
-            const col = document.createElement('div');
-            col.className = 'bar-col'; col.style.height = `${heightPercent}%`; col.title = `${intent}: ${count}`; col.textContent = count;
-            const label = document.createElement('div');
-            label.textContent = intent; label.style.width = `${100 / Object.keys(counts).length}%`; label.style.textAlign = 'center'; label.style.textTransform = 'capitalize';
-            container.appendChild(col); labelsContainer.appendChild(label);
-        });
-
-        // Calculate Monthly Quota
+        // Quota
         try {
             const res = await fetch(`${API_BASE}/admin/tenant-info?tenant_id=${selectedTenantId}`);
             if (res.ok) {
                 const info = await res.json();
                 const limit = info.limits.messages_per_month;
-
-                // Count this month's messages
                 const now = new Date();
-                const currentMonthString = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                const curMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
                 let monthlyUsed = 0;
-                data.forEach(d => {
-                    if (d.created_at.startsWith(currentMonthString)) {
-                        monthlyUsed++;
-                    }
-                });
-
-                document.getElementById('quota-plan-badge').textContent = info.current_plan;
+                globalChatsData.forEach(d => { if(d.created_at.startsWith(curMonth)) monthlyUsed++; });
+                _set('quota-plan-badge', info.current_plan);
                 const progressEl = document.getElementById('quota-progress-bar');
                 const textEl = document.getElementById('quota-text');
-
+                const pctLabel = document.getElementById('quota-pct-label');
                 if (limit >= 999999) {
-                    textEl.textContent = `${monthlyUsed} Messages (Enterprise Unlimited)`;
-                    progressEl.style.width = '100%';
-                    progressEl.style.background = '#107c41'; // Green for unlimited
+                    if(textEl) textEl.textContent = `${monthlyUsed} Messages (Unlimited)`;
+                    if(progressEl) { progressEl.style.width='100%'; progressEl.style.background='#107c41'; }
+                    if(pctLabel) pctLabel.textContent = 'Unlimited';
                 } else {
-                    textEl.textContent = `${monthlyUsed} / ${limit} Messages Used`;
-                    let pct = Math.min((monthlyUsed / limit) * 100, 100);
-                    progressEl.style.width = `${pct}%`;
-                    if (pct > 90) progressEl.style.background = 'var(--danger-color)';
-                    else if (pct > 75) progressEl.style.background = 'orange';
-                    else progressEl.style.background = 'var(--primary-color)';
+                    if(textEl) textEl.textContent = `${monthlyUsed} / ${limit} Messages Used`;
+                    const pct = Math.min((monthlyUsed/limit)*100, 100);
+                    if(progressEl) { progressEl.style.width=pct+'%'; progressEl.style.background = pct>90?'var(--danger)':pct>75?'orange':'var(--primary)'; }
+                    if(pctLabel) pctLabel.textContent = pct.toFixed(1)+'%';
                 }
             }
-        } catch(e) { console.error('Error fetching quota limits', e); }
+        } catch(e) { console.error('Quota error', e); }
+
+        // CHART 1 — Intent Pie
+        const intentLabels = Object.keys(intentCounts);
+        const intentValues = Object.values(intentCounts);
+        _adminChartInstances['intent-pie'] = new Chart(document.getElementById('chart-intent-pie'), {
+            type: 'doughnut',
+            data: { labels: intentLabels.map(l => l.charAt(0).toUpperCase()+l.slice(1)), datasets: [{ data: intentValues, backgroundColor: CHART_COLORS, borderWidth: 2, borderColor: '#fff' }] },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { padding: 14, font: { size: 12 } } } } }
+        });
+
+        // CHART 2 — Conversations Over Time
+        const dayMap = {};
+        data.forEach(d => { const day = d.created_at.substring(0,10); dayMap[day] = (dayMap[day]||0)+1; });
+        const dayLabels = Object.keys(dayMap).sort();
+        _adminChartInstances['convos-line'] = new Chart(document.getElementById('chart-convos-line'), {
+            type: 'line',
+            data: { labels: dayLabels, datasets: [{ label: 'Conversations', data: dayLabels.map(d=>dayMap[d]), borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,0.1)', fill:true, tension:0.4, pointRadius:4 }] },
+            options: { responsive:true, maintainAspectRatio:true, plugins:{legend:{display:false}}, scales:{ x:{ticks:{maxTicksLimit:8,font:{size:10}}}, y:{beginAtZero:true} } }
+        });
+
+        // CHART 3 — Resolution Over Time
+        const resDayAI={}, resDayHuman={};
+        data.forEach(d => { const day=d.created_at.substring(0,10); if(d.is_resolved) resDayAI[day]=(resDayAI[day]||0)+1; else resDayHuman[day]=(resDayHuman[day]||0)+1; });
+        const resDayLabels=[...new Set([...Object.keys(resDayAI),...Object.keys(resDayHuman)])].sort();
+        _adminChartInstances['resolution-line'] = new Chart(document.getElementById('chart-resolution-line'), {
+            type:'line',
+            data:{ labels:resDayLabels, datasets:[
+                { label:'AI Resolved', data:resDayLabels.map(d=>resDayAI[d]||0), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.1)', fill:true, tension:0.4, pointRadius:3 },
+                { label:'Human Required', data:resDayLabels.map(d=>resDayHuman[d]||0), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.1)', fill:true, tension:0.4, pointRadius:3 }
+            ]},
+            options:{ responsive:true, maintainAspectRatio:true, plugins:{legend:{position:'top'}}, scales:{x:{ticks:{maxTicksLimit:8,font:{size:10}}}, y:{beginAtZero:true}} }
+        });
+
+        // CHART 4 — Top 10 Questions
+        const qMap={};
+        data.forEach(d => { if(d.question) qMap[d.question]=(qMap[d.question]||0)+1; });
+        const topQ=Object.entries(qMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+        _adminChartInstances['top-questions'] = new Chart(document.getElementById('chart-top-questions'), {
+            type:'bar',
+            data:{ labels:topQ.map(([q])=>q.length>35?q.substring(0,35)+'…':q), datasets:[{ label:'Count', data:topQ.map(([,c])=>c), backgroundColor:CHART_COLORS.slice(0,10), borderRadius:6 }] },
+            options:{ indexAxis:'y', responsive:true, maintainAspectRatio:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true}, y:{ticks:{font:{size:10}}}} }
+        });
+
+        // CHART 5 — Language Pie
+        _adminChartInstances['language-pie'] = new Chart(document.getElementById('chart-language-pie'), {
+            type:'pie',
+            data:{ labels:Object.keys(langCounts).map(l=>l.toUpperCase()), datasets:[{ data:Object.values(langCounts), backgroundColor:['#6366f1','#0ea5e9','#f59e0b','#10b981','#ef4444'], borderWidth:2, borderColor:'#fff' }] },
+            options:{ responsive:true, maintainAspectRatio:true, plugins:{legend:{position:'bottom', labels:{padding:14}}} }
+        });
+
+        // CHART 6 — Peak Hours
+        const hourMap=new Array(24).fill(0);
+        data.forEach(d => { hourMap[new Date(d.created_at).getHours()]++; });
+        _adminChartInstances['peak-hours'] = new Chart(document.getElementById('chart-peak-hours'), {
+            type:'bar',
+            data:{ labels:Array.from({length:24},(_,i)=>i+':00'), datasets:[{ label:'Messages', data:hourMap, backgroundColor:hourMap.map(v=>{ const max=Math.max(...hourMap); const a=max>0?0.3+(v/max)*0.7:0.3; return `rgba(99,102,241,${a.toFixed(2)})`; }), borderRadius:4 }] },
+            options:{ responsive:true, maintainAspectRatio:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{maxTicksLimit:12,font:{size:9}}}, y:{beginAtZero:true}} }
+        });
+
+        // FUNNEL
+        const fc = document.getElementById('funnel-chart-container');
+        if(fc) {
+            fc.innerHTML = '';
+            const steps=[
+                {label:'Total Visitors (Sessions)', value:uniqueUsers, color:'#6366f1'},
+                {label:'Started a Chat', value:totalQueries, color:'#0ea5e9'},
+                {label:'Asked Pricing / Info', value:(intentCounts['pricing']||0)+(intentCounts['information']||0), color:'#f59e0b'},
+                {label:'Contact Requested', value:intentCounts['contact']||0, color:'#10b981'},
+                {label:'Lead Captured', value:leadsCount, color:'#ec4899'}
+            ];
+            const maxVal=steps[0].value||1;
+            steps.forEach((step,i) => {
+                const pct=Math.round((step.value/maxVal)*100);
+                const convPct=i>0&&steps[i-1].value>0?Math.round((step.value/steps[i-1].value)*100):100;
+                const div=document.createElement('div');
+                div.style.cssText=`width:${Math.max(pct,10)}%;max-width:100%;background:${step.color};color:white;border-radius:6px;padding:0.55rem 1.2rem;display:flex;justify-content:space-between;align-items:center;transition:width 0.5s ease;font-weight:600;font-size:0.88rem;min-width:180px;`;
+                div.innerHTML=`<span>${step.label}</span><span style="opacity:0.9">${step.value} ${i>0?'('+convPct+'%)':''}</span>`;
+                fc.appendChild(div);
+            });
+        }
     }
 
     function renderLeads(data) {

@@ -445,3 +445,9 @@ FROM tenants LEFT OUTER JOIN plans AS plans_1 ON plans_1.id = tenants.current_pl
 2026-04-02 14:46:34 | INFO     | Tenant DB migration complete for 4 tenants.
 2026-04-02 17:46:04 | INFO     | Central DB tables initialized.
 2026-04-02 17:46:47 | INFO     | Tenant DB migration complete for 4 tenants.
+2026-04-02 18:08:08 | WARNING  | Could not initialize central DB tables: (psycopg2.OperationalError) could not translate host name "ep-dark-forest-adwisx6n-pooler.c-2.us-east-1.aws.neon.tech" to address: Name or service not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-04-02 18:08:08 | WARNING  | Could not run tenant DB migrations: (psycopg2.OperationalError) could not translate host name "ep-dark-forest-adwisx6n-pooler.c-2.us-east-1.aws.neon.tech" to address: Name or service not known
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)

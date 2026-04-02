@@ -147,8 +147,9 @@ h1, h2, h3 { font-weight: 500; margin-bottom: 0.5em; }
 .main-content {
     flex: 1;
     padding: 2.5rem;
-    max-width: 1000px;
+    max-width: 1200px;
     margin: 0 auto;
+    width: 100%;
 }
 
 /* Sections */
@@ -156,7 +157,16 @@ h1, h2, h3 { font-weight: 500; margin-bottom: 0.5em; }
 .content-section.active { display: block; animation: fadeIn 0.3s; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-.section-header { margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+.section-header {
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
 .flex-header { display: flex; justify-content: space-between; align-items: center; }
 
 /* Cards & Tables */
@@ -187,31 +197,59 @@ tr:last-child td { border-bottom: none; }
 .metrics-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
+    gap: 1rem;
+}
+.metrics-grid-5 {
+    grid-template-columns: repeat(5, 1fr);
 }
 .metric-card {
     background: var(--bg-main);
     border: 1px solid var(--border-color);
-    padding: 1.5rem;
-    border-radius: 4px;
-    text-align: center;
+    padding: 1rem;
+    border-radius: 10px;
+    text-align: left;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s, transform 0.2s;
 }
-.metric-card h3 { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem; }
-.metric-value { font-size: 2rem; font-weight: 600; color: var(--text-main); }
-.bar-col {
-    flex: 1;
-    background-color: #3b82f6; 
-    min-width: 40px;
-    border-radius: 4px 4px 0 0;
-    transition: height 0.5s ease;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    color: white;
-    font-size: 0.75rem;
-    font-weight: bold;
-    padding-top: 4px;
+.metric-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
+/* KPI card with icon */
+.kpi-card { display: flex; align-items: center; gap: 0.9rem; padding: 1rem; }
+.kpi-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem; flex-shrink: 0;
 }
+.kpi-body { flex: 1; min-width: 0; }
+.kpi-body h3 { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.2rem; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+.metric-value { font-size: 1.6rem; font-weight: 700; color: var(--text-main); line-height: 1.2; }
+
+/* Analytics Date Filter */
+.analytics-date-filter {
+    display: flex; gap: 0.4rem; background: #f5f5f5;
+    border-radius: 8px; padding: 4px;
+}
+.date-filter-btn {
+    padding: 0.3rem 0.8rem; border: none; background: transparent;
+    border-radius: 6px; font-size: 0.82rem; cursor: pointer;
+    color: var(--text-muted); transition: all 0.2s;
+}
+.date-filter-btn:hover { background: #e0e0e0; color: var(--text-main); }
+.date-filter-btn.active {
+    background: var(--bg-main); color: var(--text-main);
+    font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+/* Charts grid: 2 columns */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+.chart-card { margin-bottom: 0 !important; }
+.chart-card h3 { font-size: 0.95rem; margin-bottom: 1rem; }
+.chart-wrapper { position: relative; height: 280px; }
+.chart-wrapper canvas { max-height: 280px; }
 
 /* Tenant list specific styling */
 .status-indicator {
@@ -285,8 +323,11 @@ tr:last-child td { border-bottom: none; }
     }
     .sidebar-footer { display: none; }
     .main-content { padding: 1rem; }
-    .metrics-grid { grid-template-columns: 1fr; }
-    
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .metrics-grid-5 { grid-template-columns: repeat(2, 1fr); }
+    .charts-grid { grid-template-columns: 1fr; }
+    .analytics-date-filter { flex-wrap: wrap; }
+
     /* Make table texts smaller on mobile to fit columns better */
     table { font-size: 0.75rem; }
     th, td { padding: 0.75rem 0.5rem; }
