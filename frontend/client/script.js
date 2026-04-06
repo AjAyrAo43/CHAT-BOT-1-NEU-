@@ -1,5 +1,20 @@
 const API_BASE = 'https://chat-bot-1-neu-1.onrender.com';
 
+// Global Fetch Interceptor to attach X-Auth-Token automatically
+const originalFetch = window.fetch;
+window.fetch = async function() {
+    let [resource, config] = arguments;
+    if (resource && typeof resource === 'string' && resource.includes('/admin/')) {
+        config = config || {};
+        config.headers = config.headers || {};
+        const token = sessionStorage.getItem('tenant_token');
+        if (token && !resource.includes('/admin/auth') && !resource.includes('/admin/resolve-username')) {
+            config.headers['X-Auth-Token'] = token;
+        }
+    }
+    return originalFetch(resource, config);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     // UI Elements
     const views = {
@@ -87,9 +102,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             if (res.ok) {
+                const data = await res.json();
                 tenantId = tenant_id;
                 sessionStorage.setItem('tenant_id', tenant_id);
                 sessionStorage.setItem('client_auth', 'true');
+                if (data.token) sessionStorage.setItem('tenant_token', data.token);
                 loginForm.reset();
                 initDashboard();
             } else {
@@ -105,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     logoutBtn.addEventListener('click', () => {
         sessionStorage.removeItem('client_auth');
+        sessionStorage.removeItem('tenant_token');
         // Reset caches on logout
         _chatsLoaded = false;
         _tenantInfoLoaded = false;

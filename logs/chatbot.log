@@ -451,3 +451,235 @@ FROM tenants LEFT OUTER JOIN plans AS plans_1 ON plans_1.id = tenants.current_pl
 2026-04-02 18:08:08 | WARNING  | Could not run tenant DB migrations: (psycopg2.OperationalError) could not translate host name "ep-dark-forest-adwisx6n-pooler.c-2.us-east-1.aws.neon.tech" to address: Name or service not known
 
 (Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-04-04 18:25:03 | INFO     | Central DB tables initialized.
+2026-04-04 18:25:41 | INFO     | Tenant DB migration complete for 4 tenants.
+2026-04-04 18:25:47 | INFO     | [REQUEST] tenant=-  GET /favicon.ico  →  404  (0.7 ms)
+2026-04-04 18:25:49 | INFO     | Central DB tables initialized.
+2026-04-04 18:25:53 | INFO     | [REQUEST] tenant=-  GET /redo  →  404  (0.6 ms)
+2026-04-04 18:25:58 | INFO     | [REQUEST] tenant=-  GET /redoc  →  200  (0.4 ms)
+2026-04-04 18:25:59 | INFO     | [REQUEST] tenant=-  GET /openapi.json  →  200  (232.4 ms)
+2026-04-04 18:26:25 | INFO     | Tenant DB migration complete for 4 tenants.
+2026-04-04 18:26:45 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (6451.5 ms)
+2026-04-04 18:26:47 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1739.6 ms)
+2026-04-04 18:26:49 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1807.4 ms)
+2026-04-04 18:26:51 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1857.0 ms)
+2026-04-04 18:26:53 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1820.0 ms)
+2026-04-04 18:26:54 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1756.5 ms)
+2026-04-04 18:26:56 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1830.3 ms)
+2026-04-04 18:26:58 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1799.0 ms)
+2026-04-04 18:27:00 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1827.1 ms)
+2026-04-04 18:27:02 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1744.9 ms)
+2026-04-04 18:27:03 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1783.4 ms)
+2026-04-04 18:27:06 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (2566.2 ms)
+2026-04-04 18:27:08 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (2354.8 ms)
+2026-04-04 18:27:10 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1798.0 ms)
+2026-04-04 18:27:12 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1825.9 ms)
+2026-04-04 18:27:14 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1927.9 ms)
+2026-04-04 18:27:16 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1984.2 ms)
+2026-04-04 18:27:18 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1782.6 ms)
+2026-04-04 18:27:19 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1795.0 ms)
+2026-04-04 18:27:21 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1883.1 ms)
+2026-04-04 18:27:23 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1771.1 ms)
+2026-04-04 18:27:25 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1833.5 ms)
+2026-04-04 18:27:27 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1781.1 ms)
+2026-04-04 18:27:28 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1780.0 ms)
+2026-04-04 18:27:30 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1822.0 ms)
+2026-04-04 18:27:32 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1778.2 ms)
+2026-04-04 18:27:34 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1799.3 ms)
+2026-04-04 18:27:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1813.6 ms)
+2026-04-04 18:28:57 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (6562.6 ms)
+2026-04-04 18:29:03 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (6070.8 ms)
+2026-04-04 18:29:05 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (8540.6 ms)
+2026-04-04 18:29:11 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (8400.3 ms)
+2026-04-04 18:29:11 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (8402.7 ms)
+2026-04-04 18:29:17 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (11520.4 ms)
+2026-04-04 18:29:19 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (11602.2 ms)
+2026-04-04 18:29:22 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (10878.8 ms)
+2026-04-04 18:29:24 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (13243.3 ms)
+2026-04-04 18:29:27 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (16182.8 ms)
+2026-04-04 18:29:27 | WARNING  | [ABUSE] ip=127.0.0.1  path=/chat  reason=Rate limit exceeded: 10 per 1 minute
+2026-04-04 18:29:27 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (13281.7 ms)
+2026-04-04 18:29:27 | WARNING  | [ABUSE] ip=127.0.0.1  path=/chat  reason=Rate limit exceeded: 10 per 1 minute
+2026-04-04 18:29:27 | INFO     | [REQUEST] tenant=-  POST /chat  →  429  (10606.1 ms)
+2026-04-04 18:29:27 | WARNING  | [ABUSE] ip=127.0.0.1  path=/chat  reason=Rate limit exceeded: 10 per 1 minute
+2026-04-04 18:29:27 | INFO     | [REQUEST] tenant=-  POST /chat  →  429  (8084.2 ms)
+2026-04-04 18:29:27 | WARNING  | [ABUSE] ip=127.0.0.1  path=/chat  reason=Rate limit exceeded: 10 per 1 minute
+2026-04-04 18:29:27 | WARNING  | [ALERT] Error rate elevated: 23.5% (threshold: 20.0%)
+2026-04-04 18:29:27 | INFO     | [REQUEST] tenant=-  POST /chat  →  429  (5340.4 ms)
+2026-04-04 18:29:27 | WARNING  | [ALERT] SMTP not configured — cannot send alert.
+2026-04-04 18:29:27 | WARNING  | [ABUSE] ip=127.0.0.1  path=/chat  reason=Rate limit exceeded: 10 per 1 minute
+2026-04-04 18:29:27 | INFO     | [REQUEST] tenant=-  POST /chat  →  429  (2976.4 ms)
+2026-04-04 18:29:34 | INFO     | [REQUEST] tenant=-  POST /chat  →  429  (6495.3 ms)
+2026-04-04 18:29:34 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (6488.0 ms)
+2026-04-04 18:29:42 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (7622.5 ms)
+2026-04-04 18:29:46 | INFO     | [REQUEST] tenant=3638027d-fa12-4a1b-8bc5-53e554a936cf  POST /admin/faq  →  200  (4506.2 ms)
+2026-04-04 18:29:46 | INFO     | [REQUEST] tenant=3638027d-fa12-4a1b-8bc5-53e554a936cf  GET /admin/faqs  →  200  (5.2 ms)
+2026-04-04 18:29:46 | INFO     | [REQUEST] tenant=73480f2a-ade0-4391-8518-bbf945f6e011  DELETE /admin/faq/fcf27e30-dea2-4488-98b0-739ea3bc6d79  →  404  (7.4 ms)
+2026-04-04 18:30:12 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (7225.7 ms)
+2026-04-04 18:30:17 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (4994.8 ms)
+2026-04-04 18:30:17 | INFO     | [REQUEST] tenant=3f3c0bd6-3b08-4f56-8c19-1baa9120df04  GET /admin/chats  →  200  (5.4 ms)
+2026-04-04 18:31:03 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (6312.8 ms)
+2026-04-04 18:40:53 | INFO     | Central DB tables initialized.
+2026-04-04 18:41:33 | INFO     | Tenant DB migration complete for 10 tenants.
+2026-04-04 18:42:54 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (7701.5 ms)
+2026-04-04 18:43:03 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (9444.4 ms)
+2026-04-04 18:43:13 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (9202.0 ms)
+2026-04-04 18:43:24 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (11639.6 ms)
+2026-04-04 18:43:24 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (11639.0 ms)
+2026-04-04 18:43:26 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (2013.9 ms)
+2026-04-04 18:43:26 | INFO     | [REQUEST] tenant=7d34bae2-8ced-4707-acf1-82e9bd632f3f  POST /admin/faq  →  401  (8515.5 ms)
+2026-04-04 18:43:26 | INFO     | [REQUEST] tenant=978d49e6-5621-4c5d-b49e-3f91e4366ecd  GET /admin/chats  →  401  (2021.4 ms)
+2026-04-04 18:43:28 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1838.6 ms)
+2026-04-04 18:43:30 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (2031.4 ms)
+2026-04-04 18:43:34 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (3920.6 ms)
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  401  (1813.3 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (4.2 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (1.8 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (2.5 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (2.5 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.8 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (2.4 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (2.7 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.0 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.8 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.1 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (4.4 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.1 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (2.8 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (7.8 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.8 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (2.4 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (4.6 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.4 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.8 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.1 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.2 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (2.6 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.2 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (4.7 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (2.6 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.5 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.0 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.6 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.0 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (2.8 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.0 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.5 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (1.7 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (2.8 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.1 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (2.9 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (2.9 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.9 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.3 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (2.7 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (6.0 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (2.6 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (4.2 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.1 ms)
+2026-04-04 18:43:36 | WARNING  | [ABUSE] ip=127.0.0.1  path=/admin/auth  reason=Rate limit exceeded: 5 per 1 minute
+2026-04-04 18:43:36 | INFO     | [REQUEST] tenant=-  POST /admin/auth  →  429  (3.2 ms)
+2026-04-04 18:44:51 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (10079.9 ms)
+2026-04-04 18:45:00 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (9524.7 ms)
+2026-04-04 18:45:08 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (7689.2 ms)
+2026-04-04 18:45:14 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (6389.2 ms)
+2026-04-04 18:45:16 | INFO     | [REQUEST] tenant=1589be3a-6950-48ec-8462-3c343efeb125  POST /admin/faq  →  200  (1741.4 ms)
+2026-04-04 18:45:16 | INFO     | [REQUEST] tenant=d773963b-ea44-48aa-9db1-97c8d43bf686  GET /admin/chats  →  200  (6.4 ms)
+2026-04-04 18:45:16 | INFO     | [REQUEST] tenant=1589be3a-6950-48ec-8462-3c343efeb125  GET /admin/faqs  →  403  (6.4 ms)
+2026-04-04 18:45:16 | INFO     | [REQUEST] tenant=5f69bfe1-864e-412b-a2b5-daae2bd01178  DELETE /admin/faq/cf61c3e9-67d1-45f9-b092-5a1731fc4297  →  404  (10.1 ms)
+2026-04-04 18:53:10 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (9499.1 ms)
+2026-04-04 18:59:01 | INFO     | Central DB tables initialized.
+2026-04-04 18:59:41 | INFO     | Tenant DB migration complete for 18 tenants.
+2026-04-04 19:00:59 | INFO     | [REQUEST] tenant=-  POST /admin/tenant  →  200  (6704.0 ms)
+2026-04-04 19:01:25 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (25933.5 ms)
+2026-04-04 19:01:25 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (25909.7 ms)
+2026-04-04 19:01:25 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (25913.4 ms)
+2026-04-04 19:01:25 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (25916.6 ms)
+2026-04-04 19:01:25 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (25919.9 ms)
+2026-04-04 19:01:25 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (25922.4 ms)
+2026-04-04 19:01:25 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (25927.7 ms)
+2026-04-04 19:01:25 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (25931.7 ms)
+2026-04-04 19:01:25 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (25935.3 ms)
+2026-04-04 19:01:25 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (25939.8 ms)
+2026-04-04 19:01:25 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (25943.0 ms)
+2026-04-04 19:01:26 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (27721.0 ms)
+2026-04-04 19:01:28 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (29505.5 ms)
+2026-04-04 19:01:30 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (31429.4 ms)
+2026-04-04 19:01:32 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (33551.7 ms)
+2026-04-04 19:01:34 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (35232.9 ms)
+2026-04-04 19:01:36 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (37042.9 ms)
+2026-04-04 19:01:37 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (38789.0 ms)
+2026-04-04 19:01:40 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (41018.7 ms)
+2026-04-04 19:01:41 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  200  (42776.3 ms)
+2026-04-04 19:01:43 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (44414.7 ms)
+2026-04-04 19:01:45 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (46136.3 ms)
+2026-04-04 19:01:46 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (47859.3 ms)
+2026-04-04 19:01:49 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (50544.1 ms)
+2026-04-04 19:01:51 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (52280.0 ms)
+2026-04-04 19:01:53 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (53896.1 ms)
+2026-04-04 19:01:54 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (55626.0 ms)
+2026-04-04 19:01:56 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (57327.5 ms)
+2026-04-04 19:01:58 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (59470.6 ms)
+2026-04-04 19:02:00 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (61792.6 ms)
+2026-04-04 19:02:03 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (63962.3 ms)
+2026-04-04 19:02:04 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (65707.6 ms)
+2026-04-04 19:02:06 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (67420.7 ms)
+2026-04-04 19:02:09 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (70089.3 ms)
+2026-04-04 19:02:10 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (71804.2 ms)
+2026-04-04 19:02:12 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (73487.1 ms)
+2026-04-04 19:02:14 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (75205.1 ms)
+2026-04-04 19:02:16 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (76890.5 ms)
+2026-04-04 19:02:17 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (78673.2 ms)
+2026-04-04 19:02:20 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (81020.6 ms)
+2026-04-04 19:02:21 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (82780.8 ms)
+2026-04-04 19:02:23 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (84575.2 ms)
+2026-04-04 19:02:25 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (86284.6 ms)
+2026-04-04 19:02:27 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (88049.5 ms)
+2026-04-04 19:02:28 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (89802.1 ms)
+2026-04-04 19:02:30 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (91410.3 ms)
+2026-04-04 19:02:32 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (93582.9 ms)
+2026-04-04 19:02:34 | INFO     | [REQUEST] tenant=4e99868f-f676-4bf1-b2ee-395977f7335c  POST /admin/faq  →  403  (95266.0 ms)

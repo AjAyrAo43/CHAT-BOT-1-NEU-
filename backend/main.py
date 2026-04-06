@@ -3,7 +3,10 @@ import re
 import time
 import datetime
 import traceback
-from fastapi import FastAPI, Depends, HTTPException, Request, Query, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, Request, Query, UploadFile, File, BackgroundTasks, Header
+import html
+import threading
+from collections import defaultdict
 from fastapi.responses import JSONResponse
 import io
 import PyPDF2
@@ -128,8 +131,23 @@ app.add_middleware(
 # ──────────────────────────────────────────────
 # Dependency
 # ──────────────────────────────────────────────
-def get_tenant_db(tenant_id: str = Query(..., description="The tenant/client ID")):
+def get_tenant_db(
+    tenant_id: str = Query(..., description="The tenant/client ID"),
+    x_auth_token: Optional[str] = Header(None, alias="X-Auth-Token")
+):
     """Dependency that returns a session to the correct tenant's database."""
+    # Seller / Super Admin bypass
+    if x_auth_token == "super-admin-secret":
+        pass
+    else:
+        # Standard Client Auth
+        if not x_auth_token:
+            raise HTTPException(status_code=401, detail="Authentication token missing")
+        
+        tenant = get_tenant_by_id(tenant_id)
+        if not tenant or tenant.get("api_key") != x_auth_token:
+            raise HTTPException(status_code=403, detail="Invalid token or unauthorized for this tenant")
+
     try:
         db = get_tenant_session(tenant_id)
     except ValueError as e:
@@ -292,10 +310,12 @@ class AuthRequest(BaseModel):
 
 
 @app.post("/admin/auth")
-async def authenticate_client(payload: AuthRequest):
+@limiter.limit("5/minute")
+async def authenticate_client(request: Request, payload: AuthRequest):
     """Verify a client's admin password."""
     if verify_client_password(payload.tenant_id, payload.password):
-        return {"authenticated": True}
+        tenant = get_tenant_by_id(payload.tenant_id)
+        return {"authenticated": True, "token": tenant.get("api_key")}
     raise HTTPException(status_code=401, detail="Invalid password.")
 
 
@@ -342,10 +362,11 @@ class SellerAuthRequest(BaseModel):
 
 
 @app.post("/admin/seller-auth")
-async def authenticate_seller(payload: SellerAuthRequest):
+@limiter.limit("5/minute")
+async def authenticate_seller(request: Request, payload: SellerAuthRequest):
     """Verify the seller/developer password."""
     if payload.password == SELLER_PASSWORD:
-        return {"authenticated": True}
+        return {"authenticated": True, "token": "super-admin-secret"}
     raise HTTPException(status_code=401, detail="Invalid seller password.")
 
 
@@ -516,6 +537,7 @@ async def chat_endpoint(request: Request, payload: ChatRequest, background_tasks
     db = None
     intent = "unknown"
     try:
+        payload.question = html.escape(payload.question)
         try:
             db = get_tenant_session(payload.tenant_id)
         except ValueError as e:
@@ -670,6 +692,11 @@ async def chat_endpoint(request: Request, payload: ChatRequest, background_tasks
 # ADMIN ENDPOINTS (scoped to a tenant)
 # ──────────────────────────────────────────────
 
+_tenant_locks = defaultdict(threading.Lock)
+
+def get_tenant_lock(tenant_id: str):
+    return _tenant_locks[tenant_id]
+
 @app.get("/admin/leads")
 async def get_leads(db: Session = Depends(get_tenant_db)):
     """Return all captured leads for this tenant, newest first."""
@@ -712,17 +739,19 @@ async def get_all_chats(db: Session = Depends(get_tenant_db)):
 
 
 @app.post("/admin/faq", response_model=FAQResponse)
-async def create_faq(faq: FAQBase, tenant_id: str = Query(...), db: Session = Depends(get_tenant_db)):
-    limits = get_tenant_limits(tenant_id)
-    faq_count = db.query(FAQ).filter(FAQ.is_active == True).count()
-    if faq_count >= limits.get("faqs", 20):
-        raise HTTPException(status_code=403, detail=f"FAQ limit reached ({limits.get('faqs')}). Please upgrade.")
-        
-    new_faq = FAQ(**faq.dict())
-    db.add(new_faq)
-    db.commit()
-    db.refresh(new_faq)
-    return new_faq
+def create_faq(faq: FAQBase, tenant_id: str = Query(...), db: Session = Depends(get_tenant_db)):
+    lock = get_tenant_lock(tenant_id)
+    with lock:
+        limits = get_tenant_limits(tenant_id)
+        faq_count = db.query(FAQ).filter(FAQ.is_active == True).count()
+        if faq_count >= limits.get("faqs", 20):
+            raise HTTPException(status_code=403, detail=f"FAQ limit reached ({limits.get('faqs')}). Please upgrade.")
+            
+        new_faq = FAQ(**faq.dict())
+        db.add(new_faq)
+        db.commit()
+        db.refresh(new_faq)
+        return new_faq
 
 
 @app.get("/admin/faqs", response_model=List[FAQResponse])
