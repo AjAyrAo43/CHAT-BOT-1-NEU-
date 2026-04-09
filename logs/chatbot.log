@@ -764,3 +764,19 @@ FROM tenants LEFT OUTER JOIN plans AS plans_1 ON plans_1.id = tenants.current_pl
 2026-04-09 12:23:08 | INFO     | [REQUEST] tenant=-  GET /favicon.ico  →  404  (0.9 ms)
 2026-04-09 12:24:45 | INFO     | [REQUEST] tenant=-  GET /docs  →  200  (0.8 ms)
 2026-04-09 12:24:46 | INFO     | [REQUEST] tenant=-  GET /openapi.json  →  200  (304.6 ms)
+2026-04-09 12:44:12 | INFO     | Central DB tables initialised.
+2026-04-09 12:44:14 | WARNING  | Could not run tenant DB migrations: (psycopg2.errors.UndefinedColumn) column tenants.is_demo_account does not exist
+LINE 1: ...ord_hash, tenants.is_active AS tenants_is_active, tenants.is...
+                                                             ^
+
+[SQL: SELECT tenants.id AS tenants_id, tenants.name AS tenants_name, tenants.username AS tenants_username, tenants.db_url AS tenants_db_url, tenants.api_key AS tenants_api_key, tenants.admin_password_hash AS tenants_admin_password_hash, tenants.is_active AS tenants_is_active, tenants.is_demo_account AS tenants_is_demo_account, tenants.created_at AS tenants_created_at, tenants.subscription_end_date AS tenants_subscription_end_date, tenants.current_plan_id AS tenants_current_plan_id, tenants.notification_email AS tenants_notification_email, plans_1.id AS plans_1_id, plans_1.name AS plans_1_name, plans_1.price_inr AS plans_1_price_inr, plans_1.messages_per_month AS plans_1_messages_per_month, plans_1.docs_limit AS plans_1_docs_limit, plans_1.faqs_limit AS plans_1_faqs_limit, plans_1.export_enabled AS plans_1_export_enabled, plans_1.languages AS plans_1_languages, plans_1.default_trial_days AS plans_1_default_trial_days 
+FROM tenants LEFT OUTER JOIN plans AS plans_1 ON plans_1.id = tenants.current_plan_id]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-04-09 12:48:38 | INFO     | Central DB tables initialised.
+2026-04-09 12:49:01 | WARNING  | Could not migrate tenant a574f011-4bfd-4faa-ba6d-31558fb7e225 DB: (sqlite3.OperationalError) unable to open database file
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-04-09 12:49:01 | INFO     | Tenant DB migration complete for 3 tenants.
+2026-04-09 12:54:41 | INFO     | Central DB tables initialised.
+2026-04-09 12:55:03 | WARNING  | Could not migrate tenant a574f011-4bfd-4faa-ba6d-31558fb7e225 DB: (sqlite3.OperationalError) unable to open database file
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-04-09 12:55:03 | INFO     | Tenant DB migration complete for 3 tenants.

@@ -6,7 +6,7 @@ import bcrypt
 import threading
 import time as _time
 from typing import Optional
-from sqlalchemy import create_engine, Column, String, Text, Boolean, DateTime, Float, Integer, ForeignKey
+from sqlalchemy import create_engine, Column, String, Text, Boolean, DateTime, Float, Integer, ForeignKey, inspect, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, joinedload
 from dotenv import load_dotenv
@@ -55,7 +55,7 @@ class CentralTenant(CentralBase):
     is_demo_account = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     subscription_end_date = Column(DateTime, default=lambda: datetime.datetime.utcnow() + datetime.timedelta(days=14))
-    
+
     current_plan_id = Column(String, ForeignKey("plans.id"))
     notification_email = Column(String, default="")
 
@@ -100,7 +100,7 @@ def get_tenant_limits(tenant_id: str) -> dict:
         tenant = session.query(CentralTenant).filter(CentralTenant.id == tenant_id).first()
         if not tenant or not tenant.plan:
             return PLAN_LIMITS["Starter"]
-        
+
         langs = tenant.plan.languages
         return {
             "messages_per_month": tenant.plan.messages_per_month,
@@ -154,7 +154,7 @@ def create_plan(plan_data: dict) -> dict:
         return {
             "id": new_plan.id, "name": new_plan.name, "price_inr": new_plan.price_inr,
             "messages_per_month": new_plan.messages_per_month, "docs_limit": new_plan.docs_limit,
-            "faqs_limit": new_plan.faqs_limit, "export_enabled": new_plan.export_enabled, 
+            "faqs_limit": new_plan.faqs_limit, "export_enabled": new_plan.export_enabled,
             "languages": new_plan.languages, "default_trial_days": new_plan.default_trial_days
         }
     finally:
@@ -167,12 +167,12 @@ def update_plan(plan_id: str, plan_data: dict) -> dict:
         plan = session.query(Plan).filter(Plan.id == plan_id).first()
         if not plan:
             raise ValueError(f"Plan '{plan_id}' not found.")
-        
+
         if "name" in plan_data and plan_data["name"] != plan.name:
             if session.query(Plan).filter(Plan.name == plan_data["name"]).first():
                 raise ValueError(f"Plan '{plan_data['name']}' already exists.")
             plan.name = plan_data["name"]
-        
+
         plan.price_inr = plan_data.get("price_inr", plan.price_inr)
         plan.messages_per_month = plan_data.get("messages_per_month", plan.messages_per_month)
         plan.docs_limit = plan_data.get("docs_limit", plan.docs_limit)
@@ -180,13 +180,13 @@ def update_plan(plan_id: str, plan_data: dict) -> dict:
         plan.export_enabled = plan_data.get("export_enabled", plan.export_enabled)
         plan.languages = plan_data.get("languages", plan.languages)
         plan.default_trial_days = plan_data.get("default_trial_days", getattr(plan, "default_trial_days", 14))
-        
+
         session.commit()
         session.refresh(plan)
         return {
             "id": plan.id, "name": plan.name, "price_inr": plan.price_inr,
             "messages_per_month": plan.messages_per_month, "docs_limit": plan.docs_limit,
-            "faqs_limit": plan.faqs_limit, "export_enabled": plan.export_enabled, 
+            "faqs_limit": plan.faqs_limit, "export_enabled": plan.export_enabled,
             "languages": plan.languages, "default_trial_days": plan.default_trial_days
         }
     finally:
@@ -202,7 +202,7 @@ def delete_plan(plan_id: str) -> bool:
         # Do not allow deletion if tenants are using it
         if session.query(CentralTenant).filter(CentralTenant.current_plan_id == plan_id).first():
             raise ValueError("Cannot delete plan currently in use by an active client.")
-            
+
         session.delete(plan)
         session.commit()
         return True
@@ -289,14 +289,14 @@ def create_demo_tenant(name: str, db_url: str) -> dict:
     try:
         if session.query(CentralTenant).filter(CentralTenant.name == name).first():
             raise ValueError(f"Tenant '{name}' already exists.")
-            
+
         starter_plan = session.query(Plan).filter(Plan.name == "Starter Plan (₹499/mo)").first()
         if not starter_plan:
              starter_plan = Plan(name="Starter Plan (₹499/mo)", price_inr=499.0, messages_per_month=1000, docs_limit=5, faqs_limit=20, export_enabled=False, languages="en")
              session.add(starter_plan)
              session.commit()
              session.refresh(starter_plan)
-             
+
         password_hash = bcrypt.hashpw("admin".encode(), bcrypt.gensalt()).decode()
         username = _generate_username(name, session)
 
@@ -316,7 +316,7 @@ def create_demo_tenant(name: str, db_url: str) -> dict:
         _invalidate_tenant_cache()
 
         init_tenant_db(db_url)
-        
+
         # Populate demo info
         tenant_session = get_tenant_session(new_tenant.id)
         try:
@@ -329,17 +329,17 @@ def create_demo_tenant(name: str, db_url: str) -> dict:
                 chatbot_system_prompt="You are a demo bot. Do not make up answers. Only answer based on demo knowledge."
             )
             tenant_session.add(profile)
-            
+
             # Dummy FAQ
             faq1 = FAQ(question="How much does this cost?", answer="Our pricing starts at ₹499/month.", intent="pricing")
             faq2 = FAQ(question="Can I export data?", answer="Yes, on the Pro plan you can export data.", intent="information")
             tenant_session.add(faq1)
             tenant_session.add(faq2)
-            
+
             # Dummy Doc
             doc1 = KnowledgeDocument(filename="welcome.txt", content="Welcome to the Multi-Tenant Platform Demo. We specialize in AI chat solutions.", file_type="text")
             tenant_session.add(doc1)
-            
+
             tenant_session.commit()
         except Exception as e:
             tenant_session.rollback()
@@ -446,13 +446,13 @@ def delete_tenant_hard(tenant_id: str) -> bool:
         t = session.query(CentralTenant).filter(CentralTenant.id == tenant_id).first()
         if not t:
             return False
-            
+
         db_url = t.db_url
-        
+
         session.delete(t)
         session.commit()
         _invalidate_tenant_cache()
-        
+
         # Delete associated SQLite file if it exists
         if db_url and db_url.startswith('sqlite:///'):
             import os
@@ -462,7 +462,7 @@ def delete_tenant_hard(tenant_id: str) -> bool:
                     os.remove(filepath)
                 except Exception as e:
                     print(f"Warning: Could not delete SQLite file {filepath}: {e}")
-                    
+
         return True
     except Exception as e:
         session.rollback()
@@ -512,14 +512,14 @@ def extend_subscription(tenant_id: str, days: int = 30, plan_name: Optional[str]
             new_end = datetime.datetime.utcnow() + datetime.timedelta(days=days)
         else:
             new_end = current_end + datetime.timedelta(days=days)
-            
+
         t.subscription_end_date = new_end
-        
+
         if plan_name:
             plan = session.query(Plan).filter(Plan.name == plan_name).first()
             if plan:
                 t.current_plan_id = plan.id
-                
+
         session.commit()
         return str(new_end)
     finally:
@@ -547,7 +547,7 @@ def record_payment(tenant_id: str, amount_inr: float, plan_name: str, days_to_ad
         invoice_id = new_invoice.id
     finally:
         session.close()
-    
+
     return {
         "invoice_id": invoice_id,
         "new_end_date": new_end_date
@@ -557,11 +557,11 @@ def get_all_invoices_from_dbs() -> list:
     """Dynamically reach into every active tenant's database and collect all historical invoices."""
     all_invoices = []
     tenants = get_all_tenants()
-    
+
     for t in tenants:
         if not t.get("is_active", True):
             continue
-            
+
         tenant_id = t["id"]
         try:
             session = get_tenant_session(tenant_id)
@@ -582,7 +582,7 @@ def get_all_invoices_from_dbs() -> list:
         except Exception as e:
             # If the table doesn't exist yet or connection fails, skip
             print(f"Skipping invoices for tenant {tenant_id}: {e}")
-            
+
     # Sort by payment date descending (newest first)
     all_invoices.sort(key=lambda x: x["payment_date"], reverse=True)
     return all_invoices
@@ -633,13 +633,13 @@ class BusinessProfile(TenantBase):
     website = Column(String, default="")
     support_email = Column(String, default="")
     phone = Column(String, default="")
-    
+
     # 1. Point of Contact
     contact_person_name = Column(String, default="")
     contact_person_role = Column(String, default="")
     contact_person_email = Column(String, default="")
     contact_person_phone = Column(String, default="")
-    
+
     # 2. Location & Operations
     address_street = Column(String, default="")
     city = Column(String, default="")
@@ -655,11 +655,11 @@ class BusinessProfile(TenantBase):
     social_linkedin = Column(String, default="")
     social_twitter = Column(String, default="")
     social_instagram = Column(String, default="")
-    
+
     logo_url = Column(String, default="")
     chatbot_greeting_message = Column(Text, default="Hi! How can I help you today?")
     chatbot_system_prompt = Column(Text, default="You are a helpful customer support assistant.")
-    
+
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
 
@@ -754,10 +754,59 @@ def init_tenant_db(db_url: str):
     TenantBase.metadata.create_all(bind=engine)
 
 
+def _ensure_column_if_missing(table_name: str, column_name: str, column_sql: str):
+    """Add a missing column to an existing table (idempotent best-effort migration)."""
+    engine = _get_central_engine()
+    inspector = inspect(engine)
+    table_names = inspector.get_table_names()
+    if table_name not in table_names:
+        return
+
+    existing_cols = {c["name"] for c in inspector.get_columns(table_name)}
+    if column_name in existing_cols:
+        return
+
+    with engine.begin() as conn:
+        conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_sql}"))
+
+
+def migrate_central_schema():
+    """Bring older central DB schemas up to date for newly added ORM columns."""
+    engine = _get_central_engine()
+    try:
+        CentralBase.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"[migrate_central_schema] Warning: could not create metadata tables: {e}")
+        return
+
+    migration_steps = [
+        ("tenants", "username", "VARCHAR"),
+        ("tenants", "is_demo_account", "BOOLEAN DEFAULT FALSE"),
+        ("tenants", "notification_email", "VARCHAR DEFAULT ''"),
+        ("tenants", "current_plan_id", "VARCHAR"),
+        ("tenants", "created_at", "TIMESTAMP"),
+        ("tenants", "subscription_end_date", "TIMESTAMP"),
+        ("plans", "default_trial_days", "INTEGER DEFAULT 14"),
+    ]
+
+    for table_name, column_name, column_sql in migration_steps:
+        try:
+            _ensure_column_if_missing(table_name, column_name, column_sql)
+        except Exception as e:
+            print(f"[migrate_central_schema] Warning: could not ensure {table_name}.{column_name}: {e}")
+
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("UPDATE tenants SET is_demo_account = FALSE WHERE is_demo_account IS NULL"))
+            conn.execute(text("UPDATE plans SET default_trial_days = 14 WHERE default_trial_days IS NULL"))
+    except Exception as e:
+        print(f"[migrate_central_schema] Warning: could not backfill migration defaults: {e}")
+
+
 def migrate_usernames():
     """Backfill username for any existing tenants that don't have one yet.
     Safe to run multiple times (skips tenants that already have a username).
-    Called automatically on module load so no manual migration step is needed.
+    Intended to run during startup after central schema migration.
     """
     session = _get_central_session()
     try:
@@ -776,13 +825,6 @@ def migrate_usernames():
         print(f"[migrate_usernames] Warning: could not backfill usernames: {e}")
     finally:
         session.close()
-
-
-# Run migration on import so existing tenants get usernames automatically
-try:
-    migrate_usernames()
-except Exception:
-    pass  # Non-fatal: app still starts normally
 
 
 if __name__ == "__main__":

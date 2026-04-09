@@ -58,11 +58,14 @@ async def startup_initialize_db():
     from ..database import (
         _get_central_engine, CentralBase,
         TenantBase, _get_tenant_engine, get_all_tenants,
+        migrate_central_schema, migrate_usernames,
     )
 
     try:
         engine = _get_central_engine()
         CentralBase.metadata.create_all(bind=engine)
+        migrate_central_schema()
+        migrate_usernames()
         logger.info("Central DB tables initialised.")
     except Exception as e:
         logger.warning(f"Could not initialise central DB tables: {e}")
