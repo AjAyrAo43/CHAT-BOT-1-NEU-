@@ -64,6 +64,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // State — tenant_id is resolved from username at login; never shown raw to user
     let tenantId = sessionStorage.getItem('tenant_id') || null;
 
+    // Toast Notification Helper
+    function showToast(message, duration = 3000) {
+        const toast = document.getElementById('toast');
+        if (!toast) return;
+        toast.textContent = message;
+        toast.style.display = 'block';
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, duration);
+    }
+
     // Check if already authenticated
     if (sessionStorage.getItem('client_auth') === 'true' && tenantId) {
         initDashboard();
@@ -150,9 +161,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const displayChats = [...globalChatsData].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
                 renderChats(displayChats);
             }
-            // These are fast per-tenant DB calls — fetch only if not cached
-            if (btn.dataset.target === 'section-faqs') loadFaqs();
-            if (btn.dataset.target === 'section-kb') loadDocs();
+            // AI Training loads both FAQs and Docs
+            if (btn.dataset.target === 'section-ai-training') {
+                loadFaqs();
+                loadDocs();
+            }
         });
     });
 
@@ -164,6 +177,8 @@ document.addEventListener('DOMContentLoaded', () => {
         loadAnalyticsAndData(); // Load chats, leads, analytics
         loadFaqs();
         loadDocs();
+        initAiTrainingTabs();
+        initCharCounters();
     }
 
     // Data Loading (Chats, Leads, Analytics)
@@ -173,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let _chatsLoaded = false;
     let _tenantInfoLoaded = false;
     let _activeChartInstances = {};   // track Chart.js instances for cleanup
-    let _activeDateFilter = 7;        // default: last 7 days
+    let _activeDateFilter = 30;        // default: last 30 days
     async function loadTenantInfo() {
         if (_tenantInfoLoaded) return; // Skip fetch if already loaded
         try {
@@ -202,6 +217,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         banner.style.backgroundColor = 'var(--danger-color)';
                         banner.style.color = 'white';
                         banner.innerHTML = `Subscription Status: <span style="font-weight:normal">Expired</span> &bull; Your chatbot will not answer new customer requests. Please contact support to renew.`;
+                        
+                        // Disable admin actions
+                        const disableEl = id => {
+                            const e = document.getElementById(id);
+                            if(e) { e.disabled = true; e.style.opacity = '0.5'; e.style.cursor = 'not-allowed'; }
+                        };
+                        disableEl('show-add-faq');
+                        disableEl('btn-upload');
+                        disableEl('btn-add-url');
                     }
                 } else {
                     banner.style.display = 'none'; // No end date found
@@ -236,6 +260,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     const rLeads = await fetch(`${API_BASE}/admin/leads?tenant_id=${tenantId}`);
                     if (rLeads.ok) globalLeadsData = await rLeads.json();
                 } catch(e) { globalLeadsData = []; }
+
+                try {
+                    const rFb = await fetch(`${API_BASE}/admin/feedback/stats?tenant_id=${tenantId}`);
+                    if (rFb.ok) {
+                        const fbData = await rFb.json();
+                        const fbEl = document.getElementById('metric-avg-feedback');
+                        if (fbEl) fbEl.textContent = fbData.average > 0 ? fbData.average.toFixed(1) + ' / 5.0' : 'N/A';
+                    }
+                } catch(e) {}
 
                 const filtered = filterByDays(globalChatsData, _activeDateFilter);
                 renderAnalytics(filtered);
@@ -670,6 +703,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('biz-desc').value = profile.business_description;
                 document.getElementById('profile-hours').value = profile.business_hours || '';
 
+                document.getElementById('profile-logo-url').value = profile.logo_url || '';
+                document.getElementById('profile-chatbot-greeting').value = profile.chatbot_greeting_message || '';
+                document.getElementById('profile-chatbot-prompt').value = profile.chatbot_system_prompt || '';
+
                 // ── Update sidebar brand logo ──
                 const logoImg = document.getElementById('sidebar-logo-img');
                 const logoPlaceholder = document.getElementById('sidebar-logo-placeholder');
@@ -737,7 +774,11 @@ document.addEventListener('DOMContentLoaded', () => {
             brand_color_secondary: document.getElementById('profile-brand-secondary').value,
             social_linkedin: document.getElementById('profile-social-li').value,
             social_twitter: document.getElementById('profile-social-tw').value,
-            social_instagram: document.getElementById('profile-social-ig').value
+            social_instagram: document.getElementById('profile-social-ig').value,
+            
+            logo_url: document.getElementById('profile-logo-url').value,
+            chatbot_greeting_message: document.getElementById('profile-chatbot-greeting').value,
+            chatbot_system_prompt: document.getElementById('profile-chatbot-prompt').value
         };
         showMessage(profileMsg, 'Saving...', '');
         
@@ -747,10 +788,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            if (res.ok) showMessage(profileMsg, 'Profile saved successfully.', 'success');
-            else showMessage(profileMsg, 'Failed to save.', 'error');
+            if (res.ok) {
+                showToast('Profile saved successfully!');
+                showMessage(profileMsg, '', '');
+            }
+            else showToast('Failed to save profile');
         } catch (err) {
-            showMessage(profileMsg, 'Connection error.', 'error');
+            showToast('Connection error');
         }
     });
 
@@ -761,8 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
             old_password: document.getElementById('old-pwd').value,
             new_password: document.getElementById('new-pwd').value
         };
-        showMessage(pwdMsg, 'Updating...', '');
-        
+
         try {
             const res = await fetch(`${API_BASE}/admin/change-password`, {
                 method: 'POST',
@@ -770,16 +813,60 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(payload)
             });
             if (res.ok) {
-                showMessage(pwdMsg, ' Password changed! Use new password next time.', 'success');
+                showToast('Password changed!');
                 passwordForm.reset();
             } else {
                 const data = await res.json();
-                showMessage(pwdMsg, ` ${data.detail || 'Failed'}`, 'error');
+                showToast(data.detail || 'Failed to change password');
             }
         } catch (err) {
-            showMessage(pwdMsg, 'Connection error.', 'error');
+            showToast('Connection error');
         }
     });
+
+    // --- AI Training Inner Tab Switching ---
+    function initAiTrainingTabs() {
+        document.querySelectorAll('.ai-tab-btn').forEach(tabBtn => {
+            tabBtn.addEventListener('click', () => {
+                // Update button styles
+                document.querySelectorAll('.ai-tab-btn').forEach(b => {
+                    b.style.borderBottom = '3px solid transparent';
+                    b.style.color = 'var(--text-muted)';
+                });
+                tabBtn.style.borderBottom = '3px solid var(--primary-color)';
+                tabBtn.style.color = 'var(--primary-color)';
+
+                // Show/hide panels
+                const targetTab = tabBtn.dataset.tab;
+                document.querySelectorAll('.ai-tab-panel').forEach(panel => {
+                    panel.style.display = panel.id === targetTab ? 'block' : 'none';
+                });
+            });
+        });
+    }
+
+    // --- Live Character Counters ---
+    function initCharCounters() {
+        const counters = [
+            { inputId: 'faq-q',                  counterId: 'cnt-faq-q',    max: 500  },
+            { inputId: 'faq-a',                  counterId: 'cnt-faq-a',    max: 1000 },
+            { inputId: 'biz-desc',               counterId: 'cnt-biz-desc', max: 2000 },
+            { inputId: 'profile-chatbot-greeting', counterId: 'cnt-greeting', max: 300 },
+            { inputId: 'profile-chatbot-prompt', counterId: 'cnt-prompt',   max: 3000 },
+        ];
+        counters.forEach(({ inputId, counterId, max }) => {
+            const input = document.getElementById(inputId);
+            const counter = document.getElementById(counterId);
+            if (!input || !counter) return;
+            const update = () => {
+                const len = input.value.length;
+                counter.textContent = len;
+                counter.style.color = len >= max * 0.9 ? (len >= max ? '#dc2626' : '#f59e0b') : '#999';
+            };
+            input.addEventListener('input', update);
+            update(); // initialise on load
+        });
+    }
 
     // --- FAQ Management ---
     addFaqBtn.addEventListener('click', () => { addFaqFormContainer.style.display = 'block'; });
@@ -809,13 +896,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 addFaqForm.reset();
                 addFaqFormContainer.style.display = 'none';
                 loadFaqs();
-                // Show floating success message mimicking Streamlit
-                alert("FAQ Added Successfully!");
+                showToast('FAQ added successfully!');
             } else {
-                alert('Failed to add FAQ');
+                showToast('Failed to add FAQ');
             }
         } catch (err) {
-            alert('Connection error');
+            showToast('Connection error');
         } finally {
             btn.disabled = false;
         }
@@ -860,9 +946,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!confirm('Deactivate this FAQ? It will no longer be used by the AI.')) return;
         try {
             const res = await fetch(`${API_BASE}/admin/faq/${id}?tenant_id=${tenantId}`, { method: 'DELETE' });
-            if (res.ok) loadFaqs();
-            else alert('Failed to deactivate');
-        } catch (err) { alert('Connection error'); }
+            if (res.ok) {
+                loadFaqs();
+                showToast('FAQ deactivated');
+            }
+            else showToast('Failed to deactivate');
+        } catch (err) { showToast('Connection error'); }
     };
 
     // --- Knowledge Base Management ---
@@ -891,14 +980,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 uploadStatus.textContent = ' Document uploaded and AI trained successfully!';
                 uploadDocForm.reset();
                 loadDocs();
+                showToast('Document uploaded successfully!');
             } else {
                 const data = await res.json();
                 uploadStatus.style.color = 'red';
                 uploadStatus.textContent = ` ${data.detail || 'Upload failed'}`;
+                showToast('Upload failed');
             }
         } catch (err) {
             uploadStatus.style.color = 'red';
             uploadStatus.textContent = ' Connection error during upload';
+            showToast('Connection error');
         } finally {
             btn.disabled = false;
             setTimeout(() => { if(uploadStatus.style.color==='rgb(16, 124, 65)') uploadStatus.style.display='none'}, 5000);
@@ -927,10 +1019,17 @@ document.addEventListener('DOMContentLoaded', () => {
         
         docs.forEach(d => {
             const tr = document.createElement('tr');
+            const isUrl = d.file_type === 'url';
+            const sourceDisplay = isUrl
+                ? `<a href="${escapeHTML(d.filename)}" target="_blank" style="color:#0066cc;word-break:break-all;font-size:0.85rem;">${escapeHTML(d.filename.replace(/^https?:\/\//, '').substring(0, 60))}${d.filename.length > 60 ? '…' : ''}</a>`
+                : `<strong>${escapeHTML(d.filename)}</strong>`;
+            const typeLabel = isUrl
+                ? `<span style="background:#eef2ff;color:#4338ca;padding:2px 7px;border-radius:20px;font-size:0.78rem;font-weight:600;">🔗 URL</span>`
+                : `<code style="background:#f5f5f5;padding:2px 4px;">${escapeHTML(d.file_type).toUpperCase()}</code>`;
             tr.innerHTML = `
                 <td style="white-space:nowrap"><small>${new Date(d.created_at).toLocaleDateString()}</small></td>
-                <td><strong>${escapeHTML(d.filename)}</strong></td>
-                <td><code style="background:#f5f5f5;padding:2px 4px;">${escapeHTML(d.file_type).toUpperCase()}</code></td>
+                <td>${sourceDisplay}</td>
+                <td>${typeLabel}</td>
                 <td><span style="color:${d.is_active?'#107c41':'#666'}">${d.is_active ? 'Active' : 'Archived'}</span></td>
                 <td>
                     ${d.is_active ? `<button class="btn danger-btn" onclick="deleteDoc('${d.id}')" style="padding:0.2rem 0.6rem;font-size:0.75rem;">Delete</button>` : '-'}
@@ -940,13 +1039,61 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- URL Add Handler ---
+    const addUrlForm = document.getElementById('add-url-form');
+    const urlInput = document.getElementById('url-input');
+    const urlStatus = document.getElementById('url-status');
+
+    if (addUrlForm) {
+        addUrlForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = urlInput.value.trim();
+            if (!url) return;
+
+            const btn = document.getElementById('btn-add-url');
+            btn.disabled = true;
+            urlStatus.style.display = 'block';
+            urlStatus.style.color = '#666';
+            urlStatus.textContent = '🔄 Scraping page... This may take a moment.';
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/add-url?tenant_id=${tenantId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                if (res.ok) {
+                    urlStatus.style.color = '#107c41';
+                    urlStatus.textContent = '✅ URL scraped and added to knowledge base!';
+                    addUrlForm.reset();
+                    loadDocs();
+                    showToast('URL added successfully!');
+                } else {
+                    const data = await res.json();
+                    urlStatus.style.color = 'red';
+                    urlStatus.textContent = `❌ ${data.detail || 'Failed to scrape URL'}`;
+                }
+            } catch (err) {
+                urlStatus.style.color = 'red';
+                urlStatus.textContent = '❌ Connection error. Please try again.';
+            } finally {
+                btn.disabled = false;
+                setTimeout(() => { if (urlStatus.style.color === 'rgb(16, 124, 65)') urlStatus.style.display = 'none'; }, 6000);
+            }
+        });
+    }
+
     window.deleteDoc = async (id) => {
         if (!confirm('Delete this document? The AI will instantly forget its contents.')) return;
         try {
             const res = await fetch(`${API_BASE}/admin/doc/${id}?tenant_id=${tenantId}`, { method: 'DELETE' });
-            if (res.ok) loadDocs();
-            else alert('Failed to delete document');
-        } catch (err) { alert('Connection error'); }
+            if (res.ok) {
+                loadDocs();
+                showToast('Document deleted');
+            }
+            else showToast('Failed to delete document');
+        } catch (err) { showToast('Connection error'); }
     };
 
     // --- Utils ---

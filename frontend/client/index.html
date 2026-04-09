@@ -47,12 +47,11 @@
                         <div class="tenant-badge" id="display-tenant-id" style="display:none;"></div>
                     </div>
                     <nav class="sidebar-nav">
-                        <button class="nav-btn active" data-target="section-analytics">Analytics Overview</button>
+                        <button class="nav-btn active" data-target="section-analytics">30-Day Summary</button>
                         <button class="nav-btn" data-target="section-leads">Sales Leads</button>
                         <button class="nav-btn" data-target="section-chats">Chat Logs</button>
-                        <button class="nav-btn" data-target="section-faqs">Manage FAQs</button>
+                        <button class="nav-btn" data-target="section-ai-training">AI Training</button>
                         <button class="nav-btn" data-target="section-profile">Business Profile</button>
-                        <button class="nav-btn" data-target="section-kb">Knowledge Base</button>
                     </nav>
                     <div class="sidebar-footer">
                         <button id="logout-btn" class="nav-btn text-danger">Logout</button>
@@ -66,10 +65,10 @@
                     <!-- Analytics Section -->
                     <section id="section-analytics" class="content-section active">
                         <header class="section-header" style="flex-wrap: wrap; gap: 1rem;">
-                            <h2>Analytics Overview</h2>
-                            <div class="analytics-date-filter" id="analytics-date-filter">
-                                <button class="date-filter-btn active" data-days="7">7 Days</button>
-                                <button class="date-filter-btn" data-days="30">30 Days</button>
+                            <h2>30-Day Summary</h2>
+                            <div class="analytics-date-filter" id="analytics-date-filter" style="display: none;">
+                                <button class="date-filter-btn" data-days="7">7 Days</button>
+                                <button class="date-filter-btn active" data-days="30">30 Days</button>
                                 <button class="date-filter-btn" data-days="90">90 Days</button>
                                 <button class="date-filter-btn" data-days="0">All Time</button>
                             </div>
@@ -149,6 +148,13 @@
                                 <div class="kpi-body">
                                     <h3>Recent Query</h3>
                                     <div class="metric-value" id="metric-recent" style="font-size:1.1rem;">-</div>
+                                </div>
+                            </div>
+                            <div class="metric-card kpi-card">
+                                <div class="kpi-icon" style="background: linear-gradient(135deg,#ca8a04,#eab308);">⭐</div>
+                                <div class="kpi-body">
+                                    <h3>Avg Feedback</h3>
+                                    <div class="metric-value" id="metric-avg-feedback" style="color:#ca8a04;">-</div>
                                 </div>
                             </div>
                         </div>
@@ -293,61 +299,136 @@
                         </div>
                     </section>
                     
-                    <!-- FAQs Section -->
-                    <section id="section-faqs" class="content-section">
-                        <header class="section-header flex-header">
-                            <h2>Manage FAQs</h2>
-                            <button id="show-add-faq" class="btn primary-btn">+ Add FAQ</button>
+                    <!-- AI Training Section (merged FAQ + Knowledge Base) -->
+                    <section id="section-ai-training" class="content-section">
+                        <header class="section-header">
+                            <h2>AI Training</h2>
+                            <p style="color:var(--text-muted); font-size:0.9rem;">Manage FAQs and upload knowledge documents to train your AI chatbot.</p>
                         </header>
-                        
-                        <div id="add-faq-form-container" style="display: none; margin-bottom: 2rem;">
-                            <div class="card bg-light">
-                                <h3>New FAQ</h3>
-                                <form id="add-faq-form">
-                                    <div class="input-group">
-                                        <label for="faq-q">Question</label>
-                                        <input type="text" id="faq-q" required>
-                                    </div>
-                                    <div class="input-group">
-                                        <label for="faq-a">Answer</label>
-                                        <textarea id="faq-a" rows="3" required></textarea>
-                                    </div>
-                                    <div class="input-group">
-                                        <label for="faq-i">Intent Category</label>
-                                        <select id="faq-i" required>
-                                            <option value="pricing">Pricing</option>
-                                            <option value="support">Support</option>
-                                            <option value="information">Information</option>
-                                            <option value="service_inquiry">Service Inquiry</option>
-                                            <option value="contact">Contact</option>
-                                            <option value="eligibility">Eligibility</option>
-                                        </select>
-                                    </div>
-                                    <div class="flex-actions">
-                                        <button type="button" id="cancel-add-faq" class="btn outline-btn">Cancel</button>
-                                        <button type="submit" class="btn primary-btn">Save FAQ</button>
-                                    </div>
-                                </form>
+
+                        <!-- Inner Tabs -->
+                        <div class="ai-training-tabs" style="display:flex;gap:0;margin-bottom:1.5rem;border-bottom:2px solid var(--border-color);">
+                            <button class="ai-tab-btn active" data-tab="tab-faqs" id="ai-tab-faqs-btn"
+                                style="padding:0.6rem 1.4rem;border:none;background:none;cursor:pointer;font-weight:600;border-bottom:3px solid var(--primary-color);color:var(--primary-color);margin-bottom:-2px;">
+                                FAQs
+                            </button>
+                            <button class="ai-tab-btn" data-tab="tab-docs" id="ai-tab-docs-btn"
+                                style="padding:0.6rem 1.4rem;border:none;background:none;cursor:pointer;font-weight:600;color:var(--text-muted);margin-bottom:-2px;">
+                                Documents & URLs
+                            </button>
+                        </div>
+
+                        <!-- ═══ TAB: FAQs ═══ -->
+                        <div id="tab-faqs" class="ai-tab-panel">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                                <span style="font-weight:600;font-size:1rem;">Manage FAQ Entries</span>
+                                <button id="show-add-faq" class="btn primary-btn">+ Add FAQ</button>
+                            </div>
+
+                            <div id="add-faq-form-container" style="display: none; margin-bottom: 2rem;">
+                                <div class="card bg-light">
+                                    <h3>New FAQ</h3>
+                                    <form id="add-faq-form">
+                                        <div class="input-group">
+                                            <label for="faq-q">Question</label>
+                                            <input type="text" id="faq-q" required maxlength="500" placeholder="e.g. What are your business hours?">
+                                            <div style="text-align:right;font-size:0.75rem;color:#999;"><span id="cnt-faq-q">0</span>/500</div>
+                                        </div>
+                                        <div class="input-group">
+                                            <label for="faq-a">Answer</label>
+                                            <textarea id="faq-a" rows="3" required maxlength="1000" placeholder="Provide a clear, concise answer..."></textarea>
+                                            <div style="text-align:right;font-size:0.75rem;color:#999;"><span id="cnt-faq-a">0</span>/1000</div>
+                                        </div>
+                                        <div class="input-group">
+                                            <label for="faq-i">Intent Category</label>
+                                            <select id="faq-i" required>
+                                                <option value="pricing">Pricing</option>
+                                                <option value="support">Support</option>
+                                                <option value="information">Information</option>
+                                                <option value="service_inquiry">Service Inquiry</option>
+                                                <option value="contact">Contact</option>
+                                                <option value="eligibility">Eligibility</option>
+                                            </select>
+                                        </div>
+                                        <div class="flex-actions">
+                                            <button type="button" id="cancel-add-faq" class="btn outline-btn">Cancel</button>
+                                            <button type="submit" class="btn primary-btn">Save FAQ</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="card no-pad">
+                                <div class="table-responsive">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Question</th>
+                                                <th>Answer Segment</th>
+                                                <th>Intent</th>
+                                                <th>Status</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="faqs-list"></tbody>
+                                    </table>
+                                </div>
+                                <div id="no-faqs" class="empty-state">No FAQs found. Add one to train the AI.</div>
                             </div>
                         </div>
 
-                        <div class="card no-pad">
-                            <div class="table-responsive">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Question</th>
-                                            <th>Answer Segment</th>
-                                            <th>Intent</th>
-                                            <th>Status</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="faqs-list"></tbody>
-                                </table>
+                        <!-- ═══ TAB: Documents & URLs ═══ -->
+                        <div id="tab-docs" class="ai-tab-panel" style="display:none;">
+
+                            <!-- Auto-refresh badge -->
+                            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;padding:0.5rem 0.8rem;background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-radius:8px;font-size:0.83rem;color:#4338ca;">
+                                <span><strong>Auto-refreshed 4&times;/day</strong> &mdash; URL sources are automatically re-scraped every 6 hours to keep your AI up to date.</span>
                             </div>
-                            <div id="no-faqs" class="empty-state">No FAQs found. Add one to train the AI.</div>
+
+                            <!-- Upload Card -->
+                            <div class="card" style="margin-bottom: 1.5rem;">
+                                <h3 style="margin-bottom:1rem;">Upload a File</h3>
+                                <form id="upload-doc-form" style="display: flex; gap: 1rem; align-items: center;flex-wrap:wrap;">
+                                    <input type="file" id="doc-upload-input" accept=".pdf,.docx,.txt,.csv,.xlsx,.xls" required
+                                        style="flex: 1; min-width:200px; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                                    <button type="submit" class="btn primary-btn" id="btn-upload">Upload & Train</button>
+                                </form>
+                                <p style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-muted);">Supported: PDF, DOCX, XLSX/XLS, CSV, TXT &bull; Max 10 MB</p>
+                                <div id="upload-status" style="margin-top: 0.8rem; font-size: 0.9rem; display: none;"></div>
+                            </div>
+
+                            <!-- URL / Link Card -->
+                            <div class="card" style="margin-bottom: 1.5rem;">
+                                <h3 style="margin-bottom:1rem;">Add a Web Page / URL</h3>
+                                <form id="add-url-form" style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+                                    <input type="url" id="url-input" placeholder="https://your-website.com/about" required maxlength="2048"
+                                        style="flex:1;min-width:250px;padding:0.55rem 0.8rem;border:1px solid #ddd;border-radius:4px;font-size:0.95rem;">
+                                    <button type="submit" class="btn primary-btn" id="btn-add-url">Add URL</button>
+                                </form>
+                                <p style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-muted);">The page will be scraped automatically. Content re-fetched every 6 hours.</p>
+                                <div id="url-status" style="margin-top:0.8rem;font-size:0.9rem;display:none;"></div>
+                            </div>
+
+                            <!-- Documents table -->
+                            <div class="card no-pad">
+                                <div class="table-responsive">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Source</th>
+                                                <th>Type</th>
+                                                <th>Status</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="docs-list"></tbody>
+                                    </table>
+                                </div>
+                                <div id="no-docs" class="empty-state">No documents or URLs added yet.</div>
+                            </div>
                         </div>
+
                     </section>
 
                     <!-- Profile Section -->
@@ -373,7 +454,8 @@
                                 </div>
                                 <div class="input-group">
                                     <label for="biz-desc">Business Description (Used by AI as context)</label>
-                                    <textarea id="biz-desc" rows="3" required></textarea>
+                                    <textarea id="biz-desc" rows="3" required maxlength="2000"></textarea>
+                                    <div style="text-align:right;font-size:0.75rem;color:#999;"><span id="cnt-biz-desc">0</span>/2000</div>
                                 </div>
                                 
                                 <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Point of Contact</h3>
@@ -428,6 +510,22 @@
                                     </div>
                                 </div>
 
+                                <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Chatbot Identity & Behavior</h3>
+                                <div class="input-group">
+                                    <label for="profile-logo-url">Logo URL (Profile Photo for Widget)</label>
+                                    <input type="url" id="profile-logo-url" placeholder="https://example.com/logo.png" style="width: 100%;">
+                                </div>
+                                <div class="input-group">
+                                    <label for="profile-chatbot-greeting">Chatbot Greeting Message</label>
+                                    <input type="text" id="profile-chatbot-greeting" placeholder="Hi! How can I help you today?" style="width: 100%;" maxlength="300">
+                                    <div style="text-align:right;font-size:0.75rem;color:#999;"><span id="cnt-greeting">0</span>/300</div>
+                                </div>
+                                <div class="input-group">
+                                    <label for="profile-chatbot-prompt">Chatbot System Prompt (Behavior Instructions)</label>
+                                    <textarea id="profile-chatbot-prompt" rows="3" placeholder="You are a helpful customer support assistant." style="width: 100%;" maxlength="3000"></textarea>
+                                    <div style="text-align:right;font-size:0.75rem;color:#999;"><span id="cnt-prompt">0</span>/3000</div>
+                                </div>
+
                                 <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Branding & UI Customization</h3>
                                 <div class="input-group" style="display: flex; gap: 1rem;">
                                     <div style="flex: 1;">
@@ -478,44 +576,15 @@
                         </div>
                     </section>
 
-                    <!-- Knowledge Base Section -->
-                    <section id="section-kb" class="content-section">
-                        <header class="section-header">
-                            <h2>Knowledge Base (RAG)</h2>
-                            <p style="color:var(--text-muted); font-size:0.9rem;">Upload documents (PDF, CSV, TXT, Excel) for your AI to learn from.</p>
-                        </header>
-                        <div class="card" style="margin-bottom: 2rem;">
-                            <form id="upload-doc-form" style="display: flex; gap: 1rem; align-items: center;">
-                                <input type="file" id="doc-upload-input" accept=".pdf,.txt,.csv,.xlsx" required style="flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
-                                <button type="submit" class="btn primary-btn" id="btn-upload">Upload & Train</button>
-                            </form>
-                            <div id="upload-status" style="margin-top: 1rem; font-size: 0.9rem; color: #107c41; display: none;"></div>
-                        </div>
-
-                        <div class="card no-pad">
-                            <div class="table-responsive">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Filename</th>
-                                            <th>Type</th>
-                                            <th>Status</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="docs-list"></tbody>
-                                </table>
-                            </div>
-                            <div id="no-docs" class="empty-state">No documents uploaded yet.</div>
-                        </div>
-                    </section>
-
                 </main>
+
             </div>
         </div>
     </div>
-    
+
+    <!-- Simple Toast Notification -->
+    <div id="toast" class="toast-notification" style="display:none;"></div>
+
     <!-- External libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="script.js"></script>

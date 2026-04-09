@@ -78,7 +78,52 @@ document.addEventListener('DOMContentLoaded', () => {
     let _chatsLoadedForTenant = null;
     let _identityLoadedForTenant = null;
     let _adminChartInstances = {};   // Chart.js instances
-    let _adminDateFilter = 7;        // Default: last 7 days
+    let _adminDateFilter = 30;        // Default: last 30 days
+
+    // Pagination & Sorting State
+    let currentPage = 1;
+    let itemsPerPage = 10;
+    let currentSortColumn = 'created_at';
+    let currentSortAsc = false;
+    let currentSearchTerm = '';
+
+    // Bootstrap UI Helpers
+    function showSuccessToast(message) {
+        if (!window.bootstrap) return alert(message);
+        const toastBody = document.getElementById('successToastBody');
+        if (toastBody) toastBody.textContent = message;
+        const toastEl = document.getElementById('successToast');
+        if (toastEl) {
+            const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            toast.show();
+        }
+    }
+
+    function showConfirmModal(message, onConfirm) {
+        if (!window.bootstrap) {
+            if (confirm(message)) onConfirm();
+            return;
+        }
+        const modalBody = document.getElementById('actionModalBody');
+        if (modalBody) modalBody.textContent = message;
+        const modalEl = document.getElementById('actionModal');
+        if (!modalEl) {
+            if (confirm(message)) onConfirm();
+            return;
+        }
+        const modal = new bootstrap.Modal(modalEl);
+        
+        const confirmBtn = document.getElementById('actionModalConfirmBtn');
+        const newBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+        
+        newBtn.addEventListener('click', () => {
+            modal.hide();
+            onConfirm();
+        });
+        
+        modal.show();
+    }
 
     // Initialization
     if (isAuthenticated) {
@@ -155,6 +200,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update sidebar banner
         currentTenantInfo.textContent = t.name;
         currentClientBanner.style.display = 'block';
+        // Hide global settings that shouldn't be visible when managing a client
+        const regBtn = document.querySelector('.nav-btn[data-target="tab-register"]');
+        if (regBtn) regBtn.style.display = 'none';
+
         // Navigate to Business Identity tab
         navBtns.forEach(b => b.classList.remove('active'));
         sections.forEach(s => s.classList.remove('active'));
@@ -172,6 +221,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             btn.classList.add('active');
             document.getElementById(btn.dataset.target).classList.add('active');
+
+            // Show global settings if returning to global tabs
+            if (['tab-register', 'tab-clients', 'tab-billing', 'tab-plans'].includes(btn.dataset.target)) {
+                const regBtn = document.querySelector('.nav-btn[data-target="tab-register"]');
+                if (regBtn) regBtn.style.display = 'block';
+                currentClientBanner.style.display = 'none';
+                selectedTenantId = null; // Exit client context
+            }
 
             // Use in-memory globalTenants — do NOT re-fetch on every tab click
             if (btn.dataset.target === 'tab-clients') renderTenantsTable();
@@ -248,6 +305,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
+    const demoTenantForm = document.getElementById('create-demo-tenant-form');
+    if (demoTenantForm) {
+        demoTenantForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('demo-tenant-name').value;
+            const dbUrl = document.getElementById('demo-db-url').value;
+            const btn = demoTenantForm.querySelector('button');
+            const errEl = document.getElementById('demo-create-error');
+
+            btn.disabled = true;
+            errEl.textContent = '';
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/create-demo-tenant`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, db_url: dbUrl })
+                });
+
+                if (res.ok) {
+                    showSuccessToast('Demo account created successfully!');
+                    demoTenantForm.reset();
+                    await loadAllTenants();
+                } else {
+                    const data = await res.json();
+                    errEl.textContent = data.detail || 'Failed to create demo account';
+                }
+            } catch (err) {
+                errEl.textContent = 'Connection error';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    }
+
+
     // --- Global Tenants API ---
     async function loadAllTenants() {
         try {
@@ -273,15 +366,100 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Search & Pagination Handlers ---
+    const searchInput = document.getElementById('clients-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            currentSearchTerm = e.target.value.toLowerCase();
+            currentPage = 1;
+            renderTenantsTable();
+        });
+    }
+
+    const prevBtn = document.getElementById('clients-prev-btn');
+    const nextBtn = document.getElementById('clients-next-btn');
+    
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) { currentPage--; renderTenantsTable(); }
+        });
+    }
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            currentPage++; renderTenantsTable();
+        });
+    }
+
+    window.toggleSort = (col) => {
+        if (currentSortColumn === col) {
+            currentSortAsc = !currentSortAsc;
+        } else {
+            currentSortColumn = col;
+            currentSortAsc = true;
+            if (col === 'created_at') currentSortAsc = false;
+        }
+        renderTenantsTable();
+    };
+
     function renderTenantsTable() {
         tenantsList.innerHTML = '';
-        if (globalTenants.length === 0) {
+        
+        // 1. Filter
+        let filtered = globalTenants;
+        if (currentSearchTerm) {
+            filtered = globalTenants.filter(t => 
+                t.name.toLowerCase().includes(currentSearchTerm) || 
+                (t.username && t.username.toLowerCase().includes(currentSearchTerm))
+            );
+        }
+
+        // 2. Sort
+        filtered.sort((a, b) => {
+            let valA = a[currentSortColumn];
+            let valB = b[currentSortColumn];
+            
+            if (currentSortColumn === 'name') {
+                valA = valA ? valA.toLowerCase() : '';
+                valB = valB ? valB.toLowerCase() : '';
+            } else if (currentSortColumn === 'created_at') {
+                valA = valA ? new Date(valA).getTime() : 0;
+                valB = valB ? new Date(valB).getTime() : 0;
+            } else if (currentSortColumn === 'is_active') {
+                valA = valA ? 1 : 0;
+                valB = valB ? 1 : 0;
+            }
+            
+            if (valA < valB) return currentSortAsc ? -1 : 1;
+            if (valA > valB) return currentSortAsc ? 1 : -1;
+            return 0;
+        });
+
+        // 3. Paginate
+        const totalItems = filtered.length;
+        const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        
+        const startIdx = (currentPage - 1) * itemsPerPage;
+        const endIdx = startIdx + itemsPerPage;
+        const paginated = filtered.slice(startIdx, endIdx);
+
+        // Update UI info
+        const infoEl = document.getElementById('clients-page-info');
+        if (infoEl) infoEl.textContent = `Showing ${totalItems === 0 ? 0 : startIdx + 1} to ${Math.min(endIdx, totalItems)} of ${totalItems} entries`;
+        
+        const numEl = document.getElementById('clients-page-num');
+        if (numEl) numEl.textContent = currentPage;
+        
+        if (prevBtn) prevBtn.disabled = currentPage === 1;
+        if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+
+        if (paginated.length === 0) {
             document.getElementById('no-tenants').style.display = 'block';
             return;
         }
         document.getElementById('no-tenants').style.display = 'none';
 
-        globalTenants.forEach(t => {
+        paginated.forEach(t => {
             const tr = document.createElement('tr');
 
             // Calculate days left
@@ -304,17 +482,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>
                     <span class="status-indicator ${t.is_active ? 'status-active-dot' : 'status-inactive-dot'}"></span>
                     <small>${t.is_active ? 'Active' : 'Inactive'}</small>
+                    ${t.is_demo_account ? '<span class="badge bg-info text-dark" style="font-size:0.65rem; margin-left:4px;">DEMO</span>' : ''}
                 </td>
                 <td><strong>${escapeHTML(t.name)}</strong></td>
                 <td>
                     <small>Username: <code style="background:#f0f4ff;padding:2px 6px;border-radius:4px;font-weight:bold;letter-spacing:0.5px">${escapeHTML(t.username || '—')}</code></small><br>
-                    <small style="color:var(--text-muted)">ID: ${t.id.substring(0,8)}...</small>
+                    <small style="color:var(--text-muted)">API Key: ${t.id}</small>
                 </td>
                 <td>
                     <small style="${subStyle}">${subText}</small><br>
                     <small style="color:var(--text-muted); font-size:0.65rem;">Expires: ${t.subscription_end_date ? t.subscription_end_date.split('T')[0] : 'N/A'}</small>
                 </td>
                 <td><small>${t.created_at.substring(0, 16)}</small></td>
+                <td><a href="${CLIENT_CHATBOT_URL}?tenant_id=${t.id}" target="_blank" class="btn outline-btn" style="padding:0.3rem 0.6rem; font-size:0.75rem; text-decoration:none;">Chatbot</a></td>
+                <td><a href="${CLIENT_ADMIN_URL}?username=${t.username || t.id}" target="_blank" class="btn outline-btn" style="padding:0.3rem 0.6rem; font-size:0.75rem; text-decoration:none;">Admin</a></td>
                 <td>
                     <div style="display: flex; gap: 5px;">
                         ${t.is_active ?
@@ -322,10 +503,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             `<button class="btn" style="padding:0.3rem 0.5rem; font-size:0.75rem; background-color:#ff4444; color:white;" onclick="deleteTenantHard('${t.id}')">Delete</button>`
                         }
                         <button class="btn primary-btn" style="padding:0.3rem 0.5rem; font-size:0.75rem;" onclick="extendSubscription('${t.id}')">+30 Days</button>
-                    </div>
-                    <div style="margin-top:5px; font-size:0.65rem; color: #555;">
-                        <span style="display:block; margin-bottom: 2px;">Chatbot: <a href="${CLIENT_CHATBOT_URL}?tenant_id=${t.id}" target="_blank" style="color:#d35400;">Link</a></span>
-                        <span>Client Admin: <a href="${CLIENT_ADMIN_URL}?username=${t.username || t.id}" target="_blank" style="color:#d35400;">Link</a></span>
                     </div>
                 </td>
                 <td>
@@ -338,23 +515,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.extendSubscription = async (id) => {
-        if (!confirm('Are you sure you want to grant +30 days to this client?')) return;
-        try {
-            const res = await fetch(`${API_BASE}/admin/tenant/${id}/extend-subscription`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ days: 30 })
-            });
-            if (res.ok) {
-                alert('Subscription extended successfully!');
-                await loadAllTenants();
-            } else {
-                alert('Failed to extend subscription.');
+    window.extendSubscription = (id) => {
+        showConfirmModal('Are you sure you want to grant +30 days to this client?', async () => {
+            try {
+                const res = await fetch(`${API_BASE}/admin/tenant/${id}/extend-subscription`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ days: 30 })
+                });
+                if (res.ok) {
+                    showSuccessToast('Subscription extended successfully!');
+                    await loadAllTenants();
+                } else {
+                    alert('Failed to extend subscription.');
+                }
+            } catch (err) {
+                alert('Connection error');
             }
-        } catch (err) {
-            alert('Connection error');
-        }
+        });
     };
 
     createForm.addEventListener('submit', async (e) => {
@@ -382,7 +560,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (res.ok) {
                 const data = await res.json();
                 createForm.reset();
-                alert(` Client '${data.name}' registered!\nUsername: ${data.username}\nAPI Key: ${data.api_key}\n\nShare the login username (above) with your client. Do NOT share the API key.`);
+                showSuccessToast(`Client '${data.name}' registered successfully!`);
+                alert(`IMPORTANT REGISTRATION INFO:\n\nClient '${data.name}' registered!\nUsername: ${data.username}\nAPI Key: ${data.api_key}\n\nShare the login username (above) with your client. Do NOT share the API key.`);
                 await loadAllTenants();
             } else {
                 const err = await res.json();
@@ -395,28 +574,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    window.deactivateTenant = async (id) => {
-        if (!confirm('Are you sure you want to deactivate this client?')) return;
-        try {
-            const res = await fetch(`${API_BASE}/admin/tenant/${id}`, { method: 'DELETE' });
-            if (res.ok) await loadAllTenants();
-            else alert('Failed to deactivate tenant');
-        } catch (err) { alert('Connection error'); }
+    window.deactivateTenant = (id) => {
+        showConfirmModal('Are you sure you want to deactivate this client?', async () => {
+            try {
+                const res = await fetch(`${API_BASE}/admin/tenant/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showSuccessToast('Client deactivated successfully.');
+                    await loadAllTenants();
+                } else alert('Failed to deactivate tenant');
+            } catch (err) { alert('Connection error'); }
+        });
     };
 
-    window.deleteTenantHard = async (id) => {
+    window.deleteTenantHard = (id) => {
         const confirmMsg = "WARNING: This action is irreversible. All client configuration, chatbots, and historical data will be permanently deleted. Are you absolutely sure?";
-        if (!confirm(confirmMsg)) return;
-        try {
-            const res = await fetch(`${API_BASE}/admin/tenant/${id}/hard-delete`, { method: 'DELETE' });
-            if (res.ok) {
-                alert('Client successfully deleted.');
-                await loadAllTenants();
-            } else {
-                const data = await res.json();
-                alert(`Failed to delete tenant: ${data.detail || 'Unknown error'}`);
-            }
-        } catch (err) { alert('Connection error'); }
+        showConfirmModal(confirmMsg, async () => {
+            try {
+                const res = await fetch(`${API_BASE}/admin/tenant/${id}/hard-delete`, { method: 'DELETE' });
+                if (res.ok) {
+                    showSuccessToast('Client successfully deleted.');
+                    await loadAllTenants();
+                } else {
+                    const data = await res.json();
+                    alert(`Failed to delete tenant: ${data.detail || 'Unknown error'}`);
+                }
+            } catch (err) { alert('Connection error'); }
+        });
     };
 
     // --- Identity ---
@@ -449,6 +632,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('profile-social-tw').value = p.social_twitter || '';
                 document.getElementById('profile-social-ig').value = p.social_instagram || '';
                 
+                document.getElementById('profile-chatbot-greeting').value = p.chatbot_greeting_message || '';
+                document.getElementById('profile-chatbot-prompt').value = p.chatbot_system_prompt || '';
+
                 const logoB64 = document.getElementById('profile-logo-b64');
                 const logoPreview = document.getElementById('logo-preview');
                 const logoPlaceholder = document.getElementById('logo-placeholder');
@@ -607,6 +793,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     social_linkedin: document.getElementById('profile-social-li').value,
                     social_twitter: document.getElementById('profile-social-tw').value,
                     social_instagram: document.getElementById('profile-social-ig').value,
+                    chatbot_greeting_message: document.getElementById('profile-chatbot-greeting').value,
+                    chatbot_system_prompt: document.getElementById('profile-chatbot-prompt').value,
                     logo_url: document.getElementById('profile-logo-b64').value
                 })
             });

@@ -24,6 +24,8 @@
 
         let botLogoB64 = null;
 
+        let customGreeting = 'Connected to secure chat. How can we help?';
+
         // Fetch company profile to update chat title AND the Demo Page
         fetch(`${API_BASE}/admin/profile?tenant_id=${tenantId}`)
             .then(res => res.json())
@@ -31,6 +33,10 @@
                 const companyName = (data && data.company_name) ? data.company_name : tenantId;
                 if (titleEl) titleEl.textContent = companyName + " Support";
                 
+                if (data && data.chatbot_greeting_message) {
+                    customGreeting = data.chatbot_greeting_message;
+                }
+
                 if (data && data.logo_url) {
                     botLogoB64 = data.logo_url;
                     const headerAvatar = document.getElementById('cb-header-avatar');
@@ -48,13 +54,16 @@
             .catch(e => console.error("Could not load company profile:", e));
 
         let isOpen = false;
+        let chatEnded = false;
+
+        const endChatBtn = document.getElementById('cb-end-chat-btn');
 
         toggleBtn.addEventListener('click', () => {
             isOpen = true;
             renderView();
             // initialize if first time
             if (msgsArea.querySelectorAll('.cb-msg:not(.cb-system)').length === 0) {
-                appendMsg('system', 'Connected to secure chat. How can we help?');
+                appendMsg('system', customGreeting);
             }
             // focus input
             setTimeout(() => cbInput.focus(), 100);
@@ -78,12 +87,15 @@
 
         cbForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (chatEnded) return;
             const text = cbInput.value.trim();
             if (!text) return;
 
             appendMsg('user', text);
             cbInput.value = '';
             
+            if (endChatBtn) endChatBtn.style.display = 'block';
+
             const typingId = showTyping();
             
             try {
@@ -113,6 +125,72 @@
                 appendMsg('system', 'Connection failed. Please try again later.');
             }
         });
+
+        // Handle End Chat
+        if (endChatBtn) {
+            endChatBtn.addEventListener('click', () => {
+                chatEnded = true;
+                endChatBtn.style.display = 'none';
+                cbInput.disabled = true;
+                sendBtn.disabled = true;
+                showFeedbackUI();
+            });
+        }
+
+        function showFeedbackUI() {
+            const container = document.createElement('div');
+            container.className = 'cb-msg-container';
+            container.innerHTML = `
+                <div class="cb-msg-wrapper cb-wrapper-system" style="width:100%;">
+                    <div class="cb-msg cb-system" style="background:#fefce8;border:1px solid #fef08a;color:#854d0e;width:100%;">
+                        <div style="font-weight:600;margin-bottom:0.5rem;text-align:center;">Chat Ended. Rate your experience!</div>
+                        <div id="cb-star-rating" style="display:flex;justify-content:center;gap:0.5rem;font-size:1.5rem;cursor:pointer;margin-bottom:0.5rem;">
+                            <span data-val="1">☆</span><span data-val="2">☆</span><span data-val="3">☆</span><span data-val="4">☆</span><span data-val="5">☆</span>
+                        </div>
+                        <textarea id="cb-fb-comment" placeholder="Any comments?" style="width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:4px;padding:0.4rem;font-size:0.8rem;margin-bottom:0.5rem;font-family:inherit;"></textarea>
+                        <button id="cb-fb-submit" style="width:100%;padding:0.4rem;background:#ca8a04;color:white;border:none;border-radius:4px;font-weight:600;cursor:pointer;">Submit Feedback</button>
+                    </div>
+                </div>
+            `;
+            msgsArea.appendChild(container);
+            scrollToBottom();
+
+            let rating = 0;
+            const stars = container.querySelectorAll('#cb-star-rating span');
+            stars.forEach(star => {
+                star.addEventListener('click', () => {
+                    rating = parseInt(star.dataset.val);
+                    stars.forEach(s => {
+                        s.textContent = parseInt(s.dataset.val) <= rating ? '★' : '☆';
+                        s.style.color = parseInt(s.dataset.val) <= rating ? '#ca8a04' : '';
+                    });
+                });
+            });
+
+            container.querySelector('#cb-fb-submit').addEventListener('click', async (e) => {
+                const btn = e.target;
+                if (rating === 0) return alert('Please select a star rating.');
+                btn.disabled = true;
+                btn.textContent = 'Submitting...';
+                
+                try {
+                    await fetch(`${API_BASE}/chat/feedback`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            tenant_id: tenantId,
+                            session_id: sessionId,
+                            rating: rating,
+                            comment: container.querySelector('#cb-fb-comment').value.trim()
+                        })
+                    });
+                    container.innerHTML = '<div class="cb-msg-wrapper cb-wrapper-system" style="width:100%;"><div class="cb-msg cb-system">Thank you for your feedback!</div></div>';
+                } catch(e) {
+                    btn.disabled = false;
+                    btn.textContent = 'Retry';
+                }
+            });
+        }
 
         function getBotIconHTML() {
             if (botLogoB64) {

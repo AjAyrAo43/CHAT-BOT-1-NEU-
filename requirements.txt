@@ -15,3 +15,7 @@ psycopg2-binary
 openpyxl
 PyPDF2
 python-multipart
+python-docx
+httpx
+beautifulsoup4
+apscheduler

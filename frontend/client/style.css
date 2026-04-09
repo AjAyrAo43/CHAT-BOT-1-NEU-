@@ -278,13 +278,31 @@ h1, h2, h3 { font-weight: 500; margin-bottom: 0.5em; }
 .card.no-pad { padding: 0; }
 .card.bg-light { background: #fafafa; }
 
-.table-responsive { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; text-align: left; }
+.table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.875rem; text-align: left; white-space: nowrap; }
 th, td { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); }
 th { color: var(--text-muted); font-weight: 500; background: #fafafa; }
 tr:last-child td { border-bottom: none; }
 
 .empty-state { padding: 3rem; text-align: center; color: var(--text-muted); font-size: 0.875rem; }
+
+/* Toast Notification */
+.toast-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #10b981;
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9999;
+    animation: slideIn 0.3s ease;
+}
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
 
 /* Bar Chart columns styling */
 .bar-col {

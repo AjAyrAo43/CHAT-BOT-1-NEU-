@@ -41,6 +41,7 @@ class Plan(CentralBase):
     faqs_limit = Column(Integer, default=20)
     export_enabled = Column(Boolean, default=False)
     languages = Column(String, default="en") # comma separated or "all"
+    default_trial_days = Column(Integer, default=14)
 
 class CentralTenant(CentralBase):
     __tablename__ = "tenants"
@@ -51,6 +52,7 @@ class CentralTenant(CentralBase):
     api_key = Column(String, default=lambda: str(uuid.uuid4()))
     admin_password_hash = Column(String)
     is_active = Column(Boolean, default=True)
+    is_demo_account = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     subscription_end_date = Column(DateTime, default=lambda: datetime.datetime.utcnow() + datetime.timedelta(days=14))
     
@@ -123,7 +125,8 @@ def get_all_plans() -> list:
             "docs_limit": p.docs_limit,
             "faqs_limit": p.faqs_limit,
             "export_enabled": p.export_enabled,
-            "languages": p.languages
+            "languages": p.languages,
+            "default_trial_days": getattr(p, "default_trial_days", 14)
         } for p in plans]
     finally:
         session.close()
@@ -142,7 +145,8 @@ def create_plan(plan_data: dict) -> dict:
             docs_limit=plan_data.get("docs_limit", 5),
             faqs_limit=plan_data.get("faqs_limit", 20),
             export_enabled=plan_data.get("export_enabled", False),
-            languages=plan_data.get("languages", "en")
+            languages=plan_data.get("languages", "en"),
+            default_trial_days=plan_data.get("default_trial_days", 14)
         )
         session.add(new_plan)
         session.commit()
@@ -150,7 +154,8 @@ def create_plan(plan_data: dict) -> dict:
         return {
             "id": new_plan.id, "name": new_plan.name, "price_inr": new_plan.price_inr,
             "messages_per_month": new_plan.messages_per_month, "docs_limit": new_plan.docs_limit,
-            "faqs_limit": new_plan.faqs_limit, "export_enabled": new_plan.export_enabled, "languages": new_plan.languages
+            "faqs_limit": new_plan.faqs_limit, "export_enabled": new_plan.export_enabled, 
+            "languages": new_plan.languages, "default_trial_days": new_plan.default_trial_days
         }
     finally:
         session.close()
@@ -174,13 +179,15 @@ def update_plan(plan_id: str, plan_data: dict) -> dict:
         plan.faqs_limit = plan_data.get("faqs_limit", plan.faqs_limit)
         plan.export_enabled = plan_data.get("export_enabled", plan.export_enabled)
         plan.languages = plan_data.get("languages", plan.languages)
+        plan.default_trial_days = plan_data.get("default_trial_days", getattr(plan, "default_trial_days", 14))
         
         session.commit()
         session.refresh(plan)
         return {
             "id": plan.id, "name": plan.name, "price_inr": plan.price_inr,
             "messages_per_month": plan.messages_per_month, "docs_limit": plan.docs_limit,
-            "faqs_limit": plan.faqs_limit, "export_enabled": plan.export_enabled, "languages": plan.languages
+            "faqs_limit": plan.faqs_limit, "export_enabled": plan.export_enabled, 
+            "languages": plan.languages, "default_trial_days": plan.default_trial_days
         }
     finally:
         session.close()
@@ -233,6 +240,8 @@ def register_tenant(name: str, db_url: str, admin_password: str = "admin", notif
         password_hash = bcrypt.hashpw(admin_password.encode(), bcrypt.gensalt()).decode()
         username = _generate_username(name, session)
 
+        trial_days = getattr(starter_plan, "default_trial_days", 14)
+
         new_tenant = CentralTenant(
             id=str(uuid.uuid4()),
             name=name,
@@ -240,7 +249,8 @@ def register_tenant(name: str, db_url: str, admin_password: str = "admin", notif
             db_url=db_url,
             admin_password_hash=password_hash,
             notification_email=notification_email,
-            current_plan_id=starter_plan.id
+            current_plan_id=starter_plan.id,
+            subscription_end_date=datetime.datetime.utcnow() + datetime.timedelta(days=trial_days)
         )
         session.add(new_tenant)
         session.commit()
@@ -273,6 +283,74 @@ def register_tenant(name: str, db_url: str, admin_password: str = "admin", notif
     finally:
         session.close()
 
+def create_demo_tenant(name: str, db_url: str) -> dict:
+    """Create a read-only demo tenant with prefilled data."""
+    session = _get_central_session()
+    try:
+        if session.query(CentralTenant).filter(CentralTenant.name == name).first():
+            raise ValueError(f"Tenant '{name}' already exists.")
+            
+        starter_plan = session.query(Plan).filter(Plan.name == "Starter Plan (₹499/mo)").first()
+        if not starter_plan:
+             starter_plan = Plan(name="Starter Plan (₹499/mo)", price_inr=499.0, messages_per_month=1000, docs_limit=5, faqs_limit=20, export_enabled=False, languages="en")
+             session.add(starter_plan)
+             session.commit()
+             session.refresh(starter_plan)
+             
+        password_hash = bcrypt.hashpw("admin".encode(), bcrypt.gensalt()).decode()
+        username = _generate_username(name, session)
+
+        new_tenant = CentralTenant(
+            id=str(uuid.uuid4()),
+            name=name,
+            username=username,
+            db_url=db_url,
+            admin_password_hash=password_hash,
+            is_demo_account=True,
+            current_plan_id=starter_plan.id,
+            subscription_end_date=datetime.datetime.utcnow() + datetime.timedelta(days=3650) # 10 years
+        )
+        session.add(new_tenant)
+        session.commit()
+        session.refresh(new_tenant)
+        _invalidate_tenant_cache()
+
+        init_tenant_db(db_url)
+        
+        # Populate demo info
+        tenant_session = get_tenant_session(new_tenant.id)
+        try:
+            profile = BusinessProfile(
+                id="default",
+                company_name=name,
+                industry="Demo",
+                business_description="This is a read-only demo account.",
+                chatbot_greeting_message="👋 Welcome to our Demo! I am a read-only bot here to answer your questions.",
+                chatbot_system_prompt="You are a demo bot. Do not make up answers. Only answer based on demo knowledge."
+            )
+            tenant_session.add(profile)
+            
+            # Dummy FAQ
+            faq1 = FAQ(question="How much does this cost?", answer="Our pricing starts at ₹499/month.", intent="pricing")
+            faq2 = FAQ(question="Can I export data?", answer="Yes, on the Pro plan you can export data.", intent="information")
+            tenant_session.add(faq1)
+            tenant_session.add(faq2)
+            
+            # Dummy Doc
+            doc1 = KnowledgeDocument(filename="welcome.txt", content="Welcome to the Multi-Tenant Platform Demo. We specialize in AI chat solutions.", file_type="text")
+            tenant_session.add(doc1)
+            
+            tenant_session.commit()
+        except Exception as e:
+            tenant_session.rollback()
+            print(f"Failed to populate demo tenant: {e}")
+        finally:
+            tenant_session.close()
+
+        return _tenant_to_dict(new_tenant, plan_name=starter_plan.name)
+    finally:
+        session.close()
+
 def _tenant_to_dict(tenant: CentralTenant, plan_name: str = None) -> dict:
     if not tenant: return None
     # Accept plan_name to avoid lazy-loading the relationship per tenant
@@ -286,16 +364,17 @@ def _tenant_to_dict(tenant: CentralTenant, plan_name: str = None) -> dict:
         "api_key": tenant.api_key,
         "admin_password_hash": tenant.admin_password_hash,
         "is_active": tenant.is_active,
+        "is_demo_account": getattr(tenant, "is_demo_account", False),
         "created_at": str(tenant.created_at),
         "subscription_end_date": str(tenant.subscription_end_date),
         "notification_email": tenant.notification_email,
         "current_plan": plan_name
     }
 
-def get_all_tenants() -> list:
+def get_all_tenants(use_cache: bool = True) -> list:
     """Get all registered tenants — cached for 30 seconds."""
     global _tenant_cache_data, _tenant_cache_time
-    if _tenant_cache_data is not None and (datetime.datetime.utcnow().timestamp() - _tenant_cache_time) < _TENANT_CACHE_TTL:
+    if use_cache and _tenant_cache_data is not None and (datetime.datetime.utcnow().timestamp() - _tenant_cache_time) < _TENANT_CACHE_TTL:
         return _tenant_cache_data
     session = _get_central_session()
     try:
@@ -578,6 +657,9 @@ class BusinessProfile(TenantBase):
     social_instagram = Column(String, default="")
     
     logo_url = Column(String, default="")
+    chatbot_greeting_message = Column(Text, default="Hi! How can I help you today?")
+    chatbot_system_prompt = Column(Text, default="You are a helpful customer support assistant.")
+    
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
 
@@ -592,6 +674,14 @@ class ChatLog(TenantBase):
     is_resolved = Column(Boolean, default=False)
     language = Column(String, default="en")
     user_ip = Column(String)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class ChatFeedback(TenantBase):
+    __tablename__ = "chat_feedback"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    session_id = Column(String, index=True, unique=True)
+    rating = Column(Integer)  # 1 to 5 scale
+    comment = Column(Text)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
