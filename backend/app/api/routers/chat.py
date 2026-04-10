@@ -97,7 +97,7 @@ async def chat_endpoint(
             day=1, hour=0, minute=0, second=0, microsecond=0
         )
         monthly_messages = (
-            db.query(ChatLog).filter(ChatLog.created_at >= first_day_of_month).count()
+            db.query(ChatLog.id).filter(ChatLog.created_at >= first_day_of_month).count()
         )
         if monthly_messages >= limits.get("messages_per_month", 1000):
             return ChatResponse(
@@ -202,6 +202,11 @@ async def chat_endpoint(
     except HTTPException:
         raise
     except Exception as e:
+        if db:
+            try:
+                db.rollback()
+            except Exception:
+                pass
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if db:
@@ -237,6 +242,55 @@ async def chat_feedback_endpoint(
         db.commit()
         return {"status": "success", "message": "Feedback recorded."}
     except Exception as e:
+        if db:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if db:
+            db.close()
+
+
+@router.get("/chat/config")
+@limiter.limit("20/minute")
+async def chat_config_endpoint(
+    request: Request,
+    tenant_id: str
+):
+    """
+    Public endpoint to fetch widget UI configuration (company name, logo, greeting).
+    No authentication required as this is needed by the public facing widget.
+    """
+    db = None
+    try:
+        db = get_tenant_session(tenant_id)
+        from ....database import BusinessProfile
+        profile = db.query(BusinessProfile).first()
+        
+        if profile:
+            return {
+                "company_name": profile.company_name,
+                "logo_url": profile.logo_url,
+                "chatbot_greeting_message": profile.chatbot_greeting_message,
+                "brand_color_primary": profile.brand_color_primary,
+                "brand_color_secondary": profile.brand_color_secondary
+            }
+        else:
+            return {
+                "company_name": "",
+                "logo_url": "",
+                "chatbot_greeting_message": "",
+                "brand_color_primary": "",
+                "brand_color_secondary": ""
+            }
+    except Exception as e:
+        if db:
+            try:
+                db.rollback()
+            except Exception:
+                pass
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if db:

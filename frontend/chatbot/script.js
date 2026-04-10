@@ -1,11 +1,11 @@
 // Widget specific isolated JS
-(function() {
+(function () {
     const API_BASE = 'https://chat-bot-1-neu-1.onrender.com';
-    
+
     // Get tenant ID from URL for testing, or use a default
     const urlParams = new URLSearchParams(window.location.search);
     const tenantId = urlParams.get('tenant_id') || 'test_tenant';
-    
+
     // Generate a simple session ID
     if (!sessionStorage.getItem('cb_session_id')) {
         sessionStorage.setItem('cb_session_id', 'sess_' + Math.random().toString(36).substring(2, 9));
@@ -27,12 +27,12 @@
         let customGreeting = 'Connected to secure chat. How can we help?';
 
         // Fetch company profile to update chat title AND the Demo Page
-        fetch(`${API_BASE}/admin/profile?tenant_id=${tenantId}`)
+        fetch(`${API_BASE}/chat/config?tenant_id=${tenantId}`)
             .then(res => res.json())
             .then(data => {
                 const companyName = (data && data.company_name) ? data.company_name : tenantId;
                 if (titleEl) titleEl.textContent = companyName + " Support";
-                
+
                 if (data && data.chatbot_greeting_message) {
                     customGreeting = data.chatbot_greeting_message;
                 }
@@ -44,7 +44,7 @@
                         headerAvatar.innerHTML = `<img src="${botLogoB64}" alt="Bot Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
                     }
                 }
-                
+
                 // Update Demo page elements if they exist
                 const demoTitle = document.getElementById('demo-title');
                 if (demoTitle) {
@@ -78,7 +78,7 @@
             if (isOpen) {
                 cbWindow.style.display = 'flex';
                 // optional: hide toggle button on mobile
-                if(window.innerWidth <= 480) toggleBtn.style.display = 'none';
+                if (window.innerWidth <= 480) toggleBtn.style.display = 'none';
             } else {
                 cbWindow.style.display = 'none';
                 toggleBtn.style.display = 'flex';
@@ -93,11 +93,11 @@
 
             appendMsg('user', text);
             cbInput.value = '';
-            
+
             if (endChatBtn) endChatBtn.style.display = 'block';
 
             const typingId = showTyping();
-            
+
             try {
                 const res = await fetch(`${API_BASE}/chat`, {
                     method: 'POST',
@@ -172,7 +172,7 @@
                 if (rating === 0) return alert('Please select a star rating.');
                 btn.disabled = true;
                 btn.textContent = 'Submitting...';
-                
+
                 try {
                     await fetch(`${API_BASE}/chat/feedback`, {
                         method: 'POST',
@@ -185,7 +185,7 @@
                         })
                     });
                     container.innerHTML = '<div class="cb-msg-wrapper cb-wrapper-system" style="width:100%;"><div class="cb-msg cb-system">Thank you for your feedback!</div></div>';
-                } catch(e) {
+                } catch (e) {
                     btn.disabled = false;
                     btn.textContent = 'Retry';
                 }
@@ -203,21 +203,21 @@
             const now = new Date();
             const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             let container = msgsArea;
-            
+
             const msgWrapper = document.createElement('div');
             msgWrapper.className = `cb-msg-wrapper cb-wrapper-${sender}`;
-            
+
             // For bot messages, wrap in a container to hold avatar + bubble
             if (sender === 'bot') {
                 container = document.createElement('div');
                 container.className = 'cb-msg-container';
-                
+
                 // Add tiny bot avatar next to bubble
                 const avatar = document.createElement('div');
                 avatar.className = 'cb-bot-icon';
                 avatar.innerHTML = getBotIconHTML();
                 container.appendChild(avatar);
-                
+
                 container.appendChild(msgWrapper);
                 msgsArea.appendChild(container);
             } else if (sender === 'user') {
@@ -231,7 +231,7 @@
 
             const div = document.createElement('div');
             div.className = `cb-msg cb-${sender}`;
-            
+
             if (sender === 'bot') {
                 if (typeof marked !== 'undefined') {
                     div.innerHTML = marked.parse(text);
@@ -241,38 +241,38 @@
             } else {
                 div.textContent = text;
             }
-            
+
             msgWrapper.appendChild(div);
-            
+
             if (sender !== 'system') {
                 const timeDiv = document.createElement('div');
                 timeDiv.className = 'cb-msg-time';
                 timeDiv.textContent = timeString;
                 msgWrapper.appendChild(timeDiv);
             }
-            
+
             scrollToBottom();
         }
 
         function showTyping() {
             const id = 'typing-' + Date.now();
-            
+
             const container = document.createElement('div');
             container.className = 'cb-msg-container';
             container.id = id;
-            
+
             const avatar = document.createElement('div');
             avatar.className = 'cb-bot-icon';
             avatar.innerHTML = getBotIconHTML();
             container.appendChild(avatar);
-            
+
             const msgWrapper = document.createElement('div');
             msgWrapper.className = 'cb-msg-wrapper cb-wrapper-bot';
 
             const div = document.createElement('div');
             div.className = 'cb-msg cb-bot';
             div.innerHTML = `<div class="cb-typing"><div class="cb-dot"></div><div class="cb-dot"></div><div class="cb-dot"></div></div>`;
-            
+
             msgWrapper.appendChild(div);
             container.appendChild(msgWrapper);
 

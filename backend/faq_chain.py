@@ -13,9 +13,9 @@ def get_faq_context(intent: str, tenant_id: str, db=None) -> str:
     if db is None:
         db = get_tenant_session(tenant_id)
         should_close = True
-    
+
     faqs = db.query(FAQ).filter(FAQ.intent == intent, FAQ.is_active == True).all()
-    
+
     if should_close:
         db.close()
 
@@ -34,9 +34,9 @@ def get_document_context(tenant_id: str, db=None, max_chars: int = 5000) -> str:
     if db is None:
         db = get_tenant_session(tenant_id)
         should_close = True
-        
+
     docs = db.query(KnowledgeDocument).filter(KnowledgeDocument.is_active == True).all()
-    
+
     if should_close:
         db.close()
 
@@ -45,11 +45,11 @@ def get_document_context(tenant_id: str, db=None, max_chars: int = 5000) -> str:
 
     context = "### UPLOADED KNOWLEDGE BASE DOCUMENTS:\n"
     current_length = len(context)
-    
+
     for doc in docs:
         doc_header = f"--- Document: {doc.filename} ---\n"
         doc_content = doc.content
-        
+
         # If adding this doc exceeds max_chars, truncate it
         if current_length + len(doc_header) + len(doc_content) > max_chars:
             remaining = max_chars - current_length - len(doc_header)
@@ -59,7 +59,7 @@ def get_document_context(tenant_id: str, db=None, max_chars: int = 5000) -> str:
         else:
             context += doc_header + doc_content + "\n\n"
             current_length = len(context)
-            
+
     return context
 
 
@@ -69,13 +69,22 @@ def get_answer(question: str, intent: str, tenant_id: str, language: str = "en",
     if db is None:
         db = get_tenant_session(tenant_id)
         should_close = True
-        
+
     try:
-        profile = db.query(BusinessProfile).first()
-        
-        company = profile.company_name if profile else "the company"
-        industry = profile.industry if profile else "general services"
-        desc = profile.business_description if profile else ""
+        # Query only the columns used by this flow to tolerate older tenant schemas.
+        try:
+            with db.begin_nested():
+                profile = db.query(
+                    BusinessProfile.company_name,
+                    BusinessProfile.industry,
+                    BusinessProfile.business_description,
+                ).first()
+        except Exception:
+            profile = None
+
+        company = profile[0] if profile and profile[0] else "the company"
+        industry = profile[1] if profile and profile[1] else "general services"
+        desc = profile[2] if profile and profile[2] else ""
 
         # Map language codes to full names
         lang_map = {
@@ -89,7 +98,7 @@ def get_answer(question: str, intent: str, tenant_id: str, language: str = "en",
 
         # Use llama-3.1-8b-instant for much faster response times
         llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0.5)
-        
+
         # Reuse the existing session for context fetching
         context = get_faq_context(intent, tenant_id, db=db)
         doc_context = get_document_context(tenant_id, db=db, max_chars=8000)

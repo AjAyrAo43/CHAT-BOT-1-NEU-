@@ -19,14 +19,22 @@ def detect_intent(question: str, tenant_id: str = None, db=None) -> str:
             if db is None:
                 db = get_tenant_session(tenant_id)
                 should_close = True
-            
-            profile = db.query(BusinessProfile).first()
+
+            # Query only needed columns to stay resilient to additive schema drift.
+            # Using begin_nested() creates a SAVEPOINT. If the query fails (e.g. missing column),
+            # only the savepoint is rolled back instead of aborting the entire transaction block.
+            try:
+                with db.begin_nested():
+                    profile = db.query(BusinessProfile.company_name, BusinessProfile.industry).first()
+            except Exception:
+                profile = None
+
             if should_close:
                 db.close()
-                
+
             if profile:
-                company = profile.company_name
-                industry = profile.industry
+                company = profile[0]
+                industry = profile[1]
         except Exception:
             pass  # Fallback to defaults if tenant DB not available
 

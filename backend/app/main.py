@@ -13,6 +13,8 @@ No business logic lives here.
 """
 import time
 import traceback
+import asyncio
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -57,7 +59,7 @@ async def startup_initialize_db():
     """
     from ..database import (
         _get_central_engine, CentralBase,
-        TenantBase, _get_tenant_engine, get_all_tenants,
+        migrate_tenant_schema, get_all_tenants,
         migrate_central_schema, migrate_usernames,
     )
 
@@ -72,12 +74,25 @@ async def startup_initialize_db():
 
     try:
         tenants = get_all_tenants()
-        for t in tenants:
+
+        def _migrate_one(t):
             try:
-                engine = _get_tenant_engine(t["db_url"])
-                TenantBase.metadata.create_all(bind=engine)
+                migrate_tenant_schema(t["db_url"])
+                return (t["id"], None)
             except Exception as te:
-                logger.warning(f"Could not migrate tenant {t['id']} DB: {te}")
+                return (t["id"], str(te))
+
+        # Migrate all tenant DBs in parallel (max 8 threads, timeout 60 s total)
+        with ThreadPoolExecutor(max_workers=min(8, max(1, len(tenants)))) as pool:
+            futures = {pool.submit(_migrate_one, t): t for t in tenants}
+            try:
+                for future in as_completed(futures, timeout=60):
+                    tid, err = future.result()
+                    if err:
+                        logger.warning(f"Could not migrate tenant {tid} DB: {err}")
+            except TimeoutError:
+                logger.warning("Tenant DB migration timed out — some DBs may be slow/unreachable.")
+
         logger.info(f"Tenant DB migration complete for {len(tenants)} tenants.")
     except Exception as e:
         logger.warning(f"Could not run tenant DB migrations: {e}")

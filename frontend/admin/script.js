@@ -53,16 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileForm = document.getElementById('profile-form');
     const profileMsg = document.getElementById('profile-msg');
 
-    // Tab: Leads & Chats & Analytics
-    const leadsList = document.getElementById('leads-list');
-    const chatsList = document.getElementById('chats-list');
-    const btnExportCsv = document.getElementById('btn-export-csv');
-    const btnExportExcel = document.getElementById('btn-export-excel');
-
-    // Tab: FAQs
-    const addFaqForm = document.getElementById('add-faq-form');
-    const faqsList = document.getElementById('faqs-list');
-
     // Tab: Plans
     const planForm = document.getElementById('plan-form');
     const plansList = document.getElementById('plans-list');
@@ -280,10 +270,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Load specific tenant data
         if (tabId === 'tab-identity') loadIdentity();
-        if (tabId === 'tab-analytics' || tabId === 'tab-leads' || tabId === 'tab-chats') {
+        if (tabId === 'tab-analytics') {
             loadTenantChatsAndAnalytics();
         }
-        if (tabId === 'tab-faq') loadFaqs();
     }
 
     // Wire up analytics date filter buttons (super admin)
@@ -810,9 +799,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (_chatsLoadedForTenant === selectedTenantId && globalChatsData.length >= 0) {
             const filtered = _filterAdminByDays(globalChatsData, _adminDateFilter);
             renderAnalytics(filtered);
-            renderLeads(globalChatsData);
-            const displayChats = [...globalChatsData].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
-            renderChats(displayChats);
             return;
         }
         try {
@@ -822,7 +808,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 globalChatsData.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
                 _chatsLoadedForTenant = selectedTenantId;
 
-                // Pre-fetch leads
+                // Pre-fetch leads to compute KPIs
                 try {
                     const rL = await fetch(`${API_BASE}/admin/leads?tenant_id=${selectedTenantId}`);
                     if (rL.ok) globalLeadsDataAdmin = await rL.json();
@@ -831,9 +817,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const filtered = _filterAdminByDays(globalChatsData, _adminDateFilter);
                 renderAnalytics(filtered);
-                renderLeads(globalChatsData);
-                const displayChats = [...globalChatsData].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
-                renderChats(displayChats);
             }
         } catch(e) { console.error('Error fetching chats:', e); }
     }
@@ -1004,81 +987,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
-
-    function renderLeads(data) {
-        leadsList.innerHTML = '';
-        const leadsFiles = data.filter(d => d.intent === 'contact');
-        if (leadsFiles.length === 0) { document.getElementById('no-leads').style.display = 'block'; return; }
-        document.getElementById('no-leads').style.display = 'none';
-
-        const leadsDataDisplay = [];
-        leadsFiles.forEach(lead => {
-            const sessionMsgs = data.filter(d => d.session_id === lead.session_id);
-            const prevMsgs = sessionMsgs.filter(d => new Date(d.created_at) < new Date(lead.created_at));
-            let inquiry = "Unknown inquiry";
-            if (prevMsgs.length > 0) inquiry = prevMsgs[prevMsgs.length - 1].question;
-            leadsDataDisplay.push({
-                date: lead.created_at.substring(0, 16).replace('T', ' '),
-                contactInfo: lead.question,
-                inquiry: inquiry,
-                sessionId: lead.session_id.substring(0, 8) + '...'
-            });
-        });
-
-        leadsDataDisplay.reverse().forEach(ld => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="white-space:nowrap"><small>${ld.date}</small></td>
-                <td><strong>${escapeHTML(ld.contactInfo)}</strong></td>
-                <td>${escapeHTML(ld.inquiry)}</td>
-                <td><small style="color:var(--text-muted)">${escapeHTML(ld.sessionId)}</small></td>
-            `;
-            leadsList.appendChild(tr);
-        });
-    }
-
-    function renderChats(chats) {
-        chatsList.innerHTML = '';
-        if (chats.length === 0) {
-            document.getElementById('no-chats').style.display = 'block';
-            btnExportCsv.disabled = true; btnExportExcel.disabled = true;
-            return;
-        }
-        document.getElementById('no-chats').style.display = 'none';
-        btnExportCsv.disabled = false; btnExportExcel.disabled = false;
-
-        chats.forEach(c => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="white-space:nowrap"><small>${c.created_at.substring(0, 16).replace('T', ' ')}</small></td>
-                <td><small style="color:var(--text-muted)">${escapeHTML(c.session_id.substring(0, 8))}...</small></td>
-                <td>${escapeHTML(c.question)}</td>
-                <td><code style="background:#f5f5f5;padding:2px 4px;">${escapeHTML(c.intent)}</code></td>
-                <td><a href="${escapeHTML(c.page_url)}" target="_blank" style="color:#0066cc;text-decoration:none;">Link</a></td>
-            `;
-            chatsList.appendChild(tr);
-        });
-    }
-
-    btnExportCsv.addEventListener('click', () => {
-        if (!globalChatsData || globalChatsData.length === 0) return;
-        let csvContent = "data:text/csv;charset=utf-8,created_at,question,intent,page_url\n";
-        globalChatsData.forEach(r => {
-            csvContent += `${r.created_at},"${r.question.replace(/"/g, '""')}",${r.intent},${r.page_url}\r\n`;
-        });
-        const link = document.createElement("a");
-        link.href = encodeURI(csvContent); link.download = "chat_logs.csv";
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
-    });
-
-    btnExportExcel.addEventListener('click', () => {
-        if (!globalChatsData || globalChatsData.length === 0 || typeof XLSX === 'undefined') return;
-        const exportData = globalChatsData.map(c => ({ created_at: c.created_at, question: c.question, intent: c.intent, page_url: c.page_url }));
-        const worksheet = XLSX.utils.json_to_sheet(exportData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "ChatLogs");
-        XLSX.writeFile(workbook, "chat_logs.xlsx");
-    });
 
 
     // --- Billing & Invoices ---
@@ -1286,58 +1194,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert(data.detail || 'Failed to delete plan');
             }
         } catch(err) { alert('Connection error'); }
-    };
-
-    // --- FAQs ---
-    async function loadFaqs() {
-        if (!selectedTenantId) return;
-        try {
-            const res = await fetch(`${API_BASE}/admin/faqs?tenant_id=${selectedTenantId}`);
-            if (res.ok) {
-                const faqs = await res.json();
-                faqsList.innerHTML = '';
-                if (faqs.length === 0) { document.getElementById('no-faqs').style.display = 'block'; return; }
-                document.getElementById('no-faqs').style.display = 'none';
-
-                faqs.forEach(f => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><strong>${escapeHTML(f.question)}</strong></td>
-                        <td><small>${escapeHTML(f.answer.substring(0, 80))}...</small></td>
-                        <td><code style="background:#f5f5f5;padding:2px 4px;">${escapeHTML(f.intent).toUpperCase()}</code></td>
-                        <td>${f.is_active ? `<button class="btn danger-btn" onclick="deactivateFaq('${f.id}')" style="padding:0.2rem 0.6rem;font-size:0.75rem;">Deactivate</button>` : 'Inactive'}</td>
-                    `;
-                    faqsList.appendChild(tr);
-                });
-            }
-        } catch (err) { console.error(err); }
-    }
-
-    addFaqForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        try {
-            const res = await fetch(`${API_BASE}/admin/faq?tenant_id=${selectedTenantId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    question: document.getElementById('faq-q').value,
-                    answer: document.getElementById('faq-a').value,
-                    intent: document.getElementById('faq-i').value
-                })
-            });
-            if (res.ok) {
-                alert("FAQ Added Successfully!");
-                addFaqForm.reset();
-                loadFaqs();
-            } else alert('Failed to add FAQ');
-        } catch(e) { alert('Connection Error'); }
-    });
-
-    window.deactivateFaq = async (id) => {
-        try {
-            const res = await fetch(`${API_BASE}/admin/faq/${id}?tenant_id=${selectedTenantId}`, { method: 'DELETE' });
-            if(res.ok) loadFaqs();
-        } catch(e) {}
     };
 
 

@@ -754,9 +754,8 @@ def init_tenant_db(db_url: str):
     TenantBase.metadata.create_all(bind=engine)
 
 
-def _ensure_column_if_missing(table_name: str, column_name: str, column_sql: str):
-    """Add a missing column to an existing table (idempotent best-effort migration)."""
-    engine = _get_central_engine()
+def _ensure_column_if_missing_on_engine(engine, table_name: str, column_name: str, column_sql: str):
+    """Add a missing column on a given engine (idempotent best-effort migration)."""
     inspector = inspect(engine)
     table_names = inspector.get_table_names()
     if table_name not in table_names:
@@ -768,6 +767,12 @@ def _ensure_column_if_missing(table_name: str, column_name: str, column_sql: str
 
     with engine.begin() as conn:
         conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_sql}"))
+
+
+def _ensure_column_if_missing(table_name: str, column_name: str, column_sql: str):
+    """Add a missing column to the central DB (idempotent best-effort migration)."""
+    engine = _get_central_engine()
+    _ensure_column_if_missing_on_engine(engine, table_name, column_name, column_sql)
 
 
 def migrate_central_schema():
@@ -801,6 +806,89 @@ def migrate_central_schema():
             conn.execute(text("UPDATE plans SET default_trial_days = 14 WHERE default_trial_days IS NULL"))
     except Exception as e:
         print(f"[migrate_central_schema] Warning: could not backfill migration defaults: {e}")
+
+
+def migrate_tenant_schema(db_url: str):
+    """Bring older tenant DB schemas up to date for additive ORM columns."""
+    engine = _get_tenant_engine(db_url)
+
+    # ── Quick reachability probe ───────────────────────────────────────────
+    # Do ONE cheap ping before running 20+ migration steps. If the DB host is
+    # unreachable (deleted Neon project, DNS failure, etc.), bail out with a
+    # single warning instead of spamming 20+ timeout errors in the log.
+    try:
+        with engine.connect() as probe:
+            probe.execute(text("SELECT 1"))
+    except Exception as probe_err:
+        short_url = db_url[:70] + "..." if len(db_url) > 70 else db_url
+        print(f"[migrate_tenant_schema] Skipping unreachable DB ({short_url}): {probe_err.__class__.__name__}")
+        return
+
+    try:
+        TenantBase.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"[migrate_tenant_schema] Warning: could not create tenant metadata tables: {e}")
+        return
+
+    migration_steps = [
+        # faqs
+        ("faqs", "is_active", "BOOLEAN DEFAULT TRUE"),
+        ("faqs", "updated_at", "TIMESTAMP"),
+        # knowledge_documents
+        ("knowledge_documents", "is_active", "BOOLEAN DEFAULT TRUE"),
+        ("knowledge_documents", "updated_at", "TIMESTAMP"),
+        # business_profile
+        ("business_profile", "website", "VARCHAR DEFAULT ''"),
+        ("business_profile", "support_email", "VARCHAR DEFAULT ''"),
+        ("business_profile", "phone", "VARCHAR DEFAULT ''"),
+        ("business_profile", "contact_person_name", "VARCHAR DEFAULT ''"),
+        ("business_profile", "contact_person_role", "VARCHAR DEFAULT ''"),
+        ("business_profile", "contact_person_email", "VARCHAR DEFAULT ''"),
+        ("business_profile", "contact_person_phone", "VARCHAR DEFAULT ''"),
+        ("business_profile", "address_street", "VARCHAR DEFAULT ''"),
+        ("business_profile", "city", "VARCHAR DEFAULT ''"),
+        ("business_profile", "state", "VARCHAR DEFAULT ''"),
+        ("business_profile", "country", "VARCHAR DEFAULT ''"),
+        ("business_profile", "zip_code", "VARCHAR DEFAULT ''"),
+        ("business_profile", "timezone", "VARCHAR DEFAULT ''"),
+        ("business_profile", "business_hours", "VARCHAR DEFAULT ''"),
+        ("business_profile", "brand_color_primary", "VARCHAR DEFAULT ''"),
+        ("business_profile", "brand_color_secondary", "VARCHAR DEFAULT ''"),
+        ("business_profile", "social_linkedin", "VARCHAR DEFAULT ''"),
+        ("business_profile", "social_twitter", "VARCHAR DEFAULT ''"),
+        ("business_profile", "social_instagram", "VARCHAR DEFAULT ''"),
+        ("business_profile", "updated_at", "TIMESTAMP"),
+        ("business_profile", "logo_url", "TEXT DEFAULT ''"),
+        ("business_profile", "chatbot_greeting_message", "TEXT DEFAULT 'Hi! How can I help you today?'"),
+        ("business_profile", "chatbot_system_prompt", "TEXT DEFAULT 'You are a helpful customer support assistant.'"),
+        # chat_logs_v2
+        ("chat_logs_v2", "page_url", "VARCHAR"),
+        ("chat_logs_v2", "is_resolved", "BOOLEAN DEFAULT FALSE"),
+        ("chat_logs_v2", "language", "VARCHAR DEFAULT 'en'"),
+        ("chat_logs_v2", "user_ip", "VARCHAR"),
+        ("chat_logs_v2", "created_at", "TIMESTAMP"),
+        # leads
+        ("leads", "raw_message", "TEXT DEFAULT ''"),
+        ("leads", "page_url", "VARCHAR DEFAULT ''"),
+        ("leads", "is_notified", "BOOLEAN DEFAULT FALSE"),
+        ("leads", "created_at", "TIMESTAMP"),
+    ]
+
+    for table_name, column_name, column_sql in migration_steps:
+        try:
+            _ensure_column_if_missing_on_engine(engine, table_name, column_name, column_sql)
+        except Exception as e:
+            print(f"[migrate_tenant_schema] Warning: could not ensure {table_name}.{column_name}: {e}")
+
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("UPDATE faqs SET is_active = TRUE WHERE is_active IS NULL"))
+            conn.execute(text("UPDATE knowledge_documents SET is_active = TRUE WHERE is_active IS NULL"))
+            conn.execute(text("UPDATE leads SET is_notified = FALSE WHERE is_notified IS NULL"))
+            conn.execute(text("UPDATE chat_logs_v2 SET language = 'en' WHERE language IS NULL"))
+            conn.execute(text("UPDATE chat_logs_v2 SET is_resolved = FALSE WHERE is_resolved IS NULL"))
+    except Exception as e:
+        print(f"[migrate_tenant_schema] Warning: could not backfill tenant defaults: {e}")
 
 
 def migrate_usernames():

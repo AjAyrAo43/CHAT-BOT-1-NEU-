@@ -780,3 +780,34 @@ FROM tenants LEFT OUTER JOIN plans AS plans_1 ON plans_1.id = tenants.current_pl
 2026-04-09 12:55:03 | WARNING  | Could not migrate tenant a574f011-4bfd-4faa-ba6d-31558fb7e225 DB: (sqlite3.OperationalError) unable to open database file
 (Background on this error at: https://sqlalche.me/e/20/e3q8)
 2026-04-09 12:55:03 | INFO     | Tenant DB migration complete for 3 tenants.
+2026-04-09 14:57:24 | INFO     | Central DB tables initialised.
+2026-04-09 15:03:27 | INFO     | Central DB tables initialised.
+2026-04-09 15:03:59 | INFO     | [REQUEST] tenant=-  GET /favicon.ico  →  404  (9.2 ms)
+2026-04-09 15:04:07 | INFO     | Tenant DB migration complete for 3 tenants.
+2026-04-09 15:16:59 | INFO     | Tenant DB migration complete for 3 tenants.
+2026-04-09 15:19:08 | INFO     | [REQUEST] tenant=ac622586-401c-42df-83b6-4cbe92629237  POST /admin/faq  →  401  (258.8 ms)
+2026-04-09 15:19:28 | INFO     | [REQUEST] tenant=-  POST /chat  →  200  (19631.3 ms)
+2026-04-09 15:19:30 | INFO     | [REQUEST] tenant=ac622586-401c-42df-83b6-4cbe92629237  GET /admin/tenant-info  →  200  (2141.3 ms)
+2026-04-09 15:27:27 | INFO     | Central DB tables initialised.
+2026-04-09 15:28:41 | INFO     | [REQUEST] tenant=-  GET /favicon.ico  →  404  (1.1 ms)
+2026-04-09 15:31:24 | INFO     | [REQUEST] tenant=-  GET /redoc  →  200  (0.8 ms)
+2026-04-09 15:31:25 | INFO     | [REQUEST] tenant=-  GET /openapi.json  →  200  (280.5 ms)
+2026-04-09 15:33:46 | INFO     | Tenant DB migration complete for 4 tenants.
+2026-04-09 15:34:56 | INFO     | Central DB tables initialised.
+2026-04-09 15:40:14 | WARNING  | Could not run tenant DB migrations: 2 (of 4) futures unfinished
+2026-04-09 15:46:34 | INFO     | Central DB tables initialised.
+2026-04-09 15:51:27 | INFO     | Central DB tables initialised.
+2026-04-09 15:52:30 | WARNING  | Tenant DB migration timed out — some DBs may be slow/unreachable.
+2026-04-09 15:54:48 | INFO     | Tenant DB migration complete for 4 tenants.
+2026-04-09 15:55:11 | INFO     | [REQUEST] tenant=-  GET /favicon.ico  →  404  (0.9 ms)
+2026-04-09 15:55:19 | INFO     | [REQUEST] tenant=-  GET /docs  →  200  (0.6 ms)
+2026-04-09 15:55:20 | INFO     | [REQUEST] tenant=-  GET /openapi.json  →  200  (442.3 ms)
+2026-04-10 14:08:02 | INFO     | Central DB tables initialised.
+2026-04-10 14:09:04 | WARNING  | Tenant DB migration timed out — some DBs may be slow/unreachable.
+2026-04-10 14:10:50 | INFO     | Tenant DB migration complete for 4 tenants.
+2026-04-10 14:11:47 | INFO     | [REQUEST] tenant=-  GET /favicon.ico  →  404  (0.9 ms)
+2026-04-10 14:12:38 | INFO     | [REQUEST] tenant=-  GET /redoc  →  200  (0.7 ms)
+2026-04-10 14:12:39 | INFO     | [REQUEST] tenant=-  GET /openapi.json  →  200  (392.1 ms)
+2026-04-10 14:22:10 | INFO     | Central DB tables initialised.
+2026-04-10 14:23:12 | WARNING  | Tenant DB migration timed out — some DBs may be slow/unreachable.
+2026-04-10 14:25:28 | INFO     | Tenant DB migration complete for 5 tenants.

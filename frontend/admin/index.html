@@ -58,9 +58,6 @@
                         <div class="nav-group-title">Client Configs</div>
                         <button class="nav-btn" data-target="tab-identity">Business Identity</button>
                         <button class="nav-btn" data-target="tab-analytics">30-Day Summary</button>
-                        <button class="nav-btn" data-target="tab-leads">Sales Leads</button>
-                        <button class="nav-btn" data-target="tab-chats">Chat Logs</button>
-                        <button class="nav-btn" data-target="tab-faq">FAQ Management</button>
                     </nav>
                     
                     <div class="sidebar-footer">
@@ -572,117 +569,6 @@
                         </div>
                     </section>
 
-                    <!-- Tab: Sales Leads -->
-                    <section id="tab-leads" class="content-section">
-                        <header class="section-header">
-                            <h2> Sales Leads Dashboard</h2>
-                            <p style="color:var(--text-muted);">These users provided their contact details for follow-up.</p>
-                        </header>
-                        <div id="leads-require-tenant" class="empty-state">Click <strong>Manage →</strong> on a client row in Registered Clients to view leads.</div>
-                        <div id="leads-content" style="display:none;">
-                            <div class="card no-pad">
-                                <div class="table-responsive">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>Contact Info (Decrypted)</th>
-                                                <th>Original Inquiry</th>
-                                                <th>Session ID</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="leads-list"></tbody>
-                                    </table>
-                                </div>
-                                <div id="no-leads" class="empty-state">No sales leads captured yet.</div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Tab: Chat Logs -->
-                    <section id="tab-chats" class="content-section">
-                        <header class="section-header flex-header">
-                            <h2>Decrypted Chat History</h2>
-                            <div style="display: flex; gap: 10px;">
-                                <button id="btn-export-csv" class="btn outline-btn" disabled> Download CSV</button>
-                                <button id="btn-export-excel" class="btn outline-btn" style="color:#107c41; border-color:#107c41;" disabled> Download Excel</button>
-                            </div>
-                        </header>
-                        <div id="chats-require-tenant" class="empty-state">Click <strong>Manage →</strong> on a client row in Registered Clients to view chats.</div>
-                        <div id="chats-content" style="display:none;">
-                            <div class="card no-pad">
-                                <div class="table-responsive">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>Session ID</th>
-                                                <th>Question</th>
-                                                <th>Intent</th>
-                                                <th>URL</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="chats-list"></tbody>
-                                    </table>
-                                </div>
-                                <div id="no-chats" class="empty-state">No logs found.</div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Tab: FAQ Management -->
-                    <section id="tab-faq" class="content-section">
-                        <header class="section-header flex-header">
-                            <h2>Manage FAQs</h2>
-                        </header>
-                        <div id="faq-require-tenant" class="empty-state">Click <strong>Manage →</strong> on a client row in Registered Clients to manage FAQs.</div>
-                        
-                        <div id="faq-content" style="display:none;">
-                            <div class="card bg-light">
-                                <h3>Add New FAQ</h3>
-                                <form id="add-faq-form">
-                                    <div class="input-group">
-                                        <label for="faq-q">Question</label>
-                                        <input type="text" id="faq-q" required>
-                                    </div>
-                                    <div class="input-group">
-                                        <label for="faq-a">Answer</label>
-                                        <textarea id="faq-a" rows="3" required></textarea>
-                                    </div>
-                                    <div class="input-group">
-                                        <label for="faq-i">Intent Category</label>
-                                        <select id="faq-i" required>
-                                            <option value="pricing">Pricing</option>
-                                            <option value="support">Support</option>
-                                            <option value="information">Information</option>
-                                            <option value="service_inquiry">Service Inquiry</option>
-                                            <option value="contact">Contact</option>
-                                            <option value="eligibility">Eligibility</option>
-                                        </select>
-                                    </div>
-                                    <button type="submit" class="btn primary-btn">Add FAQ</button>
-                                </form>
-                            </div>
-
-                            <div class="card no-pad" style="margin-top: 2rem;">
-                                <div style="padding:1.5rem; border-bottom:1px solid var(--border-color);">
-                                    <h3>Existing FAQs</h3>
-                                </div>
-                                <div class="table-responsive">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Question</th>
-                                                <th>Answer</th>
-                                                <th>Intent</th>
-                                                <th>Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="faqs-list"></tbody>
-                                    </table>
-                                </div>
-                                <div id="no-faqs" class="empty-state">No FAQs found.</div>
-                            </div>
                         </div>
                     </section>
 

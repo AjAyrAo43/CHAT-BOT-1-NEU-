@@ -4,7 +4,7 @@ app/core/security.py
 FastAPI dependency that validates the X-Auth-Token header and yields
 the correct tenant DB session.  All protected endpoints depend on this.
 """
-from typing import Optional
+from typing import Iterator, Optional
 
 from fastapi import Depends, HTTPException, Query, Header, Request
 from sqlalchemy.orm import Session
@@ -16,7 +16,7 @@ def get_tenant_db(
     request: Request,
     tenant_id: str = Query(..., description="The tenant/client ID"),
     x_auth_token: Optional[str] = Header(None, alias="X-Auth-Token"),
-) -> Session:
+) -> Iterator[Session]:
     """Dependency that returns a session to the correct tenant's database.
 
     - Super-admin token ("super-admin-secret") bypasses per-tenant auth.
@@ -35,7 +35,7 @@ def get_tenant_db(
                 status_code=403,
                 detail="Invalid token or unauthorized for this tenant",
             )
-            
+
         # Demo account read-only enforcement
         if tenant.get("is_demo_account") and request.method in ["POST", "PUT", "DELETE"]:
             # Allow chat endpoints since they need to POST messages
@@ -49,5 +49,11 @@ def get_tenant_db(
 
     try:
         yield db
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         db.close()

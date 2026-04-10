@@ -2,7 +2,7 @@
  * Chatbot Widget Embed Script
  * consolidated for easy client integration
  */
-(function() {
+(function () {
     const scriptTag = document.currentScript;
     const tenantId = scriptTag ? scriptTag.getAttribute('data-tenant-id') || 'test_tenant' : 'test_tenant';
     const API_BASE = 'https://chat-bot-1-neu-1.onrender.com';
@@ -164,7 +164,7 @@
     let sessionId = sessionStorage.getItem('cb_session_id') || 'sess_' + Math.random().toString(36).substring(2, 9);
     sessionStorage.setItem('cb_session_id', sessionId);
 
-    fetch(`${API_BASE}/admin/profile?tenant_id=${tenantId}`)
+    fetch(`${API_BASE}/chat/config?tenant_id=${tenantId}`)
         .then(res => res.json())
         .then(data => {
             if (data && data.company_name) titleEl.textContent = data.company_name + " Support";
@@ -213,23 +213,23 @@
     function appendMsg(sender, text) {
         const now = new Date();
         const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        
+
         const wrapper = document.createElement('div');
         wrapper.className = `cb-msg-wrapper cb-wrapper-${sender}`;
-        
+
         const div = document.createElement('div');
         div.className = `cb-msg cb-${sender}`;
         div.innerHTML = (sender === 'bot' && typeof marked !== 'undefined') ? marked.parse(text) : (sender === 'system' ? text : `<p>${text}</p>`);
-        
+
         wrapper.appendChild(div);
-        
+
         if (sender !== 'system') {
             const timeDiv = document.createElement('div');
             timeDiv.className = 'cb-msg-time';
             timeDiv.textContent = timeString;
             wrapper.appendChild(timeDiv);
         }
-        
+
         msgsArea.appendChild(wrapper);
         msgsArea.scrollTop = msgsArea.scrollHeight;
     }
@@ -239,11 +239,11 @@
         const wrapper = document.createElement('div');
         wrapper.className = 'cb-msg-wrapper cb-wrapper-bot';
         wrapper.id = id;
-        
+
         const div = document.createElement('div');
         div.className = 'cb-msg cb-bot';
         div.innerHTML = `<div class="cb-typing"><div class="cb-dot"></div><div class="cb-dot"></div><div class="cb-dot"></div></div>`;
-        
+
         wrapper.appendChild(div);
         msgsArea.appendChild(wrapper);
         msgsArea.scrollTop = msgsArea.scrollHeight;
