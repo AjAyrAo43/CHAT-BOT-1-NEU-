@@ -774,11 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
             brand_color_secondary: document.getElementById('profile-brand-secondary').value,
             social_linkedin: document.getElementById('profile-social-li').value,
             social_twitter: document.getElementById('profile-social-tw').value,
-            social_instagram: document.getElementById('profile-social-ig').value,
-            
-            logo_url: document.getElementById('profile-logo-url').value,
-            chatbot_greeting_message: document.getElementById('profile-chatbot-greeting').value,
-            chatbot_system_prompt: document.getElementById('profile-chatbot-prompt').value
+            social_instagram: document.getElementById('profile-social-ig').value
         };
         showMessage(profileMsg, 'Saving...', '');
         
@@ -797,6 +793,36 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Connection error');
         }
     });
+
+    // --- Chatbot Settings Form (dedicated page) ---
+    const chatbotSettingsForm = document.getElementById('chatbot-settings-form');
+    if (chatbotSettingsForm) {
+        chatbotSettingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msgEl = document.getElementById('chatbot-settings-msg');
+            if (msgEl) msgEl.textContent = 'Saving...';
+            try {
+                const payload = {
+                    logo_url: document.getElementById('profile-logo-url').value,
+                    chatbot_greeting_message: document.getElementById('profile-chatbot-greeting').value,
+                    chatbot_system_prompt: document.getElementById('profile-chatbot-prompt').value
+                };
+                const res = await fetch(`${API_BASE}/admin/profile?tenant_id=${tenantId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    showToast('Chatbot settings saved!');
+                    if (msgEl) msgEl.textContent = '';
+                } else {
+                    showToast('Failed to save chatbot settings');
+                }
+            } catch (err) {
+                showToast('Connection error');
+            }
+        });
+    }
 
     passwordForm.addEventListener('submit', async (e) => {
         e.preventDefault();

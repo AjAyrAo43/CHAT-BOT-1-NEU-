@@ -161,8 +161,26 @@
     const titleEl = document.querySelector('.cb-title');
 
     let isOpen = false;
+    let chatEnded = false;
     let sessionId = sessionStorage.getItem('cb_session_id') || 'sess_' + Math.random().toString(36).substring(2, 9);
     sessionStorage.setItem('cb_session_id', sessionId);
+
+    // Inactivity timer – triggers feedback after 5 minutes of no user messages
+    const INACTIVITY_MS = 5 * 60 * 1000;
+    let inactivityTimer = null;
+
+    function resetInactivityTimer() {
+        if (chatEnded) return;
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+            if (!chatEnded) {
+                chatEnded = true;
+                cbInput.disabled = true;
+                document.getElementById('cb-send-btn').disabled = true;
+                showFeedbackUI();
+            }
+        }, INACTIVITY_MS);
+    }
 
     fetch(`${API_BASE}/chat/config?tenant_id=${tenantId}`)
         .then(res => res.json())
@@ -188,11 +206,16 @@
 
     cbForm.onsubmit = async (e) => {
         e.preventDefault();
+        if (chatEnded) return;
         const text = cbInput.value.trim();
         if (!text) return;
 
         appendMsg('user', text);
         cbInput.value = '';
+
+        // Reset the 5-minute inactivity countdown on each user message
+        resetInactivityTimer();
+
         const typingId = showTyping();
 
         try {
@@ -253,5 +276,50 @@
     function removeTyping(id) {
         const el = document.getElementById(id);
         if (el) el.remove();
+    }
+
+    function showFeedbackUI() {
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'background:#fefce8;border:1px solid #fef08a;color:#854d0e;border-radius:12px;padding:1rem;margin-top:0.5rem;';
+        wrapper.innerHTML = `
+            <div style="font-weight:600;margin-bottom:0.5rem;text-align:center;">How was your experience?</div>
+            <div id="cb-star-rating" style="display:flex;justify-content:center;gap:0.5rem;font-size:1.5rem;cursor:pointer;margin-bottom:0.5rem;">
+                <span data-val="1">&#9734;</span><span data-val="2">&#9734;</span><span data-val="3">&#9734;</span><span data-val="4">&#9734;</span><span data-val="5">&#9734;</span>
+            </div>
+            <textarea id="cb-fb-comment" placeholder="Any comments?" style="width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:4px;padding:0.4rem;font-size:0.8rem;margin-bottom:0.5rem;font-family:inherit;"></textarea>
+            <button id="cb-fb-submit" style="width:100%;padding:0.4rem;background:#ca8a04;color:white;border:none;border-radius:4px;font-weight:600;cursor:pointer;">Submit Feedback</button>
+        `;
+        msgsArea.appendChild(wrapper);
+        msgsArea.scrollTop = msgsArea.scrollHeight;
+
+        let rating = 0;
+        const stars = wrapper.querySelectorAll('#cb-star-rating span');
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                rating = parseInt(star.dataset.val);
+                stars.forEach(s => {
+                    s.textContent = parseInt(s.dataset.val) <= rating ? '\u2605' : '\u2606';
+                    s.style.color = parseInt(s.dataset.val) <= rating ? '#ca8a04' : '';
+                });
+            });
+        });
+
+        wrapper.querySelector('#cb-fb-submit').addEventListener('click', async (e) => {
+            const btn = e.target;
+            if (rating === 0) return alert('Please select a star rating.');
+            btn.disabled = true;
+            btn.textContent = 'Submitting...';
+            try {
+                await fetch(`${API_BASE}/chat/feedback`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tenant_id: tenantId, session_id: sessionId, rating, comment: wrapper.querySelector('#cb-fb-comment').value.trim() })
+                });
+                wrapper.innerHTML = '<div style="text-align:center;padding:0.5rem;font-weight:600;">Thank you for your feedback! 🙏</div>';
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = 'Retry';
+            }
+        });
     }
 })();

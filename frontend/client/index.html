@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Client Admin Panel</title>
     <link rel="stylesheet" href="style.css">
+    <style>.required-star { color: #dc2626; margin-left: 2px; font-size: 0.85rem; vertical-align: middle; }</style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -52,16 +53,17 @@
                         <button class="nav-btn" data-target="section-chats">Chat Logs</button>
                         <button class="nav-btn" data-target="section-ai-training">AI Training</button>
                         <button class="nav-btn" data-target="section-profile">Business Profile</button>
+                        <button class="nav-btn" data-target="section-chatbot">Chatbot Settings</button>
                     </nav>
                     <div class="sidebar-footer">
                         <button id="logout-btn" class="nav-btn text-danger">Logout</button>
                     </div>
                 </aside>
-                
+
                 <main class="main-content">
-                    
+
                     <div id="billing-banner" style="display: none; padding: 1rem; margin-bottom: 1.5rem; border-radius: 8px; font-weight: bold; text-align: center;"></div>
-                    
+
                     <!-- Analytics Section -->
                     <section id="section-analytics" class="content-section active">
                         <header class="section-header" style="flex-wrap: wrap; gap: 1rem;">
@@ -298,7 +300,7 @@
                             <div id="no-chats" class="empty-state">No chat logs recorded yet.</div>
                         </div>
                     </section>
-                    
+
                     <!-- AI Training Section (merged FAQ + Knowledge Base) -->
                     <section id="section-ai-training" class="content-section">
                         <header class="section-header">
@@ -439,12 +441,12 @@
                         <div class="card">
                             <form id="profile-form">
                                 <div class="input-group">
-                                    <label for="company-name">Company Name</label>
+                                    <label for="company-name">Company Name <span class="required-star">&#9733;</span></label>
                                     <input type="text" id="company-name" required>
                                 </div>
                                 <div class="input-group" style="display: flex; gap: 1rem;">
                                     <div style="flex: 1;">
-                                        <label for="industry">Industry</label>
+                                        <label for="industry">Industry <span class="required-star">&#9733;</span></label>
                                         <input type="text" id="industry" required style="width: 100%;">
                                     </div>
                                     <div style="flex: 1;">
@@ -453,11 +455,11 @@
                                     </div>
                                 </div>
                                 <div class="input-group">
-                                    <label for="biz-desc">Business Description (Used by AI as context)</label>
+                                    <label for="biz-desc">Business Description (Used by AI as context) <span class="required-star">&#9733;</span></label>
                                     <textarea id="biz-desc" rows="3" required maxlength="2000"></textarea>
                                     <div style="text-align:right;font-size:0.75rem;color:#999;"><span id="cnt-biz-desc">0</span>/2000</div>
                                 </div>
-                                
+
                                 <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Point of Contact</h3>
                                 <div class="input-group" style="display: flex; gap: 1rem;">
                                     <div style="flex: 1;">
@@ -471,11 +473,11 @@
                                 </div>
                                 <div class="input-group" style="display: flex; gap: 1rem;">
                                     <div style="flex: 1;">
-                                        <label for="profile-contact-email">Contact Email (Direct)</label>
+                                        <label for="profile-contact-email">Contact Email (Direct) <span class="required-star">&#9733;</span></label>
                                         <input type="email" id="profile-contact-email" style="width: 100%;">
                                     </div>
                                     <div style="flex: 1;">
-                                        <label for="profile-contact-phone">Contact Phone (Direct/WhatsApp)</label>
+                                        <label for="profile-contact-phone">Contact Phone (Direct/WhatsApp) <span class="required-star">&#9733;</span></label>
                                         <input type="tel" id="profile-contact-phone" style="width: 100%;">
                                     </div>
                                 </div>
@@ -510,22 +512,6 @@
                                     </div>
                                 </div>
 
-                                <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Chatbot Identity & Behavior</h3>
-                                <div class="input-group">
-                                    <label for="profile-logo-url">Logo URL (Profile Photo for Widget)</label>
-                                    <input type="url" id="profile-logo-url" placeholder="https://example.com/logo.png" style="width: 100%;">
-                                </div>
-                                <div class="input-group">
-                                    <label for="profile-chatbot-greeting">Chatbot Greeting Message</label>
-                                    <input type="text" id="profile-chatbot-greeting" placeholder="Hi! How can I help you today?" style="width: 100%;" maxlength="300">
-                                    <div style="text-align:right;font-size:0.75rem;color:#999;"><span id="cnt-greeting">0</span>/300</div>
-                                </div>
-                                <div class="input-group">
-                                    <label for="profile-chatbot-prompt">Chatbot System Prompt (Behavior Instructions)</label>
-                                    <textarea id="profile-chatbot-prompt" rows="3" placeholder="You are a helpful customer support assistant." style="width: 100%;" maxlength="3000"></textarea>
-                                    <div style="text-align:right;font-size:0.75rem;color:#999;"><span id="cnt-prompt">0</span>/3000</div>
-                                </div>
-
                                 <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Branding & UI Customization</h3>
                                 <div class="input-group" style="display: flex; gap: 1rem;">
                                     <div style="flex: 1;">
@@ -556,7 +542,7 @@
                                 <span id="profile-msg" class="msg-text"></span>
                             </form>
                         </div>
-                        
+
                         <header class="section-header" style="margin-top: 2rem;">
                             <h2>Change Password</h2>
                         </header>
@@ -572,6 +558,37 @@
                                 </div>
                                 <button type="submit" class="btn primary-btn">Update Password</button>
                                 <span id="pwd-msg" class="msg-text"></span>
+                            </form>
+                        </div>
+                    </section>
+
+                    <!-- Chatbot Settings Section -->
+                    <section id="section-chatbot" class="content-section">
+                        <header class="section-header">
+                            <h2>🤖 Chatbot Settings</h2>
+                            <p style="color:var(--text-muted);font-size:0.9rem;">Configure your chatbot's personality, greeting, and behavior instructions.</p>
+                        </header>
+                        <div class="card">
+                            <form id="chatbot-settings-form">
+                                <div class="input-group">
+                                    <label for="profile-logo-url">Logo URL (Profile Photo for Widget)</label>
+                                    <input type="url" id="profile-logo-url" placeholder="https://example.com/logo.png" style="width: 100%;">
+                                    <small style="color:#888;">Paste a direct image URL. This logo appears inside the chat widget.</small>
+                                </div>
+                                <div class="input-group" style="margin-top:1rem;">
+                                    <label for="profile-chatbot-greeting">Chatbot Greeting Message <span class="required-star">&#9733;</span></label>
+                                    <input type="text" id="profile-chatbot-greeting" placeholder="Hi! How can I help you today?" style="width: 100%;" maxlength="300">
+                                    <div style="text-align:right;font-size:0.75rem;color:#999;"><span id="cnt-greeting">0</span>/300</div>
+                                    <small style="color:#888;">This is the first message users see when they open the chat.</small>
+                                </div>
+                                <div class="input-group" style="margin-top:1rem;">
+                                    <label for="profile-chatbot-prompt">Chatbot System Prompt (Behavior Instructions) <span class="required-star">&#9733;</span></label>
+                                    <textarea id="profile-chatbot-prompt" rows="6" placeholder="You are a helpful customer support assistant for [Company Name]. Always be polite and professional..." style="width: 100%;" maxlength="3000"></textarea>
+                                    <div style="text-align:right;font-size:0.75rem;color:#999;"><span id="cnt-prompt">0</span>/3000</div>
+                                    <small style="color:#888;">Instructions that control how your AI responds. Be specific about tone, topics it should/shouldn't cover, and escalation rules.</small>
+                                </div>
+                                <button type="submit" class="btn primary-btn" style="margin-top:1.5rem;">💾 Save Chatbot Settings</button>
+                                <span id="chatbot-settings-msg" class="msg-text"></span>
                             </form>
                         </div>
                     </section>

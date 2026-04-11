@@ -6,6 +6,7 @@
     <title>Platform Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <style>.required-star { color: #dc2626; margin-left: 2px; font-size: 0.85rem; vertical-align: middle; }</style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -32,7 +33,7 @@
         <!-- Dashboard Screen -->
         <div id="dashboard-view" class="view">
             <div class="layout">
-                
+
                 <!-- Sidebar -->
                 <aside class="sidebar">
                     <div class="sidebar-header" style="text-align: center; padding-top: 2rem; padding-bottom: 1.5rem;">
@@ -40,14 +41,14 @@
                         <div style="font-weight: 600; font-size: 1rem; color: #5a3d31;">Developer Admin</div>
                         <span class="tenant-badge" style="margin-top: 0.5rem; background: #fff5eb; color: var(--primary); border: 1px solid #fde0c4;">Superadmin</span>
                     </div>
-                    
+
                     <div style="padding: 1rem 1rem 0.5rem 1rem;">
                         <div id="current-client-banner" style="display:none; background:#fff5eb; border:1px solid #fde0c4; border-radius:8px; padding:0.7rem 1rem;">
                             <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:2px;">VIEWING CLIENT</div>
                             <div id="current-tenant-info" style="font-weight:700; color:#5a3d31; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
                         </div>
                     </div>
-                    
+
                     <nav class="sidebar-nav">
                         <div class="nav-group-title">Global Settings</div>
                         <button class="nav-btn active" data-target="tab-register">Register Client</button>
@@ -57,23 +58,24 @@
                         <!-- Tenant Specific Tabs -->
                         <div class="nav-group-title">Client Configs</div>
                         <button class="nav-btn" data-target="tab-identity">Business Identity</button>
-                        <button class="nav-btn" data-target="tab-analytics">30-Day Summary</button>
+                        <button class="nav-btn" data-target="tab-chatbot">Chatbot Settings</button>
+                        <button class="nav-btn" data-target="tab-analytics"> 30-Day Summary</button>
                     </nav>
-                    
+
                     <div class="sidebar-footer">
                         <button id="logout-btn" class="nav-btn text-danger">Logout</button>
                     </div>
                 </aside>
 
                 <main class="main-content">
-                    
+
                     <!-- Tab: Register Client -->
                     <section id="tab-register" class="content-section active">
                         <header class="section-header">
                             <h2> Register Client</h2>
                             <p style="color:var(--text-muted);">Register new clients and assign them their own database.</p>
                         </header>
-                        
+
                         <div class="card bg-light" style="margin-bottom: 2rem;">
                             <h3>Register New Client</h3>
                             <form id="create-tenant-form">
@@ -172,7 +174,7 @@
                             </div>
                         </div>
                     </section>
-                    
+
                     <!-- Tab: Billing & Payments -->
                     <section id="tab-billing" class="content-section">
                         <header class="section-header">
@@ -323,12 +325,12 @@
                             <div class="card">
                                 <form id="profile-form">
                                     <div class="input-group">
-                                        <label for="profile-name">Company Name</label>
+                                        <label for="profile-name">Company Name <span class="required-star">&#9733;</span></label>
                                         <input type="text" id="profile-name" required>
                                     </div>
                                     <div class="input-group" style="display: flex; gap: 1rem;">
                                         <div style="flex: 1;">
-                                            <label for="profile-ind">Industry</label>
+                                            <label for="profile-ind">Industry <span class="required-star">&#9733;</span></label>
                                             <input type="text" id="profile-ind" required style="width: 100%;">
                                         </div>
                                         <div style="flex: 1;">
@@ -337,10 +339,10 @@
                                         </div>
                                     </div>
                                     <div class="input-group">
-                                        <label for="profile-desc">Business Description</label>
+                                        <label for="profile-desc">Business Description <span class="required-star">&#9733;</span></label>
                                         <textarea id="profile-desc" rows="3" required></textarea>
                                     </div>
-                                    
+
                                     <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Point of Contact</h3>
                                     <div class="input-group" style="display: flex; gap: 1rem;">
                                         <div style="flex: 1;">
@@ -354,11 +356,11 @@
                                     </div>
                                     <div class="input-group" style="display: flex; gap: 1rem;">
                                         <div style="flex: 1;">
-                                            <label for="profile-contact-email">Contact Email (Direct)</label>
+                                            <label for="profile-contact-email">Contact Email (Direct) <span class="required-star">&#9733;</span></label>
                                             <input type="email" id="profile-contact-email" style="width: 100%;">
                                         </div>
                                         <div style="flex: 1;">
-                                            <label for="profile-contact-phone">Contact Phone (Direct/WhatsApp)</label>
+                                            <label for="profile-contact-phone">Contact Phone (Direct/WhatsApp) <span class="required-star">&#9733;</span></label>
                                             <input type="tel" id="profile-contact-phone" style="width: 100%;">
                                         </div>
                                     </div>
@@ -418,18 +420,34 @@
                                             <input type="url" id="profile-social-ig" style="width: 100%;">
                                         </div>
                                     </div>
-                                    
-                                    <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Chatbot Identity & Behavior</h3>
+
+                                    <button type="submit" class="btn primary-btn" style="margin-top: 1.5rem;">Update Identity</button>
+                                    <span id="profile-msg" class="msg-text"></span>
+                                </form>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Tab: Chatbot Settings -->
+                    <section id="tab-chatbot" class="content-section">
+                        <header class="section-header">
+                            <h2>Chatbot Settings</h2>
+                        </header>
+                        <div id="chatbot-require-tenant" class="empty-state">Click <strong>Manage &rarr;</strong> on a client row in Registered Clients to configure chatbot settings.</div>
+                        <div id="chatbot-content" style="display:none;">
+                            <div class="card">
+                                <form id="chatbot-settings-form">
                                     <div class="input-group">
-                                        <label for="profile-chatbot-greeting">Chatbot Greeting Message</label>
+                                        <label for="profile-chatbot-greeting">Chatbot Greeting Message <span class="required-star">&#9733;</span></label>
                                         <input type="text" id="profile-chatbot-greeting" placeholder="Hi! How can I help you today?" style="width: 100%;">
+                                        <small style="color:#888;">This is the first message users see when they open the chat.</small>
                                     </div>
-                                    <div class="input-group">
-                                        <label for="profile-chatbot-prompt">Chatbot System Prompt (Behavior Instructions)</label>
-                                        <textarea id="profile-chatbot-prompt" rows="3" placeholder="You are a helpful customer support assistant." style="width: 100%;"></textarea>
+                                    <div class="input-group" style="margin-top:1rem;">
+                                        <label for="profile-chatbot-prompt">Chatbot System Prompt (Behavior Instructions) <span class="required-star">&#9733;</span></label>
+                                        <textarea id="profile-chatbot-prompt" rows="7" placeholder="You are a helpful customer support assistant for [Company Name]. Always be polite and professional..." style="width: 100%;"></textarea>
+                                        <small style="color:#888;">Instructions that control how the AI responds. Be specific about tone, topics it should/shouldn't cover, and escalation rules.</small>
                                     </div>
-                                    
-                                    <div class="input-group" style="margin-top: 1rem;">
+                                    <div class="input-group" style="margin-top:1rem;">
                                         <label>Bot Avatar / Logo Upload (Optional)</label>
                                         <div style="display: flex; align-items: center; gap: 1rem;">
                                             <div id="logo-preview-container" style="width: 50px; height: 50px; border-radius: 50%; background: #eee; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc;">
@@ -442,9 +460,8 @@
                                         <input type="hidden" id="profile-logo-b64">
                                         <small style="color:#888;">Upload a small image. It will be resized automatically (max 200px).</small>
                                     </div>
-
-                                    <button type="submit" class="btn primary-btn" style="margin-top: 1.5rem;">Update Identity</button>
-                                    <span id="profile-msg" class="msg-text"></span>
+                                    <button type="submit" class="btn primary-btn" style="margin-top: 1.5rem;">&#128190; Save Chatbot Settings</button>
+                                    <span id="chatbot-settings-msg" class="msg-text"></span>
                                 </form>
                             </div>
                         </div>

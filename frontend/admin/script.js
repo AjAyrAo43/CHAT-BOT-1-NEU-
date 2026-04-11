@@ -270,6 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Load specific tenant data
         if (tabId === 'tab-identity') loadIdentity();
+        if (tabId === 'tab-chatbot') loadIdentity(); // reuse same loader – populates same IDs
         if (tabId === 'tab-analytics') {
             loadTenantChatsAndAnalytics();
         }
@@ -792,8 +793,36 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) { showMessage(profileMsg, 'Connection error', 'error'); }
     });
 
+    // --- Chatbot Settings Form (dedicated tab) ---
+    const chatbotSettingsForm = document.getElementById('chatbot-settings-form');
+    if (chatbotSettingsForm) {
+        chatbotSettingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msgEl = document.getElementById('chatbot-settings-msg');
+            if (msgEl) msgEl.textContent = 'Saving...';
+            try {
+                const res = await fetch(`${API_BASE}/admin/profile?tenant_id=${selectedTenantId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chatbot_greeting_message: document.getElementById('profile-chatbot-greeting').value,
+                        chatbot_system_prompt: document.getElementById('profile-chatbot-prompt').value,
+                        logo_url: document.getElementById('profile-logo-b64').value
+                    })
+                });
+                if (res.ok) {
+                    showSuccessToast('Chatbot settings saved!');
+                    if (msgEl) { msgEl.textContent = ''; }
+                } else {
+                    if (msgEl) showMessage(msgEl, 'Failed to save.', 'error');
+                }
+            } catch (err) {
+                if (msgEl) showMessage(msgEl, 'Connection error', 'error');
+            }
+        });
+    }
 
-    // --- Analytics, Leads, Chats ---
+
     async function loadTenantChatsAndAnalytics() {
         if (!selectedTenantId) return;
         if (_chatsLoadedForTenant === selectedTenantId && globalChatsData.length >= 0) {

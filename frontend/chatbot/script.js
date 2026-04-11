@@ -56,7 +56,22 @@
         let isOpen = false;
         let chatEnded = false;
 
-        const endChatBtn = document.getElementById('cb-end-chat-btn');
+        // Inactivity timer – triggers feedback after 5 minutes of no user messages
+        const INACTIVITY_MS = 5 * 60 * 1000; // 5 minutes
+        let inactivityTimer = null;
+
+        function resetInactivityTimer() {
+            if (chatEnded) return;
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                if (!chatEnded) {
+                    chatEnded = true;
+                    cbInput.disabled = true;
+                    sendBtn.disabled = true;
+                    showFeedbackUI();
+                }
+            }, INACTIVITY_MS);
+        }
 
         toggleBtn.addEventListener('click', () => {
             isOpen = true;
@@ -94,7 +109,8 @@
             appendMsg('user', text);
             cbInput.value = '';
 
-            if (endChatBtn) endChatBtn.style.display = 'block';
+            // Reset the 5-minute inactivity countdown on each user message
+            resetInactivityTimer();
 
             const typingId = showTyping();
 
@@ -126,24 +142,13 @@
             }
         });
 
-        // Handle End Chat
-        if (endChatBtn) {
-            endChatBtn.addEventListener('click', () => {
-                chatEnded = true;
-                endChatBtn.style.display = 'none';
-                cbInput.disabled = true;
-                sendBtn.disabled = true;
-                showFeedbackUI();
-            });
-        }
-
         function showFeedbackUI() {
             const container = document.createElement('div');
             container.className = 'cb-msg-container';
             container.innerHTML = `
                 <div class="cb-msg-wrapper cb-wrapper-system" style="width:100%;">
                     <div class="cb-msg cb-system" style="background:#fefce8;border:1px solid #fef08a;color:#854d0e;width:100%;">
-                        <div style="font-weight:600;margin-bottom:0.5rem;text-align:center;">Chat Ended. Rate your experience!</div>
+                        <div style="font-weight:600;margin-bottom:0.5rem;text-align:center;">How was your experience?</div>
                         <div id="cb-star-rating" style="display:flex;justify-content:center;gap:0.5rem;font-size:1.5rem;cursor:pointer;margin-bottom:0.5rem;">
                             <span data-val="1">☆</span><span data-val="2">☆</span><span data-val="3">☆</span><span data-val="4">☆</span><span data-val="5">☆</span>
                         </div>
