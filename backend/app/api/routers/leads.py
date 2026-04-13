@@ -10,6 +10,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from collections import defaultdict
 
 from ..deps import get_tenant_db
 from ....database import Lead, ChatLog, ChatFeedback
@@ -44,6 +45,20 @@ async def get_leads(db: Session = Depends(get_tenant_db)):
 async def get_all_chats(db: Session = Depends(get_tenant_db)):
     """Return all chat logs (decrypted) for this tenant."""
     logs = db.query(ChatLog).all()
+    feedbacks = db.query(ChatFeedback).all()
+    fb_dict = {f.session_id: f for f in feedbacks}
+    
+    session_times = defaultdict(list)
+    for log in logs:
+        if log.session_id:
+            session_times[log.session_id].append(log.created_at)
+            
+    session_durations = {}
+    for sid, times in session_times.items():
+        if times:
+            delta = max(times) - min(times)
+            session_durations[sid] = int(delta.total_seconds())
+
     results = []
     for log in logs:
         decrypted_q = decrypt_text(log.encrypted_question)
@@ -59,6 +74,10 @@ async def get_all_chats(db: Session = Depends(get_tenant_db)):
                 "is_resolved": log.is_resolved,
                 "language": log.language,
                 "created_at": format_utc(log.created_at),
+                "response_time_ms": getattr(log, "response_time_ms", 0),
+                "feedback_rating": fb_dict[log.session_id].rating if log.session_id in fb_dict else None,
+                "feedback_comment": fb_dict[log.session_id].comment if log.session_id in fb_dict else None,
+                "duration_seconds": session_durations.get(log.session_id)
             }
         )
     return results

@@ -42,6 +42,7 @@ class Plan(CentralBase):
     export_enabled = Column(Boolean, default=False)
     languages = Column(String, default="en") # comma separated or "all"
     default_trial_days = Column(Integer, default=14)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 class CentralTenant(CentralBase):
     __tablename__ = "tenants"
@@ -54,7 +55,9 @@ class CentralTenant(CentralBase):
     is_active = Column(Boolean, default=True)
     is_demo_account = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    subscription_start_date = Column(DateTime, default=datetime.datetime.utcnow)
     subscription_end_date = Column(DateTime, default=lambda: datetime.datetime.utcnow() + datetime.timedelta(days=14))
+    deactivated_at = Column(DateTime, nullable=True)
 
     current_plan_id = Column(String, ForeignKey("plans.id"))
     notification_email = Column(String, default="")
@@ -113,10 +116,20 @@ def get_tenant_limits(tenant_id: str) -> dict:
         session.close()
 
 def get_all_plans() -> list:
-    """Return all subscription plans in the central registry."""
+    """Return all subscription plans in the central registry with their active user counts."""
     session = _get_central_session()
     try:
         plans = session.query(Plan).all()
+        # Pre-calculate active users per plan
+        tenants = session.query(CentralTenant.current_plan_id).filter(
+            CentralTenant.is_active == True,
+            CentralTenant.is_demo_account == False
+        ).all()
+        
+        plan_counts = {}
+        for (p_id,) in tenants:
+            plan_counts[p_id] = plan_counts.get(p_id, 0) + 1
+            
         return [{
             "id": p.id,
             "name": p.name,
@@ -126,7 +139,9 @@ def get_all_plans() -> list:
             "faqs_limit": p.faqs_limit,
             "export_enabled": p.export_enabled,
             "languages": p.languages,
-            "default_trial_days": getattr(p, "default_trial_days", 14)
+            "default_trial_days": getattr(p, "default_trial_days", 14),
+            "created_at": str(getattr(p, "created_at", datetime.datetime.utcnow())),
+            "active_users_count": plan_counts.get(p.id, 0)
         } for p in plans]
     finally:
         session.close()
@@ -250,6 +265,7 @@ def register_tenant(name: str, db_url: str, admin_password: str = "admin", notif
             admin_password_hash=password_hash,
             notification_email=notification_email,
             current_plan_id=starter_plan.id,
+            subscription_start_date=datetime.datetime.utcnow(),
             subscription_end_date=datetime.datetime.utcnow() + datetime.timedelta(days=trial_days)
         )
         session.add(new_tenant)
@@ -308,6 +324,7 @@ def create_demo_tenant(name: str, db_url: str) -> dict:
             admin_password_hash=password_hash,
             is_demo_account=True,
             current_plan_id=starter_plan.id,
+            subscription_start_date=datetime.datetime.utcnow(),
             subscription_end_date=datetime.datetime.utcnow() + datetime.timedelta(days=3650) # 10 years
         )
         session.add(new_tenant)
@@ -366,7 +383,9 @@ def _tenant_to_dict(tenant: CentralTenant, plan_name: str = None) -> dict:
         "is_active": tenant.is_active,
         "is_demo_account": getattr(tenant, "is_demo_account", False),
         "created_at": str(tenant.created_at),
+        "subscription_start_date": str(getattr(tenant, "subscription_start_date", tenant.created_at)),
         "subscription_end_date": str(tenant.subscription_end_date),
+        "deactivated_at": str(tenant.deactivated_at) if getattr(tenant, "deactivated_at", None) else None,
         "notification_email": tenant.notification_email,
         "current_plan": plan_name
     }
@@ -431,6 +450,7 @@ def deactivate_tenant(tenant_id: str) -> bool:
         t = session.query(CentralTenant).filter(CentralTenant.id == tenant_id).first()
         if t:
             t.is_active = False
+            t.deactivated_at = datetime.datetime.utcnow()
             session.commit()
             _invalidate_tenant_cache()
             return True
@@ -532,9 +552,14 @@ def record_payment(tenant_id: str, amount_inr: float, plan_name: str, days_to_ad
     if not new_end_date:
         raise ValueError(f"Tenant {tenant_id} not found.")
 
-    # 2. Record the invoice in the tenant's isolated database
+    # 2. Record the invoice in the tenant's isolated database and void previous
     session = get_tenant_session(tenant_id)
     try:
+        # Mark all previous 'Paid' invoices as 'Replaced'
+        previous_invoices = session.query(Invoice).filter(Invoice.tenant_id == tenant_id, Invoice.status == "Paid").all()
+        for inv in previous_invoices:
+            inv.status = "Replaced"
+
         new_invoice = Invoice(
             tenant_id=tenant_id,
             amount_inr=amount_inr,
@@ -674,6 +699,7 @@ class ChatLog(TenantBase):
     is_resolved = Column(Boolean, default=False)
     language = Column(String, default="en")
     user_ip = Column(String)
+    response_time_ms = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 class ChatFeedback(TenantBase):
@@ -691,6 +717,7 @@ class KnowledgeDocument(TenantBase):
     filename = Column(String)
     content = Column(Text)
     file_type = Column(String)
+    file_size_bytes = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
@@ -790,8 +817,11 @@ def migrate_central_schema():
         ("tenants", "notification_email", "VARCHAR DEFAULT ''"),
         ("tenants", "current_plan_id", "VARCHAR"),
         ("tenants", "created_at", "TIMESTAMP"),
+        ("tenants", "subscription_start_date", "TIMESTAMP"),
         ("tenants", "subscription_end_date", "TIMESTAMP"),
+        ("tenants", "deactivated_at", "TIMESTAMP"),
         ("plans", "default_trial_days", "INTEGER DEFAULT 14"),
+        ("plans", "created_at", "TIMESTAMP"),
     ]
 
     for table_name, column_name, column_sql in migration_steps:
@@ -866,12 +896,15 @@ def migrate_tenant_schema(db_url: str):
         ("chat_logs_v2", "is_resolved", "BOOLEAN DEFAULT FALSE"),
         ("chat_logs_v2", "language", "VARCHAR DEFAULT 'en'"),
         ("chat_logs_v2", "user_ip", "VARCHAR"),
+        ("chat_logs_v2", "response_time_ms", "INTEGER DEFAULT 0"),
         ("chat_logs_v2", "created_at", "TIMESTAMP"),
         # leads
         ("leads", "raw_message", "TEXT DEFAULT ''"),
         ("leads", "page_url", "VARCHAR DEFAULT ''"),
         ("leads", "is_notified", "BOOLEAN DEFAULT FALSE"),
         ("leads", "created_at", "TIMESTAMP"),
+        # knowledge_documents
+        ("knowledge_documents", "file_size_bytes", "INTEGER DEFAULT 0"),
     ]
 
     for table_name, column_name, column_sql in migration_steps:

@@ -8,6 +8,7 @@ Routes:
 import re
 import html
 import datetime
+import time
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -50,6 +51,7 @@ async def chat_endpoint(
     """
     db = None
     intent = "unknown"
+    start_time = time.time()
     try:
         # ── 1. XSS sanitisation ────────────────────────────────────────────
         payload.question = html.escape(payload.question)
@@ -139,6 +141,7 @@ async def chat_endpoint(
                 page_url=payload.page_url,
                 language=payload.language,
                 is_resolved=True,
+                response_time_ms=int((time.time() - start_time) * 1000),
                 user_ip=request.client.host if request.client else None,
             )
             db.add(new_log)
@@ -190,6 +193,7 @@ async def chat_endpoint(
             page_url=payload.page_url,
             language=payload.language,
             is_resolved=False,
+            response_time_ms=int((time.time() - start_time) * 1000),
             user_ip=request.client.host if request.client else None,
         )
         db.add(new_log)

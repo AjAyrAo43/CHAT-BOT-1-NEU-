@@ -146,6 +146,7 @@ async def upload_document(
         filename=file.filename,
         content=content,
         file_type=ext.lstrip("."),
+        file_size_bytes=len(content_bytes)
     )
     db.add(doc)
     db.commit()
@@ -156,6 +157,7 @@ async def upload_document(
         "file_type": doc.file_type,
         "is_active": doc.is_active,
         "created_at": format_utc(doc.created_at),
+        "file_size_bytes": doc.file_size_bytes
     }
 
 
@@ -195,6 +197,7 @@ async def add_url_document(
 
     if existing:
         existing.content = content
+        existing.file_size_bytes = len(content.encode('utf-8'))
         db.commit()
         db.refresh(existing)
         return {
@@ -203,12 +206,14 @@ async def add_url_document(
             "file_type": existing.file_type,
             "is_active": existing.is_active,
             "created_at": format_utc(existing.created_at),
+            "file_size_bytes": existing.file_size_bytes
         }
 
     doc = KnowledgeDocument(
         filename=url,
         content=content,
         file_type="url",
+        file_size_bytes=len(content.encode('utf-8'))
     )
     db.add(doc)
     db.commit()
@@ -219,6 +224,7 @@ async def add_url_document(
         "file_type": doc.file_type,
         "is_active": doc.is_active,
         "created_at": format_utc(doc.created_at),
+        "file_size_bytes": doc.file_size_bytes
     }
 
 
@@ -239,6 +245,7 @@ async def refresh_url_documents(tenant_id: str = Query(...), db: Session = Depen
             new_content = _scrape_url(doc.filename)
             if new_content.strip():
                 doc.content = new_content
+                doc.file_size_bytes = len(new_content.encode('utf-8'))
                 refreshed += 1
         except Exception as e:
             logger.warning(f"[URL Refresh] Failed for {doc.filename}: {e}")
@@ -262,6 +269,7 @@ async def get_documents(db: Session = Depends(get_tenant_db)):
             "file_type": d.file_type,
             "is_active": d.is_active,
             "created_at": format_utc(d.created_at),
+            "file_size_bytes": d.file_size_bytes
         }
         for d in docs
     ]

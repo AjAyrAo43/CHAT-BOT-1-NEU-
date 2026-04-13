@@ -9,9 +9,9 @@ Routes:
   DELETE /admin/tenant/{tenant_id}            — soft-delete (deactivate)
   DELETE /admin/tenant/{tenant_id}/hard-delete — permanent delete
 """
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from ....database import (
     register_tenant,
@@ -35,8 +35,11 @@ def _build_tenant_response(t: dict) -> TenantResponse:
         username=t.get("username", ""),
         api_key=t["api_key"],
         is_active=t["is_active"],
-        created_at=t["created_at"],
-        subscription_end_date=t.get("subscription_end_date"),
+        is_demo_account=t.get("is_demo_account", False),
+        created_at=str(t["created_at"]),
+        subscription_start_date=str(t.get("subscription_start_date", t["created_at"])),
+        subscription_end_date=str(t.get("subscription_end_date")),
+        deactivated_at=str(t.get("deactivated_at")) if t.get("deactivated_at") else None,
         current_plan=t.get("current_plan", "Starter"),
         limits=get_tenant_limits(t["id"]),
     )
@@ -72,9 +75,25 @@ async def create_demo_tenant_endpoint(payload: TenantCreate):
 
 
 @router.get("/tenants", response_model=List[TenantResponse])
-async def list_tenants():
-    """List all registered clients."""
-    return [_build_tenant_response(t) for t in get_all_tenants(use_cache=False)]
+async def list_tenants(
+    plan_name: Optional[str] = Query(None, description="Filter by plan name"),
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    search_name: Optional[str] = Query(None, description="Search by tenant name")
+):
+    """List all registered clients with optional filtering."""
+    tenants = get_all_tenants(use_cache=False)
+    
+    filtered_tenants = []
+    for t in tenants:
+        if plan_name and plan_name.lower() not in t.get("current_plan", "").lower():
+            continue
+        if is_active is not None and t.get("is_active") != is_active:
+            continue
+        if search_name and search_name.lower() not in t.get("name", "").lower():
+            continue
+        filtered_tenants.append(_build_tenant_response(t))
+        
+    return filtered_tenants
 
 
 @router.get("/tenant-info", response_model=TenantResponse)

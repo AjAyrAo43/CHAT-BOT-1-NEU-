@@ -93,6 +93,10 @@ class ChatLogResponse(BaseModel):
     is_resolved: bool
     language: str
     created_at: str
+    response_time_ms: int = 0
+    feedback_rating: Optional[int] = None
+    feedback_comment: Optional[str] = None
+    duration_seconds: Optional[int] = None
 
 
 # ── Documents ───────────────────────────────────────────────────────────────
@@ -103,6 +107,7 @@ class DocumentResponse(BaseModel):
     file_type: str
     is_active: bool
     created_at: str
+    file_size_bytes: int = 0
 
 
 # ── Tenants ─────────────────────────────────────────────────────────────────
@@ -123,7 +128,9 @@ class TenantResponse(BaseModel):
     is_active: bool
     is_demo_account: bool = False
     created_at: str
+    subscription_start_date: Optional[str] = None
     subscription_end_date: Optional[str] = None
+    deactivated_at: Optional[str] = None
     current_plan: str = "Starter"
     limits: Optional[dict] = None
 
@@ -152,6 +159,8 @@ class PlanRequest(BaseModel):
 
 class PlanResponse(PlanRequest):
     id: str
+    created_at: str = ""
+    active_users_count: int = 0
 
 
 # ── Auth ────────────────────────────────────────────────────────────────────

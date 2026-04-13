@@ -3,6 +3,7 @@ import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -44,6 +45,11 @@ def send_lead_notification(client_email: str, client_name: str, lead_info: str, 
                 <div style="background: #0f3460; padding: 15px; border-radius: 8px; margin: 15px 0;">
                     <p><strong style="color: #4fc3f7;">Original Inquiry:</strong></p>
                     <p>{inquiry}</p>
+                </div>
+                
+                <div style="background: #0f3460; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <p><strong style="color: #4fc3f7;">Captured At:</strong></p>
+                    <p>{datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
                 </div>
 
                 <p style="color: #999; font-size: 12px; margin-top: 20px;">

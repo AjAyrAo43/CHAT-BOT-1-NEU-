@@ -193,6 +193,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Hide global settings that shouldn't be visible when managing a client
         const regBtn = document.querySelector('.nav-btn[data-target="tab-register"]');
         if (regBtn) regBtn.style.display = 'none';
+        const configMenu = document.getElementById('client-configs-menu');
+        if (configMenu) configMenu.style.display = 'block';
 
         // Navigate to Business Identity tab
         navBtns.forEach(b => b.classList.remove('active'));
@@ -216,6 +218,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (['tab-register', 'tab-clients', 'tab-billing', 'tab-plans'].includes(btn.dataset.target)) {
                 const regBtn = document.querySelector('.nav-btn[data-target="tab-register"]');
                 if (regBtn) regBtn.style.display = 'block';
+                const configMenu = document.getElementById('client-configs-menu');
+                if (configMenu) configMenu.style.display = 'none';
                 currentClientBanner.style.display = 'none';
                 selectedTenantId = null; // Exit client context
             }
