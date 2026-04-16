@@ -1151,7 +1151,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const sevColor = SEVERITY_COLORS[inc.severity] || '#6b7280';
                 const stColor  = STATUS_COLORS[inc.status]   || '#6b7280';
                 const responseCell = inc.seller_response
-                    ? `<span style="color:#065f46;">${escapeHTML(inc.seller_response.substring(0, 80))}${inc.seller_response.length > 80 ? '…' : ''}</span>`
+                    ? `<span style="color:#065f46;">${escapeHTML(inc.seller_response)}</span>`
                     : `<span style="color:#9ca3af;font-style:italic;">Awaiting response</span>`;
                 tr.innerHTML = `
                     <td style="white-space:nowrap"><small>${new Date(inc.created_at).toLocaleString()}</small></td>
@@ -1159,7 +1159,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td><small>${escapeHTML(inc.category.replace(/_/g,' '))}</small></td>
                     <td><span style="color:${sevColor};font-weight:700;">${inc.severity.toUpperCase()}</span></td>
                     <td><span style="color:${stColor};font-weight:600;">${inc.status.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span></td>
-                    <td><small>${responseCell}</small></td>
+                    <td style="white-space:normal;max-width:280px;word-break:break-word;line-height:1.5;"><small>${responseCell}</small></td>
                 `;
                 incidentsList.appendChild(tr);
             });
