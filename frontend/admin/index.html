@@ -55,6 +55,7 @@
                         <button class="nav-btn" data-target="tab-clients">Registered Clients</button>
                         <button class="nav-btn" data-target="tab-billing"> Billing & Payments</button>
                         <button class="nav-btn" data-target="tab-plans"> Manage Plans</button>
+                        <button class="nav-btn" data-target="tab-incidents"> Incidents</button>
                         <!-- Tenant Specific Tabs -->
                         <div id="client-configs-menu" style="display: none;">
                             <div class="nav-group-title">Client Configs</div>
@@ -588,6 +589,100 @@
                         </div>
                     </section>
 
+                    <!-- Tab: Incidents -->
+                    <section id="tab-incidents" class="content-section">
+                        <header class="section-header flex-header">
+                            <div>
+                                <h2>🛠 Incident Management</h2>
+                                <p style="color:var(--text-muted);margin-bottom:0;">All support incidents reported by your clients.</p>
+                            </div>
+                            <button class="btn outline-btn" id="admin-inc-refresh-btn" style="font-size:0.85rem;padding:0.4rem 0.9rem;">↻ Refresh</button>
+                        </header>
+
+                        <!-- Filters + Table Side-by-Side -->
+                        <div style="display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:2rem;">
+
+                            <!-- Left: Filters -->
+                            <div class="card bg-light" style="flex:0 0 220px;min-width:200px;padding:1.25rem 1rem;">
+                                <h4 style="margin:0 0 1rem;font-size:0.9rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Filters</h4>
+                                <div class="input-group" style="margin-bottom:0.75rem;">
+                                    <label for="inc-filter-status" style="font-size:0.8rem;">Filter by Status</label>
+                                    <select id="inc-filter-status" style="padding:0.4rem;width:100%;">
+                                        <option value="">All Statuses</option>
+                                        <option value="open">Open</option>
+                                        <option value="in_progress">In Progress</option>
+                                        <option value="resolved">Resolved</option>
+                                        <option value="closed">Closed</option>
+                                    </select>
+                                </div>
+                                <div class="input-group" style="margin-bottom:1rem;">
+                                    <label for="inc-filter-severity" style="font-size:0.8rem;">Filter by Severity</label>
+                                    <select id="inc-filter-severity" style="padding:0.4rem;width:100%;">
+                                        <option value="">All Severities</option>
+                                        <option value="critical">Critical</option>
+                                        <option value="high">High</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="low">Low</option>
+                                    </select>
+                                </div>
+                                <button class="btn primary-btn" id="inc-filter-apply-btn" style="width:100%;padding:0.45rem 1rem;font-size:0.85rem;margin-bottom:0.5rem;">Apply Filter</button>
+                                <button class="btn outline-btn" id="inc-filter-reset-btn" style="width:100%;padding:0.45rem 1rem;font-size:0.85rem;margin-bottom:0;">Reset</button>
+                            </div>
+
+                            <!-- Right: Incidents Table -->
+                            <div style="flex:1;min-width:0;">
+                                <div class="card no-pad">
+                                    <div class="table-responsive">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Client</th>
+                                                    <th>Title</th>
+                                                    <th>Category</th>
+                                                    <th>Severity</th>
+                                                    <th>Status</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="admin-incidents-list"></tbody>
+                                        </table>
+                                    </div>
+                                    <div id="admin-no-incidents" class="empty-state" style="display:none;">No incidents found.</div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Respond / Update Panel (shown when a row is clicked) -->
+                        <div id="inc-detail-panel" class="card" style="display:none;">
+                            <h3 id="inc-detail-title" style="margin-bottom:0.25rem;">Incident Details</h3>
+                            <p id="inc-detail-meta" style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem;"></p>
+                            <div class="card bg-light" style="margin-bottom:1rem;padding:1rem;">
+                                <strong>Description:</strong>
+                                <p id="inc-detail-desc" style="margin-top:0.4rem;color:#374151;white-space:pre-wrap;"></p>
+                            </div>
+                            <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;">
+                                <div class="input-group" style="flex:1;min-width:180px;">
+                                    <label for="inc-update-status">Update Status</label>
+                                    <select id="inc-update-status">
+                                        <option value="open">Open</option>
+                                        <option value="in_progress">In Progress</option>
+                                        <option value="resolved">Resolved</option>
+                                        <option value="closed">Closed</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="input-group" style="margin-bottom:1rem;">
+                                <label for="inc-response-text">Your Response to Client</label>
+                                <textarea id="inc-response-text" rows="4" placeholder="Write your response here. The client will see this in their admin panel and receive an email notification..." maxlength="3000"></textarea>
+                            </div>
+                            <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+                                <button class="btn primary-btn" id="inc-save-btn">💾 Save Response</button>
+                                <button class="btn danger-btn" id="inc-delete-btn">🗑 Delete Incident</button>
+                                <button class="btn outline-btn" id="inc-close-panel-btn">✕ Close</button>
+                            </div>
+                            <div id="inc-save-msg" style="margin-top:0.5rem;font-size:0.9rem;"></div>
                         </div>
                     </section>
 

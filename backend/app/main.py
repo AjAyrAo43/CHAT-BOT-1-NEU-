@@ -14,7 +14,7 @@ No business logic lives here.
 import time
 import traceback
 import asyncio
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed  # used in _run_heavy_migrations
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,6 +36,7 @@ from .api.routers.leads import router as leads_router
 from .api.routers.documents import router as documents_router
 from .api.routers.profile import router as profile_router
 from .api.routers.metrics import router as metrics_router
+from .api.routers.incidents import router as incidents_router
 
 # ── Scheduler ─────────────────────────────────────────────────────────────────
 from .scheduler import start_scheduler, stop_scheduler
@@ -52,28 +53,30 @@ app.state.limiter = limiter
 
 
 # ── Startup: DB initialisation & tenant migration ────────────────────────────
-@app.on_event("startup")
-async def startup_initialize_db():
-    """Create central DB tables on first boot. Safe to re-run (no-op if already exist).
-    Also runs a no-op migration on every existing tenant DB to add new tables.
+def _run_heavy_migrations():
+    """
+    Runs ALL slow DB work in a background thread so the server starts instantly.
+    Safe to run after the server is already accepting requests — these are all
+    additive, idempotent operations (create-if-not-exists / add-column-if-missing).
     """
     from ..database import (
-        _get_central_engine, CentralBase,
         migrate_tenant_schema, get_all_tenants,
         migrate_central_schema, migrate_usernames,
     )
 
+    # 1. Central schema migrations (add new columns like incidents table)
     try:
-        engine = _get_central_engine()
-        CentralBase.metadata.create_all(bind=engine)
         migrate_central_schema()
         migrate_usernames()
-        logger.info("Central DB tables initialised.")
+        logger.info("[Startup] Central schema migration complete.")
     except Exception as e:
-        logger.warning(f"Could not initialise central DB tables: {e}")
+        logger.warning(f"[Startup] Central schema migration failed: {e}")
 
+    # 2. Per-tenant schema migrations (the slow part — cloud DB cold starts)
     try:
         tenants = get_all_tenants()
+        if not tenants:
+            return
 
         def _migrate_one(t):
             try:
@@ -82,26 +85,49 @@ async def startup_initialize_db():
             except Exception as te:
                 return (t["id"], str(te))
 
-        # Migrate all tenant DBs in parallel (max 8 threads, timeout 60 s total)
         with ThreadPoolExecutor(max_workers=min(8, max(1, len(tenants)))) as pool:
             futures = {pool.submit(_migrate_one, t): t for t in tenants}
             try:
                 for future in as_completed(futures, timeout=60):
                     tid, err = future.result()
                     if err:
-                        logger.warning(f"Could not migrate tenant {tid} DB: {err}")
+                        logger.warning(f"[Startup] Could not migrate tenant {tid}: {err}")
             except TimeoutError:
-                logger.warning("Tenant DB migration timed out — some DBs may be slow/unreachable.")
+                logger.warning("[Startup] Tenant migration timed out — some DBs may be unreachable.")
 
-        logger.info(f"Tenant DB migration complete for {len(tenants)} tenants.")
+        logger.info(f"[Startup] Tenant schema migration complete for {len(tenants)} tenant(s).")
     except Exception as e:
-        logger.warning(f"Could not run tenant DB migrations: {e}")
+        logger.warning(f"[Startup] Tenant migrations failed: {e}")
 
-    # ── Start the background knowledge refresh scheduler ──────────────────
+
+@app.on_event("startup")
+async def startup_initialize_db():
+    """
+    Fast startup — only the minimum blocking work runs here:
+      1. Create central DB tables (needed before any request is served)
+      2. Fire the heavy migrations in a background thread (non-blocking)
+      3. Start the APScheduler
+    The server is ready to accept requests in ~1-2 seconds.
+    """
+    from ..database import _get_central_engine, CentralBase
+
+    # ── Step 1: create central tables — fast, must happen before requests ──
+    try:
+        engine = _get_central_engine()
+        CentralBase.metadata.create_all(bind=engine)
+        logger.info("[Startup] Central DB tables ready.")
+    except Exception as e:
+        logger.warning(f"[Startup] Could not create central DB tables: {e}")
+
+    # ── Step 2: run slow migrations in the background — server stays fast ──
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(None, _run_heavy_migrations)
+
+    # ── Step 3: start knowledge-refresh scheduler ──────────────────────────
     try:
         start_scheduler()
     except Exception as e:
-        logger.warning(f"Could not start background scheduler: {e}")
+        logger.warning(f"[Startup] Could not start background scheduler: {e}")
 
 
 @app.on_event("shutdown")
@@ -184,3 +210,4 @@ app.include_router(leads_router)
 app.include_router(documents_router)
 app.include_router(profile_router)
 app.include_router(metrics_router)
+app.include_router(incidents_router)

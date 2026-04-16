@@ -31,6 +31,20 @@ PLAN_LIMITS = {
 
 CentralBase = declarative_base()
 
+class Incident(CentralBase):
+    __tablename__ = "incidents"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String, index=True)
+    title = Column(String)
+    description = Column(Text)
+    category = Column(String, default="other")   # chatbot_error | billing | configuration | performance | other
+    severity = Column(String, default="medium")  # low | medium | high | critical
+    status = Column(String, default="open")      # open | in_progress | resolved | closed
+    seller_response = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    resolved_at = Column(DateTime, nullable=True)
+
 class Plan(CentralBase):
     __tablename__ = "plans"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -125,11 +139,11 @@ def get_all_plans() -> list:
             CentralTenant.is_active == True,
             CentralTenant.is_demo_account == False
         ).all()
-        
+
         plan_counts = {}
         for (p_id,) in tenants:
             plan_counts[p_id] = plan_counts.get(p_id, 0) + 1
-            
+
         return [{
             "id": p.id,
             "name": p.name,
@@ -223,6 +237,106 @@ def delete_plan(plan_id: str) -> bool:
         return True
     finally:
         session.close()
+
+def create_incident(tenant_id: str, data: dict) -> dict:
+    """Create a new incident for a tenant."""
+    session = _get_central_session()
+    try:
+        incident = Incident(
+            tenant_id=tenant_id,
+            title=data["title"],
+            description=data["description"],
+            category=data.get("category", "other"),
+            severity=data.get("severity", "medium"),
+            status="open",
+        )
+        session.add(incident)
+        session.commit()
+        session.refresh(incident)
+        return _incident_to_dict(incident)
+    finally:
+        session.close()
+
+
+def get_incidents_by_tenant(tenant_id: str) -> list:
+    """Get all incidents for a specific tenant, newest first."""
+    session = _get_central_session()
+    try:
+        incidents = session.query(Incident).filter(
+            Incident.tenant_id == tenant_id
+        ).order_by(Incident.created_at.desc()).all()
+        return [_incident_to_dict(i) for i in incidents]
+    finally:
+        session.close()
+
+
+def get_all_incidents() -> list:
+    """Get all incidents across all tenants (seller view), newest first."""
+    session = _get_central_session()
+    try:
+        incidents = session.query(Incident).order_by(Incident.created_at.desc()).all()
+        # Attach tenant name for display
+        tenant_names = {t["id"]: t["name"] for t in get_all_tenants()}
+        result = []
+        for i in incidents:
+            d = _incident_to_dict(i)
+            d["tenant_name"] = tenant_names.get(i.tenant_id, "Unknown")
+            result.append(d)
+        return result
+    finally:
+        session.close()
+
+
+def update_incident(incident_id: str, data: dict) -> Optional[dict]:
+    """Update an incident's status and/or seller response."""
+    session = _get_central_session()
+    try:
+        incident = session.query(Incident).filter(Incident.id == incident_id).first()
+        if not incident:
+            return None
+        if "status" in data:
+            incident.status = data["status"]
+            if data["status"] == "resolved" and not incident.resolved_at:
+                incident.resolved_at = datetime.datetime.utcnow()
+        if "seller_response" in data:
+            incident.seller_response = data["seller_response"]
+        incident.updated_at = datetime.datetime.utcnow()
+        session.commit()
+        session.refresh(incident)
+        return _incident_to_dict(incident)
+    finally:
+        session.close()
+
+
+def delete_incident(incident_id: str) -> bool:
+    """Permanently delete an incident."""
+    session = _get_central_session()
+    try:
+        incident = session.query(Incident).filter(Incident.id == incident_id).first()
+        if not incident:
+            return False
+        session.delete(incident)
+        session.commit()
+        return True
+    finally:
+        session.close()
+
+
+def _incident_to_dict(incident: Incident) -> dict:
+    return {
+        "id": incident.id,
+        "tenant_id": incident.tenant_id,
+        "title": incident.title,
+        "description": incident.description,
+        "category": incident.category,
+        "severity": incident.severity,
+        "status": incident.status,
+        "seller_response": incident.seller_response or "",
+        "created_at": str(incident.created_at),
+        "updated_at": str(incident.updated_at) if incident.updated_at else str(incident.created_at),
+        "resolved_at": str(incident.resolved_at) if incident.resolved_at else None,
+    }
+
 
 def _generate_username(name: str, session) -> str:
     """Generate a unique, clean alphanumeric username from a tenant name."""
@@ -812,6 +926,11 @@ def migrate_central_schema():
         return
 
     migration_steps = [
+        # incidents (central DB)
+        ("incidents", "seller_response", "TEXT DEFAULT ''"),
+        ("incidents", "resolved_at", "TIMESTAMP"),
+        ("incidents", "updated_at", "TIMESTAMP"),
+        # tenants
         ("tenants", "username", "VARCHAR"),
         ("tenants", "is_demo_account", "BOOLEAN DEFAULT FALSE"),
         ("tenants", "notification_email", "VARCHAR DEFAULT ''"),

@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById(btn.dataset.target).classList.add('active');
 
             // Show global settings if returning to global tabs
-            if (['tab-register', 'tab-clients', 'tab-billing', 'tab-plans'].includes(btn.dataset.target)) {
+            if (['tab-register', 'tab-clients', 'tab-billing', 'tab-plans', 'tab-incidents'].includes(btn.dataset.target)) {
                 const regBtn = document.querySelector('.nav-btn[data-target="tab-register"]');
                 if (regBtn) regBtn.style.display = 'block';
                 const configMenu = document.getElementById('client-configs-menu');
@@ -233,6 +233,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (btn.dataset.target === 'tab-plans') {
                 renderPlansTable();
+            }
+            if (btn.dataset.target === 'tab-incidents') {
+                loadAdminIncidents();
             }
             // handleTabSwitch handles all data loading for tenant-specific tabs
             handleTabSwitch(btn.dataset.target);
@@ -1229,6 +1232,173 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch(err) { alert('Connection error'); }
     };
 
+
+    // --- Incident Management (Seller Panel) ---
+    const SEV_COLORS = { low:'#10b981', medium:'#f59e0b', high:'#f97316', critical:'#dc2626' };
+    const STA_COLORS = { open:'#f59e0b', in_progress:'#3b82f6', resolved:'#10b981', closed:'#6b7280' };
+
+    let _allIncidentsData = [];   // cached full list from server
+    let _selectedIncidentId = null;
+
+    async function loadAdminIncidents(statusFilter = '', severityFilter = '') {
+        const adminIncList = document.getElementById('admin-incidents-list');
+        const adminNoInc  = document.getElementById('admin-no-incidents');
+        if (!adminIncList) return;
+
+        let url = `${API_BASE}/admin/all-incidents`;
+        const params = [];
+        if (statusFilter)   params.push(`status=${statusFilter}`);
+        if (severityFilter) params.push(`severity=${severityFilter}`);
+        if (params.length)  url += '?' + params.join('&');
+
+        try {
+            const res = await fetch(url);
+            if (!res.ok) { adminNoInc.style.display = 'block'; return; }
+            _allIncidentsData = await res.json();
+
+            adminIncList.innerHTML = '';
+            if (!_allIncidentsData || _allIncidentsData.length === 0) {
+                adminNoInc.style.display = 'block';
+                return;
+            }
+            adminNoInc.style.display = 'none';
+
+            _allIncidentsData.forEach(inc => {
+                const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                const sevColor = SEV_COLORS[inc.severity] || '#6b7280';
+                const staColor = STA_COLORS[inc.status]   || '#6b7280';
+                tr.innerHTML = `
+                    <td style="white-space:nowrap"><small>${new Date(inc.created_at).toLocaleString()}</small></td>
+                    <td><strong>${escapeHTML(inc.tenant_name || inc.tenant_id)}</strong></td>
+                    <td>${escapeHTML(inc.title)}</td>
+                    <td><small>${escapeHTML((inc.category||'').replace(/_/g,' '))}</small></td>
+                    <td><span style="color:${sevColor};font-weight:700;">${(inc.severity||'').toUpperCase()}</span></td>
+                    <td><span style="color:${staColor};font-weight:600;">${(inc.status||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span></td>
+                    <td><button class="btn outline-btn" style="padding:0.2rem 0.6rem;font-size:0.75rem;" onclick="openIncidentPanel('${inc.id}')">Respond</button></td>
+                `;
+                adminIncList.appendChild(tr);
+            });
+        } catch (err) {
+            console.error('Failed to load incidents', err);
+        }
+    }
+
+    window.openIncidentPanel = (id) => {
+        const inc = _allIncidentsData.find(i => i.id === id);
+        if (!inc) return;
+        _selectedIncidentId = id;
+
+        const panel = document.getElementById('inc-detail-panel');
+        document.getElementById('inc-detail-title').textContent = inc.title;
+        document.getElementById('inc-detail-meta').textContent =
+            `Client: ${inc.tenant_name || inc.tenant_id}  ·  Category: ${(inc.category||'').replace(/_/g,' ')}  ·  Severity: ${(inc.severity||'').toUpperCase()}  ·  Opened: ${new Date(inc.created_at).toLocaleString()}`;
+        document.getElementById('inc-detail-desc').textContent = inc.description || '';
+        document.getElementById('inc-update-status').value = inc.status || 'open';
+        document.getElementById('inc-response-text').value = inc.seller_response || '';
+        document.getElementById('inc-save-msg').textContent = '';
+        panel.style.display = 'block';
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const incSaveBtn = document.getElementById('inc-save-btn');
+    if (incSaveBtn) {
+        incSaveBtn.addEventListener('click', async () => {
+            if (!_selectedIncidentId) return;
+            const msgEl = document.getElementById('inc-save-msg');
+            incSaveBtn.disabled = true;
+            msgEl.textContent = 'Saving...';
+            msgEl.style.color = '#6b7280';
+
+            const payload = {
+                status: document.getElementById('inc-update-status').value,
+                seller_response: document.getElementById('inc-response-text').value.trim()
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/incidents/${_selectedIncidentId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    msgEl.textContent = '✅ Response saved. Client has been notified by email.';
+                    msgEl.style.color = '#107c41';
+                    showSuccessToast('Incident updated successfully!');
+                    loadAdminIncidents(
+                        document.getElementById('inc-filter-status').value,
+                        document.getElementById('inc-filter-severity').value
+                    );
+                    setTimeout(() => { msgEl.textContent = ''; }, 5000);
+                } else {
+                    const data = await res.json();
+                    msgEl.textContent = '❌ ' + (data.detail || 'Failed to save.');
+                    msgEl.style.color = '#dc2626';
+                }
+            } catch (err) {
+                msgEl.textContent = '❌ Connection error.';
+                msgEl.style.color = '#dc2626';
+            } finally {
+                incSaveBtn.disabled = false;
+            }
+        });
+    }
+
+    const incDeleteBtn = document.getElementById('inc-delete-btn');
+    if (incDeleteBtn) {
+        incDeleteBtn.addEventListener('click', () => {
+            if (!_selectedIncidentId) return;
+            showConfirmModal('Permanently delete this incident? This cannot be undone.', async () => {
+                try {
+                    const res = await fetch(`${API_BASE}/admin/incidents/${_selectedIncidentId}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        document.getElementById('inc-detail-panel').style.display = 'none';
+                        _selectedIncidentId = null;
+                        showSuccessToast('Incident deleted.');
+                        loadAdminIncidents(
+                            document.getElementById('inc-filter-status').value,
+                            document.getElementById('inc-filter-severity').value
+                        );
+                    } else {
+                        showSuccessToast('Failed to delete incident.');
+                    }
+                } catch (err) { alert('Connection error.'); }
+            });
+        });
+    }
+
+    const incClosePanelBtn = document.getElementById('inc-close-panel-btn');
+    if (incClosePanelBtn) {
+        incClosePanelBtn.addEventListener('click', () => {
+            document.getElementById('inc-detail-panel').style.display = 'none';
+            _selectedIncidentId = null;
+        });
+    }
+
+    const adminIncRefresh = document.getElementById('admin-inc-refresh-btn');
+    if (adminIncRefresh) {
+        adminIncRefresh.addEventListener('click', () => loadAdminIncidents(
+            document.getElementById('inc-filter-status').value,
+            document.getElementById('inc-filter-severity').value
+        ));
+    }
+
+    const incFilterApply = document.getElementById('inc-filter-apply-btn');
+    if (incFilterApply) {
+        incFilterApply.addEventListener('click', () => loadAdminIncidents(
+            document.getElementById('inc-filter-status').value,
+            document.getElementById('inc-filter-severity').value
+        ));
+    }
+
+    const incFilterReset = document.getElementById('inc-filter-reset-btn');
+    if (incFilterReset) {
+        incFilterReset.addEventListener('click', () => {
+            document.getElementById('inc-filter-status').value = '';
+            document.getElementById('inc-filter-severity').value = '';
+            loadAdminIncidents();
+        });
+    }
 
     // --- Utils ---
     function showView(viewName) {

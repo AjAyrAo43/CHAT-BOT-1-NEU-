@@ -817,3 +817,32 @@ FROM tenants LEFT OUTER JOIN plans AS plans_1 ON plans_1.id = tenants.current_pl
 2026-04-13 15:39:47 | INFO     | [REQUEST] tenant=-  GET /favicon.ico  →  404  (1.3 ms)
 2026-04-13 15:39:53 | INFO     | [REQUEST] tenant=-  GET /redoc  →  200  (0.2 ms)
 2026-04-13 15:39:53 | INFO     | [REQUEST] tenant=-  GET /openapi.json  →  200  (424.5 ms)
+2026-04-15 12:57:12 | INFO     | Central DB tables initialised.
+2026-04-15 12:58:13 | WARNING  | Tenant DB migration timed out — some DBs may be slow/unreachable.
+2026-04-15 13:00:13 | INFO     | Central DB tables initialised.
+2026-04-15 13:00:31 | INFO     | Tenant DB migration complete for 5 tenants.
+2026-04-15 13:01:15 | WARNING  | Tenant DB migration timed out — some DBs may be slow/unreachable.
+2026-04-15 13:04:15 | INFO     | Tenant DB migration complete for 5 tenants.
+2026-04-15 13:04:52 | INFO     | [REQUEST] tenant=-  GET /favicon.ico  →  404  (2.0 ms)
+2026-04-15 13:04:57 | INFO     | [REQUEST] tenant=-  GET /redoc  →  200  (0.2 ms)
+2026-04-15 13:04:57 | INFO     | [REQUEST] tenant=-  GET /openapi.json  →  200  (355.3 ms)
+2026-04-15 14:41:00 | INFO     | [Startup] Central DB tables ready.
+2026-04-15 14:41:57 | INFO     | [Startup] Central DB tables ready.
+2026-04-15 14:45:22 | INFO     | [Startup] Central DB tables ready.
+2026-04-15 14:46:28 | INFO     | [REQUEST] tenant=-  GET /favicon.ico  →  404  (1.8 ms)
+2026-04-15 14:46:36 | INFO     | [REQUEST] tenant=-  GET /incident  →  404  (1.2 ms)
+2026-04-15 14:46:39 | INFO     | [REQUEST] tenant=-  GET /incidents  →  404  (1.4 ms)
+2026-04-15 14:46:48 | INFO     | [REQUEST] tenant=-  GET /redoc  →  200  (0.5 ms)
+2026-04-15 14:46:50 | INFO     | [REQUEST] tenant=-  GET /openapi.json  →  200  (1540.2 ms)
+2026-04-15 14:47:42 | INFO     | [Startup] Central schema migration complete.
+2026-04-15 14:48:43 | WARNING  | [Startup] Tenant migration timed out — some DBs may be unreachable.
+2026-04-15 14:51:04 | INFO     | [Startup] Tenant schema migration complete for 5 tenant(s).
+2026-04-15 19:57:10 | INFO     | [Startup] Central DB tables ready.
+2026-04-15 19:57:55 | INFO     | [REQUEST] tenant=-  GET /favicon.ico  →  404  (2.9 ms)
+2026-04-15 19:58:37 | INFO     | [Startup] Central schema migration complete.
+2026-04-15 19:59:39 | WARNING  | [Startup] Tenant migration timed out — some DBs may be unreachable.
+2026-04-15 20:03:02 | INFO     | [Startup] Tenant schema migration complete for 5 tenant(s).
+2026-04-16 17:42:01 | INFO     | [Startup] Central DB tables ready.
+2026-04-16 17:43:02 | INFO     | [Startup] Central schema migration complete.
+2026-04-16 17:44:04 | WARNING  | [Startup] Tenant migration timed out — some DBs may be unreachable.
+2026-04-16 17:45:49 | INFO     | [Startup] Tenant schema migration complete for 5 tenant(s).

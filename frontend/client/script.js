@@ -166,6 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadFaqs();
                 loadDocs();
             }
+            if (btn.dataset.target === 'section-incidents') {
+                loadIncidents();
+            }
         });
     });
 
@@ -1121,6 +1124,97 @@ document.addEventListener('DOMContentLoaded', () => {
             else showToast('Failed to delete document');
         } catch (err) { showToast('Connection error'); }
     };
+
+    // --- Incidents / Support ---
+    const incidentForm = document.getElementById('incident-form');
+    const incidentsList = document.getElementById('incidents-list');
+    const noIncidents = document.getElementById('no-incidents');
+    const incRefreshBtn = document.getElementById('inc-refresh-btn');
+
+    const SEVERITY_COLORS = { low: '#10b981', medium: '#f59e0b', high: '#f97316', critical: '#dc2626' };
+    const STATUS_COLORS   = { open: '#f59e0b', in_progress: '#3b82f6', resolved: '#10b981', closed: '#6b7280' };
+
+    async function loadIncidents() {
+        if (!tenantId) return;
+        try {
+            const res = await fetch(`${API_BASE}/admin/incidents?tenant_id=${tenantId}`);
+            if (!res.ok) { noIncidents.style.display = 'block'; return; }
+            const incidents = await res.json();
+            incidentsList.innerHTML = '';
+            if (!incidents || incidents.length === 0) {
+                noIncidents.style.display = 'block';
+                return;
+            }
+            noIncidents.style.display = 'none';
+            incidents.forEach(inc => {
+                const tr = document.createElement('tr');
+                const sevColor = SEVERITY_COLORS[inc.severity] || '#6b7280';
+                const stColor  = STATUS_COLORS[inc.status]   || '#6b7280';
+                const responseCell = inc.seller_response
+                    ? `<span style="color:#065f46;">${escapeHTML(inc.seller_response.substring(0, 80))}${inc.seller_response.length > 80 ? '…' : ''}</span>`
+                    : `<span style="color:#9ca3af;font-style:italic;">Awaiting response</span>`;
+                tr.innerHTML = `
+                    <td style="white-space:nowrap"><small>${new Date(inc.created_at).toLocaleString()}</small></td>
+                    <td><strong>${escapeHTML(inc.title)}</strong></td>
+                    <td><small>${escapeHTML(inc.category.replace(/_/g,' '))}</small></td>
+                    <td><span style="color:${sevColor};font-weight:700;">${inc.severity.toUpperCase()}</span></td>
+                    <td><span style="color:${stColor};font-weight:600;">${inc.status.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span></td>
+                    <td><small>${responseCell}</small></td>
+                `;
+                incidentsList.appendChild(tr);
+            });
+        } catch (err) {
+            console.error('Failed to load incidents', err);
+            noIncidents.style.display = 'block';
+        }
+    }
+
+    if (incidentForm) {
+        incidentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('inc-submit-btn');
+            const msgEl = document.getElementById('inc-msg');
+            btn.disabled = true;
+            msgEl.textContent = 'Submitting...';
+            msgEl.style.color = '#6b7280';
+
+            const payload = {
+                tenant_id: tenantId,
+                title: document.getElementById('inc-title').value.trim(),
+                description: document.getElementById('inc-desc').value.trim(),
+                category: document.getElementById('inc-category').value,
+                severity: document.getElementById('inc-severity').value,
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/incidents`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    incidentForm.reset();
+                    msgEl.textContent = '✅ Incident submitted! Our team will respond shortly.';
+                    msgEl.style.color = '#107c41';
+                    loadIncidents();
+                    setTimeout(() => { msgEl.textContent = ''; }, 6000);
+                } else {
+                    const data = await res.json();
+                    msgEl.textContent = '❌ ' + (data.detail || 'Failed to submit.');
+                    msgEl.style.color = '#dc2626';
+                }
+            } catch (err) {
+                msgEl.textContent = '❌ Connection error. Please try again.';
+                msgEl.style.color = '#dc2626';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    }
+
+    if (incRefreshBtn) {
+        incRefreshBtn.addEventListener('click', loadIncidents);
+    }
 
     // --- Utils ---
     function showView(viewName) {

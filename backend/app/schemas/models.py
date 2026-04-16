@@ -194,3 +194,33 @@ class ChargeClientRequest(BaseModel):
     tenant_id: str
     amount_inr: float
     plan_name: str
+
+
+# ── Incidents ────────────────────────────────────────────────────────────────
+
+class IncidentCreate(BaseModel):
+    tenant_id: str
+    title: str
+    description: str
+    category: str = "other"   # chatbot_error | billing | configuration | performance | other
+    severity: str = "medium"  # low | medium | high | critical
+
+
+class IncidentUpdate(BaseModel):
+    status: Optional[str] = None        # open | in_progress | resolved | closed
+    seller_response: Optional[str] = None
+
+
+class IncidentResponse(BaseModel):
+    id: str
+    tenant_id: str
+    title: str
+    description: str
+    category: str
+    severity: str
+    status: str
+    seller_response: str = ""
+    created_at: str
+    updated_at: str
+    resolved_at: Optional[str] = None
+    tenant_name: Optional[str] = None   # populated in seller view only

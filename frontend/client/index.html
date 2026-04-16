@@ -54,6 +54,7 @@
                         <button class="nav-btn" data-target="section-ai-training">AI Training</button>
                         <button class="nav-btn" data-target="section-profile">Business Profile</button>
                         <button class="nav-btn" data-target="section-chatbot">Chatbot Settings</button>
+                        <button class="nav-btn" data-target="section-incidents">Support</button>
                     </nav>
                     <div class="sidebar-footer">
                         <button id="logout-btn" class="nav-btn text-danger">Logout</button>
@@ -590,6 +591,76 @@
                                 <button type="submit" class="btn primary-btn" style="margin-top:1.5rem;">💾 Save Chatbot Settings</button>
                                 <span id="chatbot-settings-msg" class="msg-text"></span>
                             </form>
+                        </div>
+                    </section>
+
+                    <!-- Support / Incidents Section -->
+                    <section id="section-incidents" class="content-section">
+                        <header class="section-header">
+                            <h2>🛠 Support &amp; Incidents</h2>
+                            <p style="color:var(--text-muted);font-size:0.9rem;">Report a problem and track the status of your support requests.</p>
+                        </header>
+
+                        <!-- Report New Incident -->
+                        <div class="card bg-light" style="margin-bottom:2rem;">
+                            <h3>Report an Issue</h3>
+                            <form id="incident-form">
+                                <div class="input-group">
+                                    <label for="inc-title">Title <span class="required-star">&#9733;</span></label>
+                                    <input type="text" id="inc-title" required maxlength="200" placeholder="e.g. Chatbot not responding to pricing questions">
+                                </div>
+                                <div class="input-group">
+                                    <label for="inc-desc">Description <span class="required-star">&#9733;</span></label>
+                                    <textarea id="inc-desc" rows="4" required maxlength="2000" placeholder="Describe the problem in detail — what happened, when it started, steps to reproduce..."></textarea>
+                                </div>
+                                <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+                                    <div class="input-group" style="flex:1;min-width:200px;">
+                                        <label for="inc-category">Category</label>
+                                        <select id="inc-category">
+                                            <option value="chatbot_error">Chatbot Error</option>
+                                            <option value="billing">Billing</option>
+                                            <option value="configuration">Configuration</option>
+                                            <option value="performance">Performance</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group" style="flex:1;min-width:200px;">
+                                        <label for="inc-severity">Severity</label>
+                                        <select id="inc-severity">
+                                            <option value="low">Low</option>
+                                            <option value="medium" selected>Medium</option>
+                                            <option value="high">High</option>
+                                            <option value="critical">Critical</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn primary-btn" style="margin-top:1rem;" id="inc-submit-btn">Submit Incident</button>
+                                <div id="inc-msg" style="margin-top:0.5rem;font-size:0.9rem;"></div>
+                            </form>
+                        </div>
+
+                        <!-- My Incidents Table -->
+                        <div class="card no-pad">
+                            <div style="padding:1.5rem;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">
+                                <h3 style="margin:0;">My Incidents</h3>
+                                <button class="btn outline-btn" id="inc-refresh-btn" style="font-size:0.85rem;padding:0.3rem 0.8rem;">↻ Refresh</button>
+                            </div>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Title</th>
+                                            <th>Category</th>
+                                            <th>Severity</th>
+                                            <th>Status</th>
+                                            <th>Response</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="incidents-list"></tbody>
+                                </table>
+                            </div>
+                            <div id="no-incidents" class="empty-state" style="display:none;">No incidents reported yet.</div>
                         </div>
                     </section>
 
