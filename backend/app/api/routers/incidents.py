@@ -25,6 +25,8 @@ from ....database import (
     update_incident,
     delete_incident,
     get_tenant_by_id,
+    mark_all_incidents_read,
+    reopen_incident,
 )
 from ...schemas.models import IncidentCreate, IncidentUpdate, IncidentResponse
 
@@ -179,6 +181,50 @@ async def get_my_incidents(
             raise HTTPException(status_code=403, detail="Invalid token.")
 
     return get_incidents_by_tenant(tenant_id)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /admin/incidents/mark-read  — client marks all their incidents as read
+# ─────────────────────────────────────────────────────────────────────────────
+@router.post("/incidents/mark-read")
+async def mark_incidents_read(
+    tenant_id: str = Query(...),
+    x_auth_token: Optional[str] = Header(None, alias="X-Auth-Token"),
+):
+    """Client calls this when they open the Support tab — clears the unread badge."""
+    if x_auth_token != "super-admin-secret":
+        if not x_auth_token:
+            raise HTTPException(status_code=401, detail="Authentication token missing.")
+        tenant = get_tenant_by_id(tenant_id)
+        if not tenant or tenant.get("api_key") != x_auth_token:
+            raise HTTPException(status_code=403, detail="Invalid token.")
+    mark_all_incidents_read(tenant_id)
+    return {"message": "Marked as read."}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /admin/incidents/{id}/reopen  — client re-opens a closed incident
+# ─────────────────────────────────────────────────────────────────────────────
+@router.post("/incidents/{incident_id}/reopen", response_model=IncidentResponse)
+async def reopen_incident_endpoint(
+    incident_id: str,
+    x_auth_token: Optional[str] = Header(None, alias="X-Auth-Token"),
+):
+    """Client re-opens a closed incident (must own the incident)."""
+    if not x_auth_token:
+        raise HTTPException(status_code=401, detail="Authentication token missing.")
+    if x_auth_token == "super-admin-secret":
+        raise HTTPException(status_code=403, detail="Use the PUT endpoint to update as seller.")
+    # Resolve tenant_id from token
+    from ....database import get_all_tenants
+    tenants = get_all_tenants()
+    tenant = next((t for t in tenants if t.get("api_key") == x_auth_token), None)
+    if not tenant:
+        raise HTTPException(status_code=403, detail="Invalid token.")
+    updated = reopen_incident(incident_id, tenant["id"])
+    if not updated:
+        raise HTTPException(status_code=404, detail="Incident not found or does not belong to you.")
+    return updated
 
 
 # ─────────────────────────────────────────────────────────────────────────────

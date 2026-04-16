@@ -182,6 +182,18 @@ document.addEventListener('DOMContentLoaded', () => {
         loadDocs();
         initAiTrainingTabs();
         initCharCounters();
+        _checkUnreadIncidents(); // show badge on nav without loading full list
+    }
+
+    function _checkUnreadIncidents() {
+        if (!tenantId) return;
+        fetch(`${API_BASE}/admin/incidents?tenant_id=${tenantId}`)
+            .then(r => r.ok ? r.json() : [])
+            .then(incidents => {
+                const unread = incidents.filter(i => i.client_read === false).length;
+                _updateUnreadBadge(unread);
+            })
+            .catch(() => {});
     }
 
     // Data Loading (Chats, Leads, Analytics)
@@ -1143,31 +1155,73 @@ document.addEventListener('DOMContentLoaded', () => {
             incidentsList.innerHTML = '';
             if (!incidents || incidents.length === 0) {
                 noIncidents.style.display = 'block';
+                _updateUnreadBadge(0);
                 return;
             }
             noIncidents.style.display = 'none';
+
+            // Count unread BEFORE marking read (so badge shows accurate number on load)
+            const unreadCount = incidents.filter(i => i.client_read === false).length;
+            _updateUnreadBadge(unreadCount);
+
             incidents.forEach(inc => {
                 const tr = document.createElement('tr');
                 const sevColor = SEVERITY_COLORS[inc.severity] || '#6b7280';
                 const stColor  = STATUS_COLORS[inc.status]   || '#6b7280';
+                const isUnread = inc.client_read === false && inc.seller_response;
                 const responseCell = inc.seller_response
-                    ? `<span style="color:#065f46;">${escapeHTML(inc.seller_response)}</span>`
+                    ? `<span style="color:#065f46;${isUnread ? 'font-weight:700;' : ''}">${isUnread ? '🔵 ' : ''}${escapeHTML(inc.seller_response)}</span>`
                     : `<span style="color:#9ca3af;font-style:italic;">Awaiting response</span>`;
+                const reopenBtn = inc.status === 'closed'
+                    ? `<button class="btn outline-btn" style="padding:0.15rem 0.5rem;font-size:0.72rem;margin-left:0.4rem;" onclick="reopenIncident('${inc.id}')">↩ Re-open</button>`
+                    : '';
                 tr.innerHTML = `
                     <td style="white-space:nowrap"><small>${new Date(inc.created_at).toLocaleString()}</small></td>
                     <td><strong>${escapeHTML(inc.title)}</strong></td>
                     <td><small>${escapeHTML(inc.category.replace(/_/g,' '))}</small></td>
                     <td><span style="color:${sevColor};font-weight:700;">${inc.severity.toUpperCase()}</span></td>
-                    <td><span style="color:${stColor};font-weight:600;">${inc.status.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span></td>
+                    <td><span style="color:${stColor};font-weight:600;">${inc.status.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span>${reopenBtn}</td>
                     <td style="white-space:normal;max-width:280px;word-break:break-word;line-height:1.5;"><small>${responseCell}</small></td>
                 `;
                 incidentsList.appendChild(tr);
             });
+
+            // Mark all as read silently after rendering
+            if (unreadCount > 0) {
+                fetch(`${API_BASE}/admin/incidents/mark-read?tenant_id=${tenantId}`, { method: 'POST' })
+                    .then(() => _updateUnreadBadge(0))
+                    .catch(() => {});
+            }
         } catch (err) {
             console.error('Failed to load incidents', err);
             noIncidents.style.display = 'block';
         }
     }
+
+    function _updateUnreadBadge(count) {
+        const badge = document.getElementById('inc-unread-badge');
+        if (!badge) return;
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'inline';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    window.reopenIncident = async (incidentId) => {
+        try {
+            const res = await fetch(`${API_BASE}/admin/incidents/${incidentId}/reopen`, { method: 'POST' });
+            if (res.ok) {
+                loadIncidents();
+            } else {
+                const data = await res.json();
+                alert('Could not re-open: ' + (data.detail || 'Unknown error'));
+            }
+        } catch (err) {
+            alert('Connection error. Please try again.');
+        }
+    };
 
     if (incidentForm) {
         incidentForm.addEventListener('submit', async (e) => {

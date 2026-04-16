@@ -209,6 +209,7 @@ class IncidentCreate(BaseModel):
 class IncidentUpdate(BaseModel):
     status: Optional[str] = None        # open | in_progress | resolved | closed
     seller_response: Optional[str] = None
+    notes: Optional[str] = None         # internal seller notes
 
 
 class IncidentResponse(BaseModel):
@@ -220,6 +221,8 @@ class IncidentResponse(BaseModel):
     severity: str
     status: str
     seller_response: str = ""
+    client_read: bool = True
+    notes: Optional[str] = None         # only populated in seller view
     created_at: str
     updated_at: str
     resolved_at: Optional[str] = None

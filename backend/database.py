@@ -41,6 +41,8 @@ class Incident(CentralBase):
     severity = Column(String, default="medium")  # low | medium | high | critical
     status = Column(String, default="open")      # open | in_progress | resolved | closed
     seller_response = Column(Text, default="")
+    notes = Column(Text, default="")             # internal seller notes — never sent to client
+    client_read = Column(Boolean, default=True)  # False when seller responds, True once client views
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     resolved_at = Column(DateTime, nullable=True)
@@ -259,13 +261,53 @@ def create_incident(tenant_id: str, data: dict) -> dict:
 
 
 def get_incidents_by_tenant(tenant_id: str) -> list:
-    """Get all incidents for a specific tenant, newest first."""
+    """Get all incidents for a specific tenant, newest first. Notes are stripped (internal only)."""
     session = _get_central_session()
     try:
         incidents = session.query(Incident).filter(
             Incident.tenant_id == tenant_id
         ).order_by(Incident.created_at.desc()).all()
-        return [_incident_to_dict(i) for i in incidents]
+        result = []
+        for i in incidents:
+            d = _incident_to_dict(i)
+            d.pop("notes", None)  # internal notes must never reach the client
+            result.append(d)
+        return result
+    finally:
+        session.close()
+
+
+def mark_all_incidents_read(tenant_id: str):
+    """Mark all unread incidents for a tenant as read (called when client opens the Support tab)."""
+    session = _get_central_session()
+    try:
+        session.query(Incident).filter(
+            Incident.tenant_id == tenant_id,
+            Incident.client_read == False  # noqa: E712
+        ).update({"client_read": True})
+        session.commit()
+    finally:
+        session.close()
+
+
+def reopen_incident(incident_id: str, tenant_id: str) -> Optional[dict]:
+    """Client re-opens a closed incident. Only works if the incident belongs to that tenant."""
+    session = _get_central_session()
+    try:
+        incident = session.query(Incident).filter(
+            Incident.id == incident_id,
+            Incident.tenant_id == tenant_id
+        ).first()
+        if not incident:
+            return None
+        incident.status = "open"
+        incident.resolved_at = None
+        incident.updated_at = datetime.datetime.utcnow()
+        session.commit()
+        session.refresh(incident)
+        d = _incident_to_dict(incident)
+        d.pop("notes", None)
+        return d
     finally:
         session.close()
 
@@ -300,6 +342,9 @@ def update_incident(incident_id: str, data: dict) -> Optional[dict]:
                 incident.resolved_at = datetime.datetime.utcnow()
         if "seller_response" in data:
             incident.seller_response = data["seller_response"]
+            incident.client_read = False  # mark unread so client sees the new response
+        if "notes" in data:
+            incident.notes = data["notes"]
         incident.updated_at = datetime.datetime.utcnow()
         session.commit()
         session.refresh(incident)
@@ -332,6 +377,8 @@ def _incident_to_dict(incident: Incident) -> dict:
         "severity": incident.severity,
         "status": incident.status,
         "seller_response": incident.seller_response or "",
+        "notes": incident.notes or "",
+        "client_read": incident.client_read if incident.client_read is not None else True,
         "created_at": str(incident.created_at),
         "updated_at": str(incident.updated_at) if incident.updated_at else str(incident.created_at),
         "resolved_at": str(incident.resolved_at) if incident.resolved_at else None,
@@ -928,6 +975,8 @@ def migrate_central_schema():
     migration_steps = [
         # incidents (central DB)
         ("incidents", "seller_response", "TEXT DEFAULT ''"),
+        ("incidents", "notes", "TEXT DEFAULT ''"),
+        ("incidents", "client_read", "BOOLEAN DEFAULT TRUE"),
         ("incidents", "resolved_at", "TIMESTAMP"),
         ("incidents", "updated_at", "TIMESTAMP"),
         # tenants

@@ -1240,6 +1240,77 @@ document.addEventListener('DOMContentLoaded', () => {
     let _allIncidentsData = [];   // cached full list from server
     let _selectedIncidentId = null;
 
+    // ── Stats helpers ────────────────────────────────────────────────────────
+    function _renderIncidentStats(incidents) {
+        const counts = { open: 0, in_progress: 0, resolved: 0, closed: 0 };
+        const bySev  = { critical: 0, high: 0, medium: 0, low: 0 };
+        const byCat  = {};
+        let totalResMs = 0, resolvedCount = 0;
+
+        incidents.forEach(inc => {
+            counts[inc.status] = (counts[inc.status] || 0) + 1;
+            if (bySev[inc.severity] !== undefined) bySev[inc.severity]++;
+            const cat = (inc.category || 'other').replace(/_/g, ' ');
+            byCat[cat] = (byCat[cat] || 0) + 1;
+            if (inc.resolved_at && inc.created_at) {
+                const ms = new Date(inc.resolved_at) - new Date(inc.created_at);
+                if (ms > 0) { totalResMs += ms; resolvedCount++; }
+            }
+        });
+
+        document.getElementById('stat-open').textContent        = counts.open        || 0;
+        document.getElementById('stat-in-progress').textContent = counts.in_progress || 0;
+        document.getElementById('stat-resolved').textContent    = counts.resolved    || 0;
+
+        if (resolvedCount > 0) {
+            const avgH = Math.round(totalResMs / resolvedCount / 3600000);
+            document.getElementById('stat-avg-res').textContent = avgH < 24
+                ? `${avgH}h` : `${Math.round(avgH / 24)}d`;
+        } else {
+            document.getElementById('stat-avg-res').textContent = 'N/A';
+        }
+
+        const SEV_ORDER = ['critical','high','medium','low'];
+        const SEV_C = { critical:'#dc2626', high:'#f97316', medium:'#f59e0b', low:'#10b981' };
+        const sevEl = document.getElementById('stat-by-severity');
+        sevEl.innerHTML = '';
+        SEV_ORDER.forEach(s => {
+            const n = bySev[s] || 0;
+            const pct = incidents.length ? Math.round(n / incidents.length * 100) : 0;
+            sevEl.innerHTML += `<div style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;">
+                <span style="width:60px;color:${SEV_C[s]};font-weight:600;text-transform:capitalize;">${s}</span>
+                <div style="flex:1;background:#f0f0f0;border-radius:4px;height:8px;overflow:hidden;">
+                    <div style="width:${pct}%;background:${SEV_C[s]};height:100%;border-radius:4px;transition:width 0.4s;"></div>
+                </div>
+                <span style="width:24px;text-align:right;color:var(--text-muted);">${n}</span>
+            </div>`;
+        });
+
+        const catEl = document.getElementById('stat-by-category');
+        catEl.innerHTML = '';
+        const total = incidents.length || 1;
+        Object.entries(byCat).sort((a,b)=>b[1]-a[1]).forEach(([cat, n]) => {
+            const pct = Math.round(n / total * 100);
+            catEl.innerHTML += `<div style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;">
+                <span style="width:110px;color:var(--text-main);text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${cat}</span>
+                <div style="flex:1;background:#f0f0f0;border-radius:4px;height:8px;overflow:hidden;">
+                    <div style="width:${pct}%;background:var(--primary);height:100%;border-radius:4px;transition:width 0.4s;"></div>
+                </div>
+                <span style="width:24px;text-align:right;color:var(--text-muted);">${n}</span>
+            </div>`;
+        });
+    }
+
+    // ── SLA helper ──────────────────────────────────────────────────────────
+    function _slaBadge(inc) {
+        if (inc.status === 'resolved' || inc.status === 'closed') return '';
+        if (inc.severity !== 'critical' && inc.severity !== 'high') return '';
+        const ageH = (Date.now() - new Date(inc.created_at)) / 3600000;
+        const ageLabel = ageH < 24 ? `${Math.round(ageH)}h` : `${Math.round(ageH/24)}d`;
+        const color = ageH > 48 ? '#dc2626' : ageH > 24 ? '#f97316' : '#f59e0b';
+        return `<span style="margin-left:0.4rem;font-size:0.7rem;font-weight:700;color:${color};border:1px solid ${color};border-radius:4px;padding:1px 5px;">⚠ ${ageLabel} old</span>`;
+    }
+
     async function loadAdminIncidents(statusFilter = '', severityFilter = '') {
         const adminIncList = document.getElementById('admin-incidents-list');
         const adminNoInc  = document.getElementById('admin-no-incidents');
@@ -1259,9 +1330,11 @@ document.addEventListener('DOMContentLoaded', () => {
             adminIncList.innerHTML = '';
             if (!_allIncidentsData || _allIncidentsData.length === 0) {
                 adminNoInc.style.display = 'block';
+                _renderIncidentStats([]);
                 return;
             }
             adminNoInc.style.display = 'none';
+            _renderIncidentStats(_allIncidentsData);
 
             _allIncidentsData.forEach(inc => {
                 const tr = document.createElement('tr');
@@ -1271,7 +1344,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 tr.innerHTML = `
                     <td style="white-space:nowrap"><small>${new Date(inc.created_at).toLocaleString()}</small></td>
                     <td><strong>${escapeHTML(inc.tenant_name || inc.tenant_id)}</strong></td>
-                    <td>${escapeHTML(inc.title)}</td>
+                    <td>${escapeHTML(inc.title)}${_slaBadge(inc)}</td>
                     <td><small>${escapeHTML((inc.category||'').replace(/_/g,' '))}</small></td>
                     <td><span style="color:${sevColor};font-weight:700;">${(inc.severity||'').toUpperCase()}</span></td>
                     <td><span style="color:${staColor};font-weight:600;">${(inc.status||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span></td>
@@ -1296,6 +1369,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('inc-detail-desc').textContent = inc.description || '';
         document.getElementById('inc-update-status').value = inc.status || 'open';
         document.getElementById('inc-response-text').value = inc.seller_response || '';
+        document.getElementById('inc-notes-text').value = inc.notes || '';
         document.getElementById('inc-save-msg').textContent = '';
         panel.style.display = 'block';
         panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1312,7 +1386,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const payload = {
                 status: document.getElementById('inc-update-status').value,
-                seller_response: document.getElementById('inc-response-text').value.trim()
+                seller_response: document.getElementById('inc-response-text').value.trim(),
+                notes: document.getElementById('inc-notes-text').value.trim()
             };
 
             try {
@@ -1397,6 +1472,28 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('inc-filter-status').value = '';
             document.getElementById('inc-filter-severity').value = '';
             loadAdminIncidents();
+        });
+    }
+
+    const incExportBtn = document.getElementById('admin-inc-export-btn');
+    if (incExportBtn) {
+        incExportBtn.addEventListener('click', () => {
+            if (!_allIncidentsData || _allIncidentsData.length === 0) {
+                alert('No incidents to export.');
+                return;
+            }
+            const cols = ['id','tenant_name','title','category','severity','status','created_at','updated_at','resolved_at','seller_response'];
+            const escape = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+            const rows = [cols.join(',')];
+            _allIncidentsData.forEach(inc => {
+                rows.push(cols.map(c => escape(inc[c])).join(','));
+            });
+            const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `incidents_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(a.href);
         });
     }
 

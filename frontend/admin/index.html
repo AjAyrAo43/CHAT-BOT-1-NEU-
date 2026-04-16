@@ -596,8 +596,43 @@
                                 <h2>🛠 Incident Management</h2>
                                 <p style="color:var(--text-muted);margin-bottom:0;">All support incidents reported by your clients.</p>
                             </div>
-                            <button class="btn outline-btn" id="admin-inc-refresh-btn" style="font-size:0.85rem;padding:0.4rem 0.9rem;">↻ Refresh</button>
+                            <div style="display:flex;gap:0.5rem;">
+                                <button class="btn outline-btn" id="admin-inc-export-btn" style="font-size:0.85rem;padding:0.4rem 0.9rem;">⬇ Export CSV</button>
+                                <button class="btn outline-btn" id="admin-inc-refresh-btn" style="font-size:0.85rem;padding:0.4rem 0.9rem;">↻ Refresh</button>
+                            </div>
                         </header>
+
+                        <!-- Stats Row -->
+                        <div id="inc-stats-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;">
+                            <div class="card" style="padding:1rem;margin-bottom:0;text-align:center;">
+                                <div style="font-size:0.7rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;letter-spacing:0.05em;margin-bottom:0.3rem;">Open</div>
+                                <div id="stat-open" style="font-size:1.8rem;font-weight:700;color:#f59e0b;">—</div>
+                            </div>
+                            <div class="card" style="padding:1rem;margin-bottom:0;text-align:center;">
+                                <div style="font-size:0.7rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;letter-spacing:0.05em;margin-bottom:0.3rem;">In Progress</div>
+                                <div id="stat-in-progress" style="font-size:1.8rem;font-weight:700;color:#3b82f6;">—</div>
+                            </div>
+                            <div class="card" style="padding:1rem;margin-bottom:0;text-align:center;">
+                                <div style="font-size:0.7rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;letter-spacing:0.05em;margin-bottom:0.3rem;">Resolved</div>
+                                <div id="stat-resolved" style="font-size:1.8rem;font-weight:700;color:#10b981;">—</div>
+                            </div>
+                            <div class="card" style="padding:1rem;margin-bottom:0;text-align:center;">
+                                <div style="font-size:0.7rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;letter-spacing:0.05em;margin-bottom:0.3rem;">Avg. Resolution</div>
+                                <div id="stat-avg-res" style="font-size:1.8rem;font-weight:700;color:var(--primary);">—</div>
+                            </div>
+                        </div>
+
+                        <!-- Severity + Category Summary -->
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+                            <div class="card bg-light" style="padding:1rem;margin-bottom:0;">
+                                <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.75rem;">By Severity</div>
+                                <div id="stat-by-severity" style="display:flex;flex-direction:column;gap:0.4rem;"></div>
+                            </div>
+                            <div class="card bg-light" style="padding:1rem;margin-bottom:0;">
+                                <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.75rem;">By Category</div>
+                                <div id="stat-by-category" style="display:flex;flex-direction:column;gap:0.4rem;"></div>
+                            </div>
+                        </div>
 
                         <!-- Filters + Table Side-by-Side -->
                         <div style="display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:2rem;">
@@ -676,6 +711,13 @@
                             <div class="input-group" style="margin-bottom:1rem;">
                                 <label for="inc-response-text">Your Response to Client</label>
                                 <textarea id="inc-response-text" rows="4" placeholder="Write your response here. The client will see this in their admin panel and receive an email notification..." maxlength="3000"></textarea>
+                            </div>
+                            <div class="input-group" style="margin-bottom:1rem;">
+                                <label for="inc-notes-text" style="display:flex;align-items:center;gap:0.4rem;">
+                                    🔒 Internal Notes
+                                    <span style="font-size:0.75rem;color:var(--text-muted);font-weight:400;">(only you can see this — never shown to client)</span>
+                                </label>
+                                <textarea id="inc-notes-text" rows="3" placeholder="e.g. Waiting on vendor reply, escalated to dev team..." maxlength="2000" style="background:#fffbf0;border-color:#fde0c4;"></textarea>
                             </div>
                             <div style="display:flex;gap:1rem;flex-wrap:wrap;">
                                 <button class="btn primary-btn" id="inc-save-btn">💾 Save Response</button>
