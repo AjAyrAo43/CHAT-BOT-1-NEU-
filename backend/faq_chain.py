@@ -14,7 +14,7 @@ def get_faq_context(intent: str, tenant_id: str, db=None) -> str:
         db = get_tenant_session(tenant_id)
         should_close = True
 
-    faqs = db.query(FAQ).filter(FAQ.intent == intent, FAQ.is_active == True).all()
+    faqs = db.query(FAQ).filter(FAQ.tenant_id == tenant_id, FAQ.intent == intent, FAQ.is_active == True).all()
 
     if should_close:
         db.close()
@@ -35,7 +35,7 @@ def get_document_context(tenant_id: str, db=None, max_chars: int = 5000) -> str:
         db = get_tenant_session(tenant_id)
         should_close = True
 
-    docs = db.query(KnowledgeDocument).filter(KnowledgeDocument.is_active == True).all()
+    docs = db.query(KnowledgeDocument).filter(KnowledgeDocument.tenant_id == tenant_id, KnowledgeDocument.is_active == True).all()
 
     if should_close:
         db.close()
@@ -78,7 +78,7 @@ def get_answer(question: str, intent: str, tenant_id: str, language: str = "en",
                     BusinessProfile.company_name,
                     BusinessProfile.industry,
                     BusinessProfile.business_description,
-                ).first()
+                ).filter(BusinessProfile.tenant_id == tenant_id).first()
         except Exception:
             profile = None
 

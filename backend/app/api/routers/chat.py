@@ -99,7 +99,10 @@ async def chat_endpoint(
             day=1, hour=0, minute=0, second=0, microsecond=0
         )
         monthly_messages = (
-            db.query(ChatLog.id).filter(ChatLog.created_at >= first_day_of_month).count()
+            db.query(ChatLog.id).filter(
+                ChatLog.tenant_id == payload.tenant_id,
+                ChatLog.created_at >= first_day_of_month
+            ).count()
         )
         if monthly_messages >= limits.get("messages_per_month", 1000):
             return ChatResponse(
@@ -134,6 +137,7 @@ async def chat_endpoint(
             record_tokens(int((len(words) + len(thank_you.split())) * 1.3))
 
             new_log = ChatLog(
+                tenant_id=payload.tenant_id,
                 session_id=payload.session_id,
                 encrypted_question=encrypted_q,
                 encrypted_answer=encrypted_a,
@@ -147,6 +151,7 @@ async def chat_endpoint(
             db.add(new_log)
 
             lead_record = Lead(
+                tenant_id=payload.tenant_id,
                 session_id=payload.session_id,
                 name=name_str,
                 phone=phone_str,
@@ -186,6 +191,7 @@ async def chat_endpoint(
         encrypted_a = encrypt_text(answer)
 
         new_log = ChatLog(
+            tenant_id=payload.tenant_id,
             session_id=payload.session_id,
             encrypted_question=encrypted_q,
             encrypted_answer=encrypted_a,
@@ -232,12 +238,16 @@ async def chat_feedback_endpoint(
         from ....database import ChatFeedback
 
         # Upsert feedback for the session
-        existing = db.query(ChatFeedback).filter(ChatFeedback.session_id == payload.session_id).first()
+        existing = db.query(ChatFeedback).filter(
+            ChatFeedback.tenant_id == payload.tenant_id,
+            ChatFeedback.session_id == payload.session_id
+        ).first()
         if existing:
             existing.rating = payload.rating
             existing.comment = payload.comment
         else:
             new_fb = ChatFeedback(
+                tenant_id=payload.tenant_id,
                 session_id=payload.session_id,
                 rating=payload.rating,
                 comment=payload.comment
@@ -271,7 +281,7 @@ async def chat_config_endpoint(
     try:
         db = get_tenant_session(tenant_id)
         from ....database import BusinessProfile
-        profile = db.query(BusinessProfile).first()
+        profile = db.query(BusinessProfile).filter(BusinessProfile.tenant_id == tenant_id).first()
         
         if profile:
             return {

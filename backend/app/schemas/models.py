@@ -114,7 +114,7 @@ class DocumentResponse(BaseModel):
 
 class TenantCreate(BaseModel):
     name: str
-    db_url: str
+    db_url: Optional[str] = ""  # no longer required — all data stored in central DB
     admin_password: str = "admin"
     notification_email: str = ""
     logo_b64: Optional[str] = None

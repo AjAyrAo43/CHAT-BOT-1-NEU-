@@ -76,7 +76,7 @@
                     <section id="tab-register" class="content-section active">
                         <header class="section-header">
                             <h2> Register Client</h2>
-                            <p style="color:var(--text-muted);">Register new clients and assign them their own database.</p>
+                            <p style="color:var(--text-muted);">Register new clients. Each client name must be unique.</p>
                         </header>
 
                         <div class="card bg-light" style="margin-bottom: 2rem;">
@@ -85,11 +85,7 @@
                                 <div class="input-group">
                                     <label for="tenant-name">Client Name (e.g., 'Hotel Sunrise')</label>
                                     <input type="text" id="tenant-name" required>
-                                </div>
-                                <div class="input-group">
-                                    <label for="db-url">Database URL</label>
-                                    <input type="text" id="db-url" placeholder="postgresql://user:pass@host/db_name">
-                                    <small style="color:#888;">Each client needs their own PostgreSQL db. Leave blank for default internal SQLite.</small>
+                                    <small style="color:#888;">Must be unique. This becomes the client's display name.</small>
                                 </div>
                                 <div class="input-group">
                                     <label for="admin-password">Client Admin Password</label>
@@ -120,11 +116,7 @@
                                 <div class="input-group">
                                     <label for="demo-tenant-name">Demo Client Name (e.g., 'Demo Hotel')</label>
                                     <input type="text" id="demo-tenant-name" required>
-                                </div>
-                                <div class="input-group">
-                                    <label for="demo-db-url">Database URL</label>
-                                    <input type="text" id="demo-db-url" placeholder="postgresql://user:pass@host/db_name">
-                                    <small style="color:#888;">Leave blank for default SQLite. The demo db is prefilled with a starter plan and content.</small>
+                                    <small style="color:#888;">Must be unique. Prefilled with starter plan and sample content.</small>
                                 </div>
                                 <button type="submit" class="btn outline-btn" style="color:#107c41; border-color:#107c41;"> Create Demo Account</button>
                                 <div id="demo-create-error" class="error-text"></div>

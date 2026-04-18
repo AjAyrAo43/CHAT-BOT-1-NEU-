@@ -14,7 +14,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ──────────────────────────────────────────────
-# TENANT REGISTRY (PostgreSQL)
+# SINGLE CENTRAL DATABASE (PostgreSQL)
+# All tenant data lives here — no per-tenant DBs
 # ──────────────────────────────────────────────
 CENTRAL_DB_URL = os.getenv("CENTRAL_DB_URL")
 if not CENTRAL_DB_URL:
@@ -29,25 +30,32 @@ PLAN_LIMITS = {
     "Starter": {"messages_per_month": 1000, "docs": 5, "faqs": 20, "export": False, "languages": ["en"]}
 }
 
-CentralBase = declarative_base()
+# Single declarative base for all models
+Base = declarative_base()
+CentralBase = Base  # alias kept for backward compatibility
 
-class Incident(CentralBase):
+
+# ──────────────────────────────────────────────
+# CENTRAL / SHARED MODELS
+# ──────────────────────────────────────────────
+
+class Incident(Base):
     __tablename__ = "incidents"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     tenant_id = Column(String, index=True)
     title = Column(String)
     description = Column(Text)
-    category = Column(String, default="other")   # chatbot_error | billing | configuration | performance | other
-    severity = Column(String, default="medium")  # low | medium | high | critical
-    status = Column(String, default="open")      # open | in_progress | resolved | closed
+    category = Column(String, default="other")
+    severity = Column(String, default="medium")
+    status = Column(String, default="open")
     seller_response = Column(Text, default="")
-    notes = Column(Text, default="")             # internal seller notes — never sent to client
-    client_read = Column(Boolean, default=True)  # False when seller responds, True once client views
+    notes = Column(Text, default="")
+    client_read = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
     resolved_at = Column(DateTime, nullable=True)
 
-class Plan(CentralBase):
+class Plan(Base):
     __tablename__ = "plans"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, unique=True, index=True)
@@ -56,16 +64,16 @@ class Plan(CentralBase):
     docs_limit = Column(Integer, default=5)
     faqs_limit = Column(Integer, default=20)
     export_enabled = Column(Boolean, default=False)
-    languages = Column(String, default="en") # comma separated or "all"
+    languages = Column(String, default="en")
     default_trial_days = Column(Integer, default=14)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
-class CentralTenant(CentralBase):
+class CentralTenant(Base):
     __tablename__ = "tenants"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, unique=True, index=True)
-    username = Column(String, unique=True, index=True)  # Customer-facing login handle, e.g. "acmecorp"
-    db_url = Column(String)
+    username = Column(String, unique=True, index=True)
+    db_url = Column(String, nullable=True)  # kept for backward compat, no longer required
     api_key = Column(String, default=lambda: str(uuid.uuid4()))
     admin_password_hash = Column(String)
     is_active = Column(Boolean, default=True)
@@ -74,19 +82,140 @@ class CentralTenant(CentralBase):
     subscription_start_date = Column(DateTime, default=datetime.datetime.utcnow)
     subscription_end_date = Column(DateTime, default=lambda: datetime.datetime.utcnow() + datetime.timedelta(days=14))
     deactivated_at = Column(DateTime, nullable=True)
-
     current_plan_id = Column(String, ForeignKey("plans.id"))
     notification_email = Column(String, default="")
-
     plan = relationship("Plan", backref="tenants")
+
+
+# ──────────────────────────────────────────────
+# TENANT (CLIENT) DATA MODELS
+# All have tenant_id for row-level isolation
+# ──────────────────────────────────────────────
+
+class Admin(Base):
+    __tablename__ = "admins"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String, index=True)
+    email = Column(String, index=True)
+    password_hash = Column(String)
+    role = Column(String, default="admin")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String, index=True)
+    amount_inr = Column(String)
+    plan_name = Column(String)
+    status = Column(String, default="Paid")
+    payment_date = Column(DateTime, default=datetime.datetime.utcnow)
+
+class FAQ(Base):
+    __tablename__ = "faqs"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String, index=True)
+    question = Column(Text)
+    answer = Column(Text)
+    intent = Column(String, index=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class BusinessProfile(Base):
+    __tablename__ = "business_profile"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String, index=True)
+    company_name = Column(String, default="Generic Corp")
+    industry = Column(String, default="General Services")
+    business_description = Column(Text, default="A professional business providing high-quality services.")
+    website = Column(String, default="")
+    support_email = Column(String, default="")
+    phone = Column(String, default="")
+    contact_person_name = Column(String, default="")
+    contact_person_role = Column(String, default="")
+    contact_person_email = Column(String, default="")
+    contact_person_phone = Column(String, default="")
+    address_street = Column(String, default="")
+    city = Column(String, default="")
+    state = Column(String, default="")
+    country = Column(String, default="")
+    zip_code = Column(String, default="")
+    timezone = Column(String, default="")
+    business_hours = Column(String, default="")
+    brand_color_primary = Column(String, default="")
+    brand_color_secondary = Column(String, default="")
+    social_linkedin = Column(String, default="")
+    social_twitter = Column(String, default="")
+    social_instagram = Column(String, default="")
+    logo_url = Column(String, default="")
+    chatbot_greeting_message = Column(Text, default="Hi! How can I help you today?")
+    chatbot_system_prompt = Column(Text, default="You are a helpful customer support assistant.")
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class ChatLog(Base):
+    __tablename__ = "chat_logs_v2"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String, index=True)
+    session_id = Column(String, index=True)
+    encrypted_question = Column(Text)
+    encrypted_answer = Column(Text)
+    detected_intent = Column(String)
+    page_url = Column(String)
+    is_resolved = Column(Boolean, default=False)
+    language = Column(String, default="en")
+    user_ip = Column(String)
+    response_time_ms = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class ChatFeedback(Base):
+    __tablename__ = "chat_feedback"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String, index=True)
+    session_id = Column(String, index=True)
+    rating = Column(Integer)
+    comment = Column(Text)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class KnowledgeDocument(Base):
+    __tablename__ = "knowledge_documents"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String, index=True)
+    filename = Column(String)
+    content = Column(Text)
+    file_type = Column(String)
+    file_size_bytes = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class Lead(Base):
+    __tablename__ = "leads"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String, index=True)
+    session_id = Column(String, index=True)
+    name = Column(String, default="")
+    phone = Column(String, default="")
+    email = Column(String, default="")
+    raw_message = Column(Text, default="")
+    page_url = Column(String, default="")
+    is_notified = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+# Keep TenantBase as alias for any external code that imports it
+TenantBase = Base
+
+
+# ──────────────────────────────────────────────
+# ENGINE & SESSION (single central DB)
+# ──────────────────────────────────────────────
 
 _central_engine = None
 _CentralSessionLocal = None
 
-# ── Simple in-memory cache for tenant lookups (30s TTL) ────────────────
-_tenant_cache_data = None          # list[dict]
-_tenant_cache_time = 0.0           # epoch seconds
-_TENANT_CACHE_TTL = 30             # seconds
+# Simple in-memory cache for tenant lookups (30s TTL)
+_tenant_cache_data = None
+_tenant_cache_time = 0.0
+_TENANT_CACHE_TTL = 30
 
 def _invalidate_tenant_cache():
     global _tenant_cache_data, _tenant_cache_time
@@ -100,8 +229,8 @@ def _get_central_engine():
             CENTRAL_DB_URL,
             pool_size=5,
             max_overflow=10,
-            pool_pre_ping=True,   # silently test connection before use; replaces dead SSL connections
-            pool_recycle=1800,    # recycle connections every 30 min (Supabase drops idle after ~10 min)
+            pool_pre_ping=True,
+            pool_recycle=1800,
         )
     return _central_engine
 
@@ -113,13 +242,37 @@ def _get_central_session():
     return _CentralSessionLocal()
 
 
+def get_tenant_session(tenant_id: str):
+    """Return a SQLAlchemy session to the central DB (validated against tenant registry)."""
+    tenant = get_tenant_by_id(tenant_id)
+    if not tenant:
+        raise ValueError(f"Tenant '{tenant_id}' not found or is inactive.")
+    engine = _get_central_engine()
+    Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    return Session()
+
+
+def init_tenant_db(db_url: str = None):
+    """Create all tables in the central database. db_url is ignored (kept for compat)."""
+    engine = _get_central_engine()
+    Base.metadata.create_all(bind=engine)
+
+
+def get_tenant_db_url(tenant_id: str) -> str:
+    """Kept for backward compatibility — returns empty string."""
+    return ""
+
+
+# ──────────────────────────────────────────────
+# PLAN MANAGEMENT
+# ──────────────────────────────────────────────
+
 def get_tenant_limits(tenant_id: str) -> dict:
     session = _get_central_session()
     try:
         tenant = session.query(CentralTenant).filter(CentralTenant.id == tenant_id).first()
         if not tenant or not tenant.plan:
             return PLAN_LIMITS["Starter"]
-
         langs = tenant.plan.languages
         return {
             "messages_per_month": tenant.plan.messages_per_month,
@@ -132,20 +285,16 @@ def get_tenant_limits(tenant_id: str) -> dict:
         session.close()
 
 def get_all_plans() -> list:
-    """Return all subscription plans in the central registry with their active user counts."""
     session = _get_central_session()
     try:
         plans = session.query(Plan).all()
-        # Pre-calculate active users per plan
         tenants = session.query(CentralTenant.current_plan_id).filter(
             CentralTenant.is_active == True,
             CentralTenant.is_demo_account == False
         ).all()
-
         plan_counts = {}
         for (p_id,) in tenants:
             plan_counts[p_id] = plan_counts.get(p_id, 0) + 1
-
         return [{
             "id": p.id,
             "name": p.name,
@@ -163,7 +312,6 @@ def get_all_plans() -> list:
         session.close()
 
 def create_plan(plan_data: dict) -> dict:
-    """Create a new subscription plan."""
     session = _get_central_session()
     try:
         if session.query(Plan).filter(Plan.name == plan_data["name"]).first():
@@ -192,18 +340,15 @@ def create_plan(plan_data: dict) -> dict:
         session.close()
 
 def update_plan(plan_id: str, plan_data: dict) -> dict:
-    """Update an existing subscription plan."""
     session = _get_central_session()
     try:
         plan = session.query(Plan).filter(Plan.id == plan_id).first()
         if not plan:
             raise ValueError(f"Plan '{plan_id}' not found.")
-
         if "name" in plan_data and plan_data["name"] != plan.name:
             if session.query(Plan).filter(Plan.name == plan_data["name"]).first():
                 raise ValueError(f"Plan '{plan_data['name']}' already exists.")
             plan.name = plan_data["name"]
-
         plan.price_inr = plan_data.get("price_inr", plan.price_inr)
         plan.messages_per_month = plan_data.get("messages_per_month", plan.messages_per_month)
         plan.docs_limit = plan_data.get("docs_limit", plan.docs_limit)
@@ -211,7 +356,6 @@ def update_plan(plan_id: str, plan_data: dict) -> dict:
         plan.export_enabled = plan_data.get("export_enabled", plan.export_enabled)
         plan.languages = plan_data.get("languages", plan.languages)
         plan.default_trial_days = plan_data.get("default_trial_days", getattr(plan, "default_trial_days", 14))
-
         session.commit()
         session.refresh(plan)
         return {
@@ -224,24 +368,25 @@ def update_plan(plan_id: str, plan_data: dict) -> dict:
         session.close()
 
 def delete_plan(plan_id: str) -> bool:
-    """Delete a subscription plan (checks usage first)."""
     session = _get_central_session()
     try:
         plan = session.query(Plan).filter(Plan.id == plan_id).first()
         if not plan:
             return False
-        # Do not allow deletion if tenants are using it
         if session.query(CentralTenant).filter(CentralTenant.current_plan_id == plan_id).first():
             raise ValueError("Cannot delete plan currently in use by an active client.")
-
         session.delete(plan)
         session.commit()
         return True
     finally:
         session.close()
 
+
+# ──────────────────────────────────────────────
+# INCIDENT MANAGEMENT
+# ──────────────────────────────────────────────
+
 def create_incident(tenant_id: str, data: dict) -> dict:
-    """Create a new incident for a tenant."""
     session = _get_central_session()
     try:
         incident = Incident(
@@ -259,9 +404,7 @@ def create_incident(tenant_id: str, data: dict) -> dict:
     finally:
         session.close()
 
-
 def get_incidents_by_tenant(tenant_id: str) -> list:
-    """Get all incidents for a specific tenant, newest first. Notes are stripped (internal only)."""
     session = _get_central_session()
     try:
         incidents = session.query(Incident).filter(
@@ -270,15 +413,13 @@ def get_incidents_by_tenant(tenant_id: str) -> list:
         result = []
         for i in incidents:
             d = _incident_to_dict(i)
-            d.pop("notes", None)  # internal notes must never reach the client
+            d.pop("notes", None)
             result.append(d)
         return result
     finally:
         session.close()
 
-
 def mark_all_incidents_read(tenant_id: str):
-    """Mark all unread incidents for a tenant as read (called when client opens the Support tab)."""
     session = _get_central_session()
     try:
         session.query(Incident).filter(
@@ -289,9 +430,7 @@ def mark_all_incidents_read(tenant_id: str):
     finally:
         session.close()
 
-
 def reopen_incident(incident_id: str, tenant_id: str) -> Optional[dict]:
-    """Client re-opens a closed incident. Only works if the incident belongs to that tenant."""
     session = _get_central_session()
     try:
         incident = session.query(Incident).filter(
@@ -311,13 +450,10 @@ def reopen_incident(incident_id: str, tenant_id: str) -> Optional[dict]:
     finally:
         session.close()
 
-
 def get_all_incidents() -> list:
-    """Get all incidents across all tenants (seller view), newest first."""
     session = _get_central_session()
     try:
         incidents = session.query(Incident).order_by(Incident.created_at.desc()).all()
-        # Attach tenant name for display
         tenant_names = {t["id"]: t["name"] for t in get_all_tenants()}
         result = []
         for i in incidents:
@@ -328,9 +464,7 @@ def get_all_incidents() -> list:
     finally:
         session.close()
 
-
 def update_incident(incident_id: str, data: dict) -> Optional[dict]:
-    """Update an incident's status and/or seller response."""
     session = _get_central_session()
     try:
         incident = session.query(Incident).filter(Incident.id == incident_id).first()
@@ -342,7 +476,7 @@ def update_incident(incident_id: str, data: dict) -> Optional[dict]:
                 incident.resolved_at = datetime.datetime.utcnow()
         if "seller_response" in data:
             incident.seller_response = data["seller_response"]
-            incident.client_read = False  # mark unread so client sees the new response
+            incident.client_read = False
         if "notes" in data:
             incident.notes = data["notes"]
         incident.updated_at = datetime.datetime.utcnow()
@@ -352,9 +486,7 @@ def update_incident(incident_id: str, data: dict) -> Optional[dict]:
     finally:
         session.close()
 
-
 def delete_incident(incident_id: str) -> bool:
-    """Permanently delete an incident."""
     session = _get_central_session()
     try:
         incident = session.query(Incident).filter(Incident.id == incident_id).first()
@@ -365,7 +497,6 @@ def delete_incident(incident_id: str) -> bool:
         return True
     finally:
         session.close()
-
 
 def _incident_to_dict(incident: Incident) -> dict:
     return {
@@ -385,8 +516,11 @@ def _incident_to_dict(incident: Incident) -> dict:
     }
 
 
+# ──────────────────────────────────────────────
+# TENANT REGISTRY
+# ──────────────────────────────────────────────
+
 def _generate_username(name: str, session) -> str:
-    """Generate a unique, clean alphanumeric username from a tenant name."""
     import re
     base = re.sub(r'[^a-z0-9]', '', name.lower())[:20] or "client"
     candidate = base
@@ -397,32 +531,29 @@ def _generate_username(name: str, session) -> str:
     return candidate
 
 
-def register_tenant(name: str, db_url: str, admin_password: str = "admin", notification_email: str = "", logo_b64: str = None) -> dict:
-    """Register a new client and create their database tables."""
+def register_tenant(name: str, db_url: str = "", admin_password: str = "admin", notification_email: str = "", logo_b64: str = None) -> dict:
+    """Register a new client. db_url is accepted but ignored (all data in central DB)."""
     session = _get_central_session()
     try:
         if session.query(CentralTenant).filter(CentralTenant.name == name).first():
             raise ValueError(f"Tenant '{name}' already exists.")
 
-        # Find default plan
         starter_plan = session.query(Plan).filter(Plan.name == "Starter Plan (₹499/mo)").first()
         if not starter_plan:
-             # Create it on the fly if it doesn't exist to prevent crashes
-             starter_plan = Plan(name="Starter Plan (₹499/mo)", price_inr=499.0, messages_per_month=1000, docs_limit=5, faqs_limit=20, export_enabled=False, languages="en")
-             session.add(starter_plan)
-             session.commit()
-             session.refresh(starter_plan)
+            starter_plan = Plan(name="Starter Plan (₹499/mo)", price_inr=499.0, messages_per_month=1000, docs_limit=5, faqs_limit=20, export_enabled=False, languages="en")
+            session.add(starter_plan)
+            session.commit()
+            session.refresh(starter_plan)
 
         password_hash = bcrypt.hashpw(admin_password.encode(), bcrypt.gensalt()).decode()
         username = _generate_username(name, session)
-
         trial_days = getattr(starter_plan, "default_trial_days", 14)
 
         new_tenant = CentralTenant(
             id=str(uuid.uuid4()),
             name=name,
             username=username,
-            db_url=db_url,
+            db_url=db_url or "",
             admin_password_hash=password_hash,
             notification_email=notification_email,
             current_plan_id=starter_plan.id,
@@ -434,33 +565,31 @@ def register_tenant(name: str, db_url: str, admin_password: str = "admin", notif
         session.refresh(new_tenant)
         _invalidate_tenant_cache()
 
-        # Auto-create tables in the client's database
-        init_tenant_db(db_url)
-
         # Populate initial logo if provided
         if logo_b64:
-            tenant_session = get_tenant_session(new_tenant.id)
+            central_session = _get_central_session()
             try:
                 profile = BusinessProfile(
-                    id="default",
+                    id=str(uuid.uuid4()),
+                    tenant_id=new_tenant.id,
                     company_name=name,
                     industry="Technology",
                     business_description="We provide innovative solutions.",
                     logo_url=logo_b64
                 )
-                tenant_session.add(profile)
-                tenant_session.commit()
+                central_session.add(profile)
+                central_session.commit()
             except Exception as e:
-                tenant_session.rollback()
+                central_session.rollback()
                 print(f"Failed to save initial logo: {e}")
             finally:
-                tenant_session.close()
+                central_session.close()
 
         return _tenant_to_dict(new_tenant, plan_name=starter_plan.name)
     finally:
         session.close()
 
-def create_demo_tenant(name: str, db_url: str) -> dict:
+def create_demo_tenant(name: str, db_url: str = "") -> dict:
     """Create a read-only demo tenant with prefilled data."""
     session = _get_central_session()
     try:
@@ -469,10 +598,10 @@ def create_demo_tenant(name: str, db_url: str) -> dict:
 
         starter_plan = session.query(Plan).filter(Plan.name == "Starter Plan (₹499/mo)").first()
         if not starter_plan:
-             starter_plan = Plan(name="Starter Plan (₹499/mo)", price_inr=499.0, messages_per_month=1000, docs_limit=5, faqs_limit=20, export_enabled=False, languages="en")
-             session.add(starter_plan)
-             session.commit()
-             session.refresh(starter_plan)
+            starter_plan = Plan(name="Starter Plan (₹499/mo)", price_inr=499.0, messages_per_month=1000, docs_limit=5, faqs_limit=20, export_enabled=False, languages="en")
+            session.add(starter_plan)
+            session.commit()
+            session.refresh(starter_plan)
 
         password_hash = bcrypt.hashpw("admin".encode(), bcrypt.gensalt()).decode()
         username = _generate_username(name, session)
@@ -481,49 +610,46 @@ def create_demo_tenant(name: str, db_url: str) -> dict:
             id=str(uuid.uuid4()),
             name=name,
             username=username,
-            db_url=db_url,
+            db_url=db_url or "",
             admin_password_hash=password_hash,
             is_demo_account=True,
             current_plan_id=starter_plan.id,
             subscription_start_date=datetime.datetime.utcnow(),
-            subscription_end_date=datetime.datetime.utcnow() + datetime.timedelta(days=3650) # 10 years
+            subscription_end_date=datetime.datetime.utcnow() + datetime.timedelta(days=3650)
         )
         session.add(new_tenant)
         session.commit()
         session.refresh(new_tenant)
         _invalidate_tenant_cache()
 
-        init_tenant_db(db_url)
-
-        # Populate demo info
-        tenant_session = get_tenant_session(new_tenant.id)
+        # Populate demo data in central DB
+        central_session = _get_central_session()
         try:
             profile = BusinessProfile(
-                id="default",
+                id=str(uuid.uuid4()),
+                tenant_id=new_tenant.id,
                 company_name=name,
                 industry="Demo",
                 business_description="This is a read-only demo account.",
-                chatbot_greeting_message="👋 Welcome to our Demo! I am a read-only bot here to answer your questions.",
+                chatbot_greeting_message="Welcome to our Demo! I am a read-only bot here to answer your questions.",
                 chatbot_system_prompt="You are a demo bot. Do not make up answers. Only answer based on demo knowledge."
             )
-            tenant_session.add(profile)
+            central_session.add(profile)
 
-            # Dummy FAQ
-            faq1 = FAQ(question="How much does this cost?", answer="Our pricing starts at ₹499/month.", intent="pricing")
-            faq2 = FAQ(question="Can I export data?", answer="Yes, on the Pro plan you can export data.", intent="information")
-            tenant_session.add(faq1)
-            tenant_session.add(faq2)
+            faq1 = FAQ(tenant_id=new_tenant.id, question="How much does this cost?", answer="Our pricing starts at ₹499/month.", intent="pricing")
+            faq2 = FAQ(tenant_id=new_tenant.id, question="Can I export data?", answer="Yes, on the Pro plan you can export data.", intent="information")
+            central_session.add(faq1)
+            central_session.add(faq2)
 
-            # Dummy Doc
-            doc1 = KnowledgeDocument(filename="welcome.txt", content="Welcome to the Multi-Tenant Platform Demo. We specialize in AI chat solutions.", file_type="text")
-            tenant_session.add(doc1)
+            doc1 = KnowledgeDocument(tenant_id=new_tenant.id, filename="welcome.txt", content="Welcome to the Multi-Tenant Platform Demo. We specialize in AI chat solutions.", file_type="text")
+            central_session.add(doc1)
 
-            tenant_session.commit()
+            central_session.commit()
         except Exception as e:
-            tenant_session.rollback()
+            central_session.rollback()
             print(f"Failed to populate demo tenant: {e}")
         finally:
-            tenant_session.close()
+            central_session.close()
 
         return _tenant_to_dict(new_tenant, plan_name=starter_plan.name)
     finally:
@@ -531,14 +657,13 @@ def create_demo_tenant(name: str, db_url: str) -> dict:
 
 def _tenant_to_dict(tenant: CentralTenant, plan_name: str = None) -> dict:
     if not tenant: return None
-    # Accept plan_name to avoid lazy-loading the relationship per tenant
     if plan_name is None:
         plan_name = tenant.plan.name if tenant.plan else "Starter"
     return {
         "id": tenant.id,
         "name": tenant.name,
         "username": tenant.username or "",
-        "db_url": tenant.db_url,
+        "db_url": tenant.db_url or "",
         "api_key": tenant.api_key,
         "admin_password_hash": tenant.admin_password_hash,
         "is_active": tenant.is_active,
@@ -552,13 +677,11 @@ def _tenant_to_dict(tenant: CentralTenant, plan_name: str = None) -> dict:
     }
 
 def get_all_tenants(use_cache: bool = True) -> list:
-    """Get all registered tenants — cached for 30 seconds."""
     global _tenant_cache_data, _tenant_cache_time
     if use_cache and _tenant_cache_data is not None and (datetime.datetime.utcnow().timestamp() - _tenant_cache_time) < _TENANT_CACHE_TTL:
         return _tenant_cache_data
     session = _get_central_session()
     try:
-        # Use joinedload to fetch tenants + plans in ONE query (prevents N+1)
         tenants = session.query(CentralTenant).options(joinedload(CentralTenant.plan)).all()
         result = [_tenant_to_dict(t, plan_name=t.plan.name if t.plan else "Starter") for t in tenants]
         _tenant_cache_data = result
@@ -567,14 +690,11 @@ def get_all_tenants(use_cache: bool = True) -> list:
     finally:
         session.close()
 
-
 def get_tenant_by_id(tenant_id: str) -> dict:
-    """Look up a tenant by ID — uses cache when available."""
-    cached = get_all_tenants()  # populates cache as a side effect
+    cached = get_all_tenants()
     for t in cached:
         if t["id"] == tenant_id and t.get("is_active"):
             return t
-    # Cache miss or inactive — hit DB directly
     session = _get_central_session()
     try:
         t = session.query(CentralTenant).options(joinedload(CentralTenant.plan)).filter(
@@ -584,16 +704,12 @@ def get_tenant_by_id(tenant_id: str) -> dict:
     finally:
         session.close()
 
-
 def get_tenant_by_username(username: str) -> Optional[dict]:
-    """Look up an active tenant by their human-readable username."""
     username = username.strip().lower()
-    # Try cache first
     cached = get_all_tenants()
     for t in cached:
         if t.get("username", "").lower() == username and t.get("is_active"):
             return t
-    # Fallback to DB
     session = _get_central_session()
     try:
         t = session.query(CentralTenant).options(joinedload(CentralTenant.plan)).filter(
@@ -603,9 +719,7 @@ def get_tenant_by_username(username: str) -> Optional[dict]:
     finally:
         session.close()
 
-
 def deactivate_tenant(tenant_id: str) -> bool:
-    """Soft-delete a tenant."""
     session = _get_central_session()
     try:
         t = session.query(CentralTenant).filter(CentralTenant.id == tenant_id).first()
@@ -619,31 +733,21 @@ def deactivate_tenant(tenant_id: str) -> bool:
     finally:
         session.close()
 
-
 def delete_tenant_hard(tenant_id: str) -> bool:
-    """Hard-delete a tenant from central DB and remove their SQLite DB file if it exists."""
+    """Hard-delete a tenant and all their data from the central DB."""
     session = _get_central_session()
     try:
         t = session.query(CentralTenant).filter(CentralTenant.id == tenant_id).first()
         if not t:
             return False
 
-        db_url = t.db_url
+        # Delete all tenant data from shared tables
+        for model in [FAQ, BusinessProfile, ChatLog, ChatFeedback, KnowledgeDocument, Lead, Invoice, Incident, Admin]:
+            session.query(model).filter(model.tenant_id == tenant_id).delete()
 
         session.delete(t)
         session.commit()
         _invalidate_tenant_cache()
-
-        # Delete associated SQLite file if it exists
-        if db_url and db_url.startswith('sqlite:///'):
-            import os
-            filepath = db_url.replace('sqlite:///', '')
-            if os.path.exists(filepath):
-                try:
-                    os.remove(filepath)
-                except Exception as e:
-                    print(f"Warning: Could not delete SQLite file {filepath}: {e}")
-
         return True
     except Exception as e:
         session.rollback()
@@ -652,9 +756,7 @@ def delete_tenant_hard(tenant_id: str) -> bool:
     finally:
         session.close()
 
-
 def verify_client_password(tenant_id: str, password: str) -> bool:
-    """Verify a client's admin password."""
     session = _get_central_session()
     try:
         t = session.query(CentralTenant).filter(CentralTenant.id == tenant_id).first()
@@ -667,9 +769,7 @@ def verify_client_password(tenant_id: str, password: str) -> bool:
     finally:
         session.close()
 
-
 def update_tenant_password(tenant_id: str, new_password: str) -> bool:
-    """Update a client's admin password."""
     session = _get_central_session()
     try:
         t = session.query(CentralTenant).filter(CentralTenant.id == tenant_id).first()
@@ -682,45 +782,35 @@ def update_tenant_password(tenant_id: str, new_password: str) -> bool:
         session.close()
 
 def extend_subscription(tenant_id: str, days: int = 30, plan_name: Optional[str] = None) -> Optional[str]:
-    """Extend a tenant's subscription by a given number of days."""
     session = _get_central_session()
     try:
         t = session.query(CentralTenant).filter(CentralTenant.id == tenant_id).first()
         if not t: return None
-
         current_end = t.subscription_end_date
         if not current_end or current_end < datetime.datetime.utcnow():
             new_end = datetime.datetime.utcnow() + datetime.timedelta(days=days)
         else:
             new_end = current_end + datetime.timedelta(days=days)
-
         t.subscription_end_date = new_end
-
         if plan_name:
             plan = session.query(Plan).filter(Plan.name == plan_name).first()
             if plan:
                 t.current_plan_id = plan.id
-
         session.commit()
         return str(new_end)
     finally:
         session.close()
 
 def record_payment(tenant_id: str, amount_inr: float, plan_name: str, days_to_add: int = 30) -> dict:
-    """Record a payment in the tenant's database and extend their subscription."""
-    # 1. Extend the subscription globally in tenants.json
     new_end_date = extend_subscription(tenant_id, days_to_add, plan_name)
     if not new_end_date:
         raise ValueError(f"Tenant {tenant_id} not found.")
 
-    # 2. Record the invoice in the tenant's isolated database and void previous
-    session = get_tenant_session(tenant_id)
+    session = _get_central_session()
     try:
-        # Mark all previous 'Paid' invoices as 'Replaced'
         previous_invoices = session.query(Invoice).filter(Invoice.tenant_id == tenant_id, Invoice.status == "Paid").all()
         for inv in previous_invoices:
             inv.status = "Replaced"
-
         new_invoice = Invoice(
             tenant_id=tenant_id,
             amount_inr=amount_inr,
@@ -734,246 +824,55 @@ def record_payment(tenant_id: str, amount_inr: float, plan_name: str, days_to_ad
     finally:
         session.close()
 
-    return {
-        "invoice_id": invoice_id,
-        "new_end_date": new_end_date
-    }
+    return {"invoice_id": invoice_id, "new_end_date": new_end_date}
 
 def get_all_invoices_from_dbs() -> list:
-    """Dynamically reach into every active tenant's database and collect all historical invoices."""
-    all_invoices = []
-    tenants = get_all_tenants()
-
-    for t in tenants:
-        if not t.get("is_active", True):
-            continue
-
-        tenant_id = t["id"]
-        try:
-            session = get_tenant_session(tenant_id)
-            try:
-                # Query all invoices for this tenant
-                tenant_invoices = session.query(Invoice).all()
-                for inv in tenant_invoices:
-                    all_invoices.append({
-                        "id": inv.id,
-                        "tenant_id": inv.tenant_id,
-                        "amount_inr": inv.amount_inr,
-                        "plan_name": inv.plan_name,
-                        "status": inv.status,
-                        "payment_date": str(inv.payment_date)
-                    })
-            finally:
-                session.close()
-        except Exception as e:
-            # If the table doesn't exist yet or connection fails, skip
-            print(f"Skipping invoices for tenant {tenant_id}: {e}")
-
-    # Sort by payment date descending (newest first)
-    all_invoices.sort(key=lambda x: x["payment_date"], reverse=True)
-    return all_invoices
+    """Query all invoices directly from the central DB."""
+    session = _get_central_session()
+    try:
+        invoices = session.query(Invoice).order_by(Invoice.payment_date.desc()).all()
+        return [{
+            "id": inv.id,
+            "tenant_id": inv.tenant_id,
+            "amount_inr": inv.amount_inr,
+            "plan_name": inv.plan_name,
+            "status": inv.status,
+            "payment_date": str(inv.payment_date)
+        } for inv in invoices]
+    finally:
+        session.close()
 
 
 # ──────────────────────────────────────────────
-# TENANT (CLIENT) DATABASE MODELS
+# SCHEMA MIGRATIONS
 # ──────────────────────────────────────────────
-TenantBase = declarative_base()
-
-
-class Admin(TenantBase):
-    __tablename__ = "admins"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    email = Column(String, unique=True, index=True)
-    password_hash = Column(String)
-    role = Column(String, default="admin")
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-
-class Invoice(TenantBase):
-    __tablename__ = "invoices"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    tenant_id = Column(String, index=True)
-    amount_inr = Column(String)
-    plan_name = Column(String)
-    status = Column(String, default="Paid")
-    payment_date = Column(DateTime, default=datetime.datetime.utcnow)
-
-
-
-class FAQ(TenantBase):
-    __tablename__ = "faqs"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    question = Column(Text)
-    answer = Column(Text)
-    intent = Column(String, index=True)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
-
-
-class BusinessProfile(TenantBase):
-    __tablename__ = "business_profile"
-    id = Column(String, primary_key=True, default="default")
-    company_name = Column(String, default="Generic Corp")
-    industry = Column(String, default="General Services")
-    business_description = Column(Text, default="A professional business providing high-quality services.")
-    website = Column(String, default="")
-    support_email = Column(String, default="")
-    phone = Column(String, default="")
-
-    # 1. Point of Contact
-    contact_person_name = Column(String, default="")
-    contact_person_role = Column(String, default="")
-    contact_person_email = Column(String, default="")
-    contact_person_phone = Column(String, default="")
-
-    # 2. Location & Operations
-    address_street = Column(String, default="")
-    city = Column(String, default="")
-    state = Column(String, default="")
-    country = Column(String, default="")
-    zip_code = Column(String, default="")
-    timezone = Column(String, default="")
-    business_hours = Column(String, default="")
-
-    # 3. Branding & UI Customization
-    brand_color_primary = Column(String, default="")
-    brand_color_secondary = Column(String, default="")
-    social_linkedin = Column(String, default="")
-    social_twitter = Column(String, default="")
-    social_instagram = Column(String, default="")
-
-    logo_url = Column(String, default="")
-    chatbot_greeting_message = Column(Text, default="Hi! How can I help you today?")
-    chatbot_system_prompt = Column(Text, default="You are a helpful customer support assistant.")
-
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
-
-
-class ChatLog(TenantBase):
-    __tablename__ = "chat_logs_v2"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    session_id = Column(String, index=True)
-    encrypted_question = Column(Text)
-    encrypted_answer = Column(Text)
-    detected_intent = Column(String)
-    page_url = Column(String)
-    is_resolved = Column(Boolean, default=False)
-    language = Column(String, default="en")
-    user_ip = Column(String)
-    response_time_ms = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-
-class ChatFeedback(TenantBase):
-    __tablename__ = "chat_feedback"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    session_id = Column(String, index=True, unique=True)
-    rating = Column(Integer)  # 1 to 5 scale
-    comment = Column(Text)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-
-
-class KnowledgeDocument(TenantBase):
-    __tablename__ = "knowledge_documents"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    filename = Column(String)
-    content = Column(Text)
-    file_type = Column(String)
-    file_size_bytes = Column(Integer, default=0)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
-
-
-class Lead(TenantBase):
-    """Stores captured visitor contact information (leads) from the chatbot."""
-    __tablename__ = "leads"
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    session_id = Column(String, index=True)
-    name = Column(String, default="")
-    phone = Column(String, default="")
-    email = Column(String, default="")
-    raw_message = Column(Text, default="")   # the original message the user typed
-    page_url = Column(String, default="")
-    is_notified = Column(Boolean, default=False)  # True once email notification sent
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-
-
-# ──────────────────────────────────────────────
-# DYNAMIC TENANT CONNECTION MANAGEMENT
-# ──────────────────────────────────────────────
-_tenant_engines = {}  # Cache: db_url -> engine
-
-
-def _get_tenant_engine(db_url: str):
-    """Create or retrieve a cached engine for a tenant's database."""
-    if db_url not in _tenant_engines:
-        if db_url.startswith("sqlite"):
-            _tenant_engines[db_url] = create_engine(db_url, connect_args={"check_same_thread": False})
-        else:
-            _tenant_engines[db_url] = create_engine(
-                db_url,
-                pool_size=5,
-                max_overflow=10,
-                pool_pre_ping=True,   # handle dropped SSL connections for tenant DBs too
-                pool_recycle=1800,
-            )
-    return _tenant_engines[db_url]
-
-
-def get_tenant_db_url(tenant_id: str) -> str:
-    """Look up a tenant's database URL from the registry."""
-    tenant = get_tenant_by_id(tenant_id)
-    if not tenant:
-        raise ValueError(f"Tenant '{tenant_id}' not found or is inactive.")
-    return tenant["db_url"]
-
-
-def get_tenant_session(tenant_id: str):
-    """Get a SQLAlchemy session connected to a specific tenant's database."""
-    db_url = get_tenant_db_url(tenant_id)
-    engine = _get_tenant_engine(db_url)
-    Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    return Session()
-
-
-def init_tenant_db(db_url: str):
-    """Create all tables in a tenant's database."""
-    engine = _get_tenant_engine(db_url)
-    TenantBase.metadata.create_all(bind=engine)
-
 
 def _ensure_column_if_missing_on_engine(engine, table_name: str, column_name: str, column_sql: str):
-    """Add a missing column on a given engine (idempotent best-effort migration)."""
     inspector = inspect(engine)
     table_names = inspector.get_table_names()
     if table_name not in table_names:
         return
-
     existing_cols = {c["name"] for c in inspector.get_columns(table_name)}
     if column_name in existing_cols:
         return
-
     with engine.begin() as conn:
         conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_sql}"))
 
-
 def _ensure_column_if_missing(table_name: str, column_name: str, column_sql: str):
-    """Add a missing column to the central DB (idempotent best-effort migration)."""
     engine = _get_central_engine()
     _ensure_column_if_missing_on_engine(engine, table_name, column_name, column_sql)
 
-
 def migrate_central_schema():
-    """Bring older central DB schemas up to date for newly added ORM columns."""
+    """Bring the central DB schema up to date."""
     engine = _get_central_engine()
     try:
-        CentralBase.metadata.create_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
     except Exception as e:
         print(f"[migrate_central_schema] Warning: could not create metadata tables: {e}")
         return
 
     migration_steps = [
-        # incidents (central DB)
+        # incidents
         ("incidents", "seller_response", "TEXT DEFAULT ''"),
         ("incidents", "notes", "TEXT DEFAULT ''"),
         ("incidents", "client_read", "BOOLEAN DEFAULT TRUE"),
@@ -990,52 +889,21 @@ def migrate_central_schema():
         ("tenants", "deactivated_at", "TIMESTAMP"),
         ("plans", "default_trial_days", "INTEGER DEFAULT 14"),
         ("plans", "created_at", "TIMESTAMP"),
-    ]
-
-    for table_name, column_name, column_sql in migration_steps:
-        try:
-            _ensure_column_if_missing(table_name, column_name, column_sql)
-        except Exception as e:
-            print(f"[migrate_central_schema] Warning: could not ensure {table_name}.{column_name}: {e}")
-
-    try:
-        with engine.begin() as conn:
-            conn.execute(text("UPDATE tenants SET is_demo_account = FALSE WHERE is_demo_account IS NULL"))
-            conn.execute(text("UPDATE plans SET default_trial_days = 14 WHERE default_trial_days IS NULL"))
-    except Exception as e:
-        print(f"[migrate_central_schema] Warning: could not backfill migration defaults: {e}")
-
-
-def migrate_tenant_schema(db_url: str):
-    """Bring older tenant DB schemas up to date for additive ORM columns."""
-    engine = _get_tenant_engine(db_url)
-
-    # ── Quick reachability probe ───────────────────────────────────────────
-    # Do ONE cheap ping before running 20+ migration steps. If the DB host is
-    # unreachable (deleted Neon project, DNS failure, etc.), bail out with a
-    # single warning instead of spamming 20+ timeout errors in the log.
-    try:
-        with engine.connect() as probe:
-            probe.execute(text("SELECT 1"))
-    except Exception as probe_err:
-        short_url = db_url[:70] + "..." if len(db_url) > 70 else db_url
-        print(f"[migrate_tenant_schema] Skipping unreachable DB ({short_url}): {probe_err.__class__.__name__}")
-        return
-
-    try:
-        TenantBase.metadata.create_all(bind=engine)
-    except Exception as e:
-        print(f"[migrate_tenant_schema] Warning: could not create tenant metadata tables: {e}")
-        return
-
-    migration_steps = [
-        # faqs
+        # tenant_id on all shared tables
+        ("admins", "tenant_id", "VARCHAR"),
+        ("faqs", "tenant_id", "VARCHAR"),
+        ("business_profile", "tenant_id", "VARCHAR"),
+        ("chat_logs_v2", "tenant_id", "VARCHAR"),
+        ("chat_feedback", "tenant_id", "VARCHAR"),
+        ("knowledge_documents", "tenant_id", "VARCHAR"),
+        ("leads", "tenant_id", "VARCHAR"),
+        ("invoices", "tenant_id", "VARCHAR"),
+        # other additive columns
         ("faqs", "is_active", "BOOLEAN DEFAULT TRUE"),
         ("faqs", "updated_at", "TIMESTAMP"),
-        # knowledge_documents
         ("knowledge_documents", "is_active", "BOOLEAN DEFAULT TRUE"),
         ("knowledge_documents", "updated_at", "TIMESTAMP"),
-        # business_profile
+        ("knowledge_documents", "file_size_bytes", "INTEGER DEFAULT 0"),
         ("business_profile", "website", "VARCHAR DEFAULT ''"),
         ("business_profile", "support_email", "VARCHAR DEFAULT ''"),
         ("business_profile", "phone", "VARCHAR DEFAULT ''"),
@@ -1059,44 +927,44 @@ def migrate_tenant_schema(db_url: str):
         ("business_profile", "logo_url", "TEXT DEFAULT ''"),
         ("business_profile", "chatbot_greeting_message", "TEXT DEFAULT 'Hi! How can I help you today?'"),
         ("business_profile", "chatbot_system_prompt", "TEXT DEFAULT 'You are a helpful customer support assistant.'"),
-        # chat_logs_v2
         ("chat_logs_v2", "page_url", "VARCHAR"),
         ("chat_logs_v2", "is_resolved", "BOOLEAN DEFAULT FALSE"),
         ("chat_logs_v2", "language", "VARCHAR DEFAULT 'en'"),
         ("chat_logs_v2", "user_ip", "VARCHAR"),
         ("chat_logs_v2", "response_time_ms", "INTEGER DEFAULT 0"),
         ("chat_logs_v2", "created_at", "TIMESTAMP"),
-        # leads
         ("leads", "raw_message", "TEXT DEFAULT ''"),
         ("leads", "page_url", "VARCHAR DEFAULT ''"),
         ("leads", "is_notified", "BOOLEAN DEFAULT FALSE"),
         ("leads", "created_at", "TIMESTAMP"),
-        # knowledge_documents
-        ("knowledge_documents", "file_size_bytes", "INTEGER DEFAULT 0"),
     ]
 
     for table_name, column_name, column_sql in migration_steps:
         try:
-            _ensure_column_if_missing_on_engine(engine, table_name, column_name, column_sql)
+            _ensure_column_if_missing(table_name, column_name, column_sql)
         except Exception as e:
-            print(f"[migrate_tenant_schema] Warning: could not ensure {table_name}.{column_name}: {e}")
+            print(f"[migrate_central_schema] Warning: could not ensure {table_name}.{column_name}: {e}")
 
     try:
         with engine.begin() as conn:
+            conn.execute(text("UPDATE tenants SET is_demo_account = FALSE WHERE is_demo_account IS NULL"))
+            conn.execute(text("UPDATE plans SET default_trial_days = 14 WHERE default_trial_days IS NULL"))
             conn.execute(text("UPDATE faqs SET is_active = TRUE WHERE is_active IS NULL"))
             conn.execute(text("UPDATE knowledge_documents SET is_active = TRUE WHERE is_active IS NULL"))
             conn.execute(text("UPDATE leads SET is_notified = FALSE WHERE is_notified IS NULL"))
             conn.execute(text("UPDATE chat_logs_v2 SET language = 'en' WHERE language IS NULL"))
             conn.execute(text("UPDATE chat_logs_v2 SET is_resolved = FALSE WHERE is_resolved IS NULL"))
     except Exception as e:
-        print(f"[migrate_tenant_schema] Warning: could not backfill tenant defaults: {e}")
+        print(f"[migrate_central_schema] Warning: could not backfill defaults: {e}")
+
+
+def migrate_tenant_schema(db_url: str = None):
+    """No-op kept for backward compatibility. All schema work is now in migrate_central_schema()."""
+    pass
 
 
 def migrate_usernames():
-    """Backfill username for any existing tenants that don't have one yet.
-    Safe to run multiple times (skips tenants that already have a username).
-    Intended to run during startup after central schema migration.
-    """
+    """Backfill username for any existing tenants that don't have one yet."""
     session = _get_central_session()
     try:
         tenants_without_username = session.query(CentralTenant).filter(

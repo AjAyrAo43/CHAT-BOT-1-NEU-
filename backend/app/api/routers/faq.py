@@ -20,7 +20,6 @@ from ...schemas.models import FAQBase, FAQResponse
 
 router = APIRouter(prefix="/admin", tags=["FAQ"])
 
-# Per-tenant write lock — prevents duplicate FAQs under concurrent requests
 _tenant_locks: dict = defaultdict(threading.Lock)
 
 
@@ -34,17 +33,16 @@ def create_faq(
     tenant_id: str = Query(...),
     db: Session = Depends(get_tenant_db),
 ):
-    """Create a new FAQ entry (enforces per-plan FAQ limit)."""
     lock = _get_tenant_lock(tenant_id)
     with lock:
         limits = get_tenant_limits(tenant_id)
-        faq_count = db.query(FAQ).filter(FAQ.is_active == True).count()
+        faq_count = db.query(FAQ).filter(FAQ.tenant_id == tenant_id, FAQ.is_active == True).count()
         if faq_count >= limits.get("faqs", 20):
             raise HTTPException(
                 status_code=403,
                 detail=f"FAQ limit reached ({limits.get('faqs')}). Please upgrade.",
             )
-        new_faq = FAQ(**faq.dict())
+        new_faq = FAQ(tenant_id=tenant_id, **faq.dict())
         db.add(new_faq)
         db.commit()
         db.refresh(new_faq)
@@ -52,15 +50,13 @@ def create_faq(
 
 
 @router.get("/faqs", response_model=List[FAQResponse])
-async def get_faqs(db: Session = Depends(get_tenant_db)):
-    """Return all FAQs for this tenant."""
-    return db.query(FAQ).all()
+async def get_faqs(tenant_id: str = Query(...), db: Session = Depends(get_tenant_db)):
+    return db.query(FAQ).filter(FAQ.tenant_id == tenant_id).all()
 
 
 @router.delete("/faq/{faq_id}")
-async def deactivate_faq(faq_id: str, db: Session = Depends(get_tenant_db)):
-    """Soft-delete a FAQ (sets is_active=False)."""
-    faq = db.query(FAQ).filter(FAQ.id == faq_id).first()
+async def deactivate_faq(faq_id: str, tenant_id: str = Query(...), db: Session = Depends(get_tenant_db)):
+    faq = db.query(FAQ).filter(FAQ.id == faq_id, FAQ.tenant_id == tenant_id).first()
     if not faq:
         raise HTTPException(status_code=404, detail="FAQ not found")
     faq.is_active = False

@@ -46,6 +46,7 @@ def _refresh_all_tenants_urls():
                 session = get_tenant_session(tenant_id)
                 try:
                     url_docs = session.query(KnowledgeDocument).filter(
+                        KnowledgeDocument.tenant_id == tenant_id,
                         KnowledgeDocument.file_type == "url",
                         KnowledgeDocument.is_active == True,
                     ).all()

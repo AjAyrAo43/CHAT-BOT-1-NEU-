@@ -14,7 +14,6 @@ No business logic lives here.
 import time
 import traceback
 import asyncio
-from concurrent.futures import ThreadPoolExecutor, as_completed  # used in _run_heavy_migrations
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -55,49 +54,17 @@ app.state.limiter = limiter
 # ── Startup: DB initialisation & tenant migration ────────────────────────────
 def _run_heavy_migrations():
     """
-    Runs ALL slow DB work in a background thread so the server starts instantly.
-    Safe to run after the server is already accepting requests — these are all
-    additive, idempotent operations (create-if-not-exists / add-column-if-missing).
+    Runs schema migrations in a background thread so the server starts instantly.
+    All tenant data now lives in the central DB — one migration covers everything.
     """
-    from ..database import (
-        migrate_tenant_schema, get_all_tenants,
-        migrate_central_schema, migrate_usernames,
-    )
+    from ..database import migrate_central_schema, migrate_usernames
 
-    # 1. Central schema migrations (add new columns like incidents table)
     try:
         migrate_central_schema()
         migrate_usernames()
         logger.info("[Startup] Central schema migration complete.")
     except Exception as e:
         logger.warning(f"[Startup] Central schema migration failed: {e}")
-
-    # 2. Per-tenant schema migrations (the slow part — cloud DB cold starts)
-    try:
-        tenants = get_all_tenants()
-        if not tenants:
-            return
-
-        def _migrate_one(t):
-            try:
-                migrate_tenant_schema(t["db_url"])
-                return (t["id"], None)
-            except Exception as te:
-                return (t["id"], str(te))
-
-        with ThreadPoolExecutor(max_workers=min(8, max(1, len(tenants)))) as pool:
-            futures = {pool.submit(_migrate_one, t): t for t in tenants}
-            try:
-                for future in as_completed(futures, timeout=60):
-                    tid, err = future.result()
-                    if err:
-                        logger.warning(f"[Startup] Could not migrate tenant {tid}: {err}")
-            except TimeoutError:
-                logger.warning("[Startup] Tenant migration timed out — some DBs may be unreachable.")
-
-        logger.info(f"[Startup] Tenant schema migration complete for {len(tenants)} tenant(s).")
-    except Exception as e:
-        logger.warning(f"[Startup] Tenant migrations failed: {e}")
 
 
 @app.on_event("startup")

@@ -307,7 +307,6 @@ document.addEventListener('DOMContentLoaded', () => {
         demoTenantForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('demo-tenant-name').value;
-            const dbUrl = document.getElementById('demo-db-url').value;
             const btn = demoTenantForm.querySelector('button');
             const errEl = document.getElementById('demo-create-error');
 
@@ -318,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch(`${API_BASE}/admin/create-demo-tenant`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, db_url: dbUrl })
+                    body: JSON.stringify({ name })
                 });
 
                 if (res.ok) {
@@ -544,9 +543,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         const logoB64 = document.getElementById('reg-profile-logo-b64').value;
         if (logoB64) payload.logo_b64 = logoB64;
-        const dbUrl = document.getElementById('db-url').value;
-        if (dbUrl) payload.db_url = dbUrl;
-        else payload.db_url = `sqlite:///tenants/${payload.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.db`;
 
         try {
             const res = await fetch(`${API_BASE}/admin/tenant`, {

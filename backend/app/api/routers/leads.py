@@ -8,7 +8,7 @@ Routes:
 """
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from collections import defaultdict
 
@@ -22,9 +22,8 @@ router = APIRouter(prefix="/admin", tags=["Leads"])
 
 
 @router.get("/leads")
-async def get_leads(db: Session = Depends(get_tenant_db)):
-    """Return all captured leads for this tenant, newest first."""
-    leads = db.query(Lead).order_by(Lead.created_at.desc()).all()
+async def get_leads(tenant_id: str = Query(...), db: Session = Depends(get_tenant_db)):
+    leads = db.query(Lead).filter(Lead.tenant_id == tenant_id).order_by(Lead.created_at.desc()).all()
     return [
         {
             "id": lead.id,
@@ -42,17 +41,16 @@ async def get_leads(db: Session = Depends(get_tenant_db)):
 
 
 @router.get("/chats", response_model=List[ChatLogResponse])
-async def get_all_chats(db: Session = Depends(get_tenant_db)):
-    """Return all chat logs (decrypted) for this tenant."""
-    logs = db.query(ChatLog).all()
-    feedbacks = db.query(ChatFeedback).all()
+async def get_all_chats(tenant_id: str = Query(...), db: Session = Depends(get_tenant_db)):
+    logs = db.query(ChatLog).filter(ChatLog.tenant_id == tenant_id).all()
+    feedbacks = db.query(ChatFeedback).filter(ChatFeedback.tenant_id == tenant_id).all()
     fb_dict = {f.session_id: f for f in feedbacks}
-    
+
     session_times = defaultdict(list)
     for log in logs:
         if log.session_id:
             session_times[log.session_id].append(log.created_at)
-            
+
     session_durations = {}
     for sid, times in session_times.items():
         if times:
@@ -82,10 +80,10 @@ async def get_all_chats(db: Session = Depends(get_tenant_db)):
         )
     return results
 
+
 @router.get("/feedback/stats")
-async def get_feedback_stats(db: Session = Depends(get_tenant_db)):
-    """Return average feedback rating and count."""
-    feedbacks = db.query(ChatFeedback).all()
+async def get_feedback_stats(tenant_id: str = Query(...), db: Session = Depends(get_tenant_db)):
+    feedbacks = db.query(ChatFeedback).filter(ChatFeedback.tenant_id == tenant_id).all()
     if not feedbacks:
         return {"average": 0, "count": 0}
     avg = sum(f.rating for f in feedbacks) / len(feedbacks)

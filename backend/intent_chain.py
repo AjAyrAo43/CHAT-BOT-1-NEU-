@@ -25,7 +25,7 @@ def detect_intent(question: str, tenant_id: str = None, db=None) -> str:
             # only the savepoint is rolled back instead of aborting the entire transaction block.
             try:
                 with db.begin_nested():
-                    profile = db.query(BusinessProfile.company_name, BusinessProfile.industry).first()
+                    profile = db.query(BusinessProfile.company_name, BusinessProfile.industry).filter(BusinessProfile.tenant_id == tenant_id).first()
             except Exception:
                 profile = None
 
